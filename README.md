@@ -1,4 +1,4 @@
-# iSeg : A Tensorflow 2 Library for Semantic Segmentation
+# iSeg : A TensorFlow 2 Library for Semantic Segmentation
 
 Working in progress
 
