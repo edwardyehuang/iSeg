@@ -5,6 +5,8 @@ Working in progress
 
 I am very busy at this moment, but I will try my best to update this repo.
 
+I will also upload the code for dataset supports and some implementations of well-known networks (e.g. PSPNet, DeepLab, CCNet, DANet, OCRNet)
+
 ## Features
 ### Backbone support
 
