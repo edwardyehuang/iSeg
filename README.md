@@ -26,3 +26,8 @@ I will also upload the code for dataset supports and some implementations of wel
 - [x] Deterministic (Currently not 100%, see https://github.com/NVIDIA/framework-determinism)
 - [x] Training and inference on TPU
 - [x] Typical image augmentation
+
+## Requirements
+
+TensorFlow >= 2.4 (2.3 is fine for TPU users)
+TensorFlow >= 2.6 for Apple M1 users.
