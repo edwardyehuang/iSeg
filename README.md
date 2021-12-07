@@ -3,7 +3,7 @@
 
 Working in progress
 
-I am very busy at this moment, but I will try my best to update this repo.
+I am very busy at this moment (poor student....), but I will try my best to update this repo until Semantic Segmntation is solved.
 
 I will also upload the code for dataset supports and some implementations of well-known networks (e.g. PSPNet, DeepLab, CCNet, DANet, OCRNet)
 
