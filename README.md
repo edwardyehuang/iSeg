@@ -29,5 +29,6 @@ I will also upload the code for dataset supports and some implementations of wel
 
 ## Requirements
 
-TensorFlow >= 2.4 (2.3 is fine for TPU users)
-TensorFlow >= 2.6 for Apple M1 users.
+* TensorFlow >= 2.4 (2.3 is fine for TPU users)
+* TensorFlow >= 2.6 for Apple M1 users.
+* Mixed precision only supports GPU architectures after Volta (included).
