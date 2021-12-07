@@ -12,4 +12,7 @@ I am very busy at this moment, but I will try my best to update this repo.
 - [x] Xception-65
 - [x] EfficientNetV1
 - [ ] EfficientNetV2
-- [x] SWIN Transformer (Inputs size free)
+- [ ] Vision Transformer (WIP)
+- [ ] MLP Mixer (WIP)
+- [x] Swin Transformer (Inputs size free)
+- [x] MobileNetV2
