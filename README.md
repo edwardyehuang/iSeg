@@ -1,5 +1,4 @@
-# iSeg
-## A powerful Tensorflow 2.x based Semantic Segmentation Framework
+# iSeg : A powerful Tensorflow 2 Library for Semantic Segmentation
 
 Working in progress
 
