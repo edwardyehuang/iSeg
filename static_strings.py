@@ -15,7 +15,6 @@ COCOSTUFF       = "cocostuff"
 COCOSTUFF10K    = "cocostuff10k"
 LIP             = "lip"
 TEMPSET         = "tempset"
-BIKER           = "biker"
 PSEUDO          = "pseudo"
 
 TRAIN       = "train"
