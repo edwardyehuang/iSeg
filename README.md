@@ -27,6 +27,7 @@ Some segmentation results on Flickr images:
 ### Other features
 - [x] Mixed precision training and inference
 - [x] Deterministic (Currently not 100%, see https://github.com/NVIDIA/framework-determinism)
+- [x] Training and inference on GPU $\leq$ 8
 - [x] Training and inference on TPU
 - [x] Typical image augmentation
 
