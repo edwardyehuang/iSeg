@@ -24,6 +24,8 @@ TEST_IMG    = "testimg"
 
 TFRECORD    = "tfrecord"
 
+EXPORT_WEIGHTS = "export_weights"
+
 CROP_HEIGHT = "crop_height"
 CROP_WIDTH  = "crop_width"
 
