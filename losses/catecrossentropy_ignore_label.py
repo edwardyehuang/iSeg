@@ -5,18 +5,22 @@
 
 import tensorflow as tf
 
-def catecrossentropy_ignore_label_loss (num_class = 21, 
-                                        ignore_label = 255,
-                                        batch_size = 2, 
-                                        reduction = False,
-                                        pre_compute_fn = None,
-                                        post_compute_fn = None,
-                                        from_logits = True):
 
-    loss_func = tf.keras.losses.CategoricalCrossentropy(from_logits = from_logits, 
-                                                        reduction = tf.keras.losses.Reduction.NONE)
+def catecrossentropy_ignore_label_loss(
+    num_class=21,
+    ignore_label=255,
+    batch_size=2,
+    reduction=False,
+    pre_compute_fn=None,
+    post_compute_fn=None,
+    from_logits=True,
+):
 
-    def weighted_loss (y_true, y_pred):
+    loss_func = tf.keras.losses.CategoricalCrossentropy(
+        from_logits=from_logits, reduction=tf.keras.losses.Reduction.NONE
+    )
+
+    def weighted_loss(y_true, y_pred):
 
         local_batch_size = tf.shape(y_pred)[0]
 
@@ -41,8 +45,8 @@ def catecrossentropy_ignore_label_loss (num_class = 21,
             loss_value = post_compute_fn(one_hot_label, y_pred, loss_value, local_batch_size)
 
         if reduction:
-            loss_value = tf.nn.compute_average_loss(loss_value, global_batch_size = batch_size)
+            loss_value = tf.nn.compute_average_loss(loss_value, global_batch_size=batch_size)
 
         return loss_value
-    
+
     return weighted_loss

@@ -8,20 +8,17 @@ import iseg.data_process.utils as dataprocess
 
 from iseg.data_process.arguments.data_argument_base import DataArgumentBase
 
+
 class RandomCropArgument(DataArgumentBase):
+    def __init__(self, crop_height=513, crop_width=513, name=None):
 
-    def __init__(self, crop_height = 513, 
-                       crop_width = 513, 
-                       name = None):
-
-        super().__init__(name = name)
+        super().__init__(name=name)
 
         self.crop_height = crop_height
         self.crop_width = crop_width
 
-
     def call(self, image, label):
-        
+
         if label is not None:
             image, label = dataprocess.random_crop([image, label], self.crop_height, self.crop_width)
 
@@ -29,5 +26,3 @@ class RandomCropArgument(DataArgumentBase):
         label.set_shape([self.crop_height, self.crop_width, label.shape[-1]])
 
         return image, label
-
-        

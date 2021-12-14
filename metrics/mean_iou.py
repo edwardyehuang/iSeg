@@ -11,10 +11,8 @@ import numpy as np
 from iseg.metrics.confusion_matrix import confusion_matrix
 
 
-
-class MeanIOU (tf.keras.metrics.Metric):
-
-    def __init__(self, num_classes, name = None, dtype = None):
+class MeanIOU(tf.keras.metrics.Metric):
+    def __init__(self, num_classes, name=None, dtype=None):
         """Initializes `PerClassIoU`.
 
         Arguments:
@@ -26,13 +24,13 @@ class MeanIOU (tf.keras.metrics.Metric):
 
         """
 
-        super(MeanIOU, self).__init__(name = name, dtype = dtype)
+        super(MeanIOU, self).__init__(name=name, dtype=dtype)
         self.num_classes = num_classes
 
         # Variable to accumulate the predictions in the confusion matrix.
-        self.total_cm = self.add_weight('total_confusion_matrix', shape = (num_classes, num_classes), 
-                                                                  initializer =tf.compat.v1.zeros_initializer)
-            
+        self.total_cm = self.add_weight(
+            "total_confusion_matrix", shape=(num_classes, num_classes), initializer=tf.compat.v1.zeros_initializer
+        )
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         """Accumulates the confusion matrix statistics.
@@ -64,14 +62,9 @@ class MeanIOU (tf.keras.metrics.Metric):
                 sample_weight = tf.reshape(sample_weight, [-1])
 
         # Accumulate the prediction to current confusion matrix.
-        current_cm = confusion_matrix(y_true, 
-                                      y_pred, 
-                                      self.num_classes,
-                                      weights=sample_weight,
-                                      dtype = self._dtype)
+        current_cm = confusion_matrix(y_true, y_pred, self.num_classes, weights=sample_weight, dtype=self._dtype)
 
         return self.total_cm.assign_add(current_cm)
-
 
     def result(self):
         """Compute the mean intersection-over-union via the confusion matrix."""
@@ -87,14 +80,12 @@ class MeanIOU (tf.keras.metrics.Metric):
 
         iou = tf.math.divide_no_nan(true_positives, denominator)
 
-        return tf.math.divide_no_nan(tf.reduce_sum(iou, name='mean_iou'), num_valid_entries)
-
+        return tf.math.divide_no_nan(tf.reduce_sum(iou, name="mean_iou"), num_valid_entries)
 
     def reset_states(self):
         tf.keras.backend.set_value(self.total_cm, np.zeros((self.num_classes, self.num_classes)))
 
-
     def get_config(self):
-        config = {'num_classes': self.num_classes}
+        config = {"num_classes": self.num_classes}
         base_config = super(MeanIOU, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

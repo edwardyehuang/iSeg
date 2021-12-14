@@ -9,6 +9,7 @@ from tensorflow.python.framework import ops
 
 from iseg.utils import resize_image
 
+
 def _crop(image, offset_height, offset_width, crop_height, crop_width):
     """Crops the given image using the provided offsets and sizes.
 
@@ -33,21 +34,20 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
     original_shape = tf.shape(image)
 
     if len(image.get_shape().as_list()) != 3:
-        raise ValueError('input must have rank of 3')
-        
+        raise ValueError("input must have rank of 3")
+
     original_channels = image.get_shape().as_list()[2]
 
-    rank_assertion = tf.Assert(
-        tf.equal(tf.rank(image), 3),
-        ['Rank of image must be equal to 3.'])
+    rank_assertion = tf.Assert(tf.equal(tf.rank(image), 3), ["Rank of image must be equal to 3."])
     with tf.control_dependencies([rank_assertion]):
         cropped_shape = tf.stack([crop_height, crop_width, original_shape[2]])
 
     size_assertion = tf.Assert(
         tf.logical_and(
-            tf.greater_equal(original_shape[0], crop_height),
-            tf.greater_equal(original_shape[1], crop_width)),
-        ['Crop size greater than the image size.'])
+            tf.greater_equal(original_shape[0], crop_height), tf.greater_equal(original_shape[1], crop_width)
+        ),
+        ["Crop size greater than the image size."],
+    )
 
     offsets = tf.cast(tf.stack([offset_height, offset_width, 0]), tf.dtypes.int32)
 
@@ -58,6 +58,7 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
     image = tf.reshape(image, cropped_shape)
     image.set_shape([crop_height, crop_width, original_channels])
     return image
+
 
 def random_crop(image_list, crop_height, crop_width):
     """Crops the given list of images.
@@ -82,17 +83,14 @@ def random_crop(image_list, crop_height, crop_width):
         or the images are smaller than the crop dimensions.
     """
     if not image_list:
-        raise ValueError('Empty image_list.')
+        raise ValueError("Empty image_list.")
 
     # Compute the rank assertions.
     rank_assertions = []
 
     for i in range(len(image_list)):
         image_rank = tf.rank(image_list[i])
-        rank_assert = tf.Assert(
-            tf.equal(image_rank, 3),
-            ['Wrong rank for tensor [expected] [actual]',
-            3, image_rank])
+        rank_assert = tf.Assert(tf.equal(image_rank, 3), ["Wrong rank for tensor [expected] [actual]", 3, image_rank])
         rank_assertions.append(rank_assert)
 
     with tf.control_dependencies([rank_assertions[0]]):
@@ -100,8 +98,10 @@ def random_crop(image_list, crop_height, crop_width):
 
     image_height = image_shape[0]
     image_width = image_shape[1]
-    crop_size_assert = tf.Assert(tf.logical_and(tf.greater_equal(image_height, crop_height), tf.greater_equal(image_width, crop_width)),
-        ['Crop size greater than the image size.'])
+    crop_size_assert = tf.Assert(
+        tf.logical_and(tf.greater_equal(image_height, crop_height), tf.greater_equal(image_width, crop_width)),
+        ["Crop size greater than the image size."],
+    )
 
     asserts = [rank_assertions[0], crop_size_assert]
 
@@ -116,13 +116,11 @@ def random_crop(image_list, crop_height, crop_width):
         width = shape[1]
 
         height_assert = tf.Assert(
-            tf.equal(height, image_height),
-            ['Wrong height for tensor [expected][actual]',
-            height, image_height])
+            tf.equal(height, image_height), ["Wrong height for tensor [expected][actual]", height, image_height]
+        )
         width_assert = tf.Assert(
-            tf.equal(width, image_width),
-            ['Wrong width for tensor [expected][actual]',
-            width, image_width])
+            tf.equal(width, image_width), ["Wrong width for tensor [expected][actual]", width, image_width]
+        )
         asserts.extend([height_assert, width_assert])
 
     # Create a random bounding box.
@@ -133,13 +131,10 @@ def random_crop(image_list, crop_height, crop_width):
     with tf.control_dependencies(asserts):
         max_offset_height = tf.reshape(image_height - crop_height + 1, [])
         max_offset_width = tf.reshape(image_width - crop_width + 1, [])
-    offset_height = tf.random.uniform(
-        [], maxval=max_offset_height, dtype=tf.int32)
-    offset_width = tf.random.uniform(
-        [], maxval=max_offset_width, dtype=tf.int32)
+    offset_height = tf.random.uniform([], maxval=max_offset_height, dtype=tf.int32)
+    offset_width = tf.random.uniform([], maxval=max_offset_width, dtype=tf.int32)
 
-    return [_crop(image, offset_height, offset_width,
-                    crop_height, crop_width) for image in image_list]
+    return [_crop(image, offset_height, offset_width, crop_height, crop_width) for image in image_list]
 
 
 def _image_dimensions(image, rank):
@@ -159,12 +154,10 @@ def _image_dimensions(image, rank):
     else:
         static_shape = image.get_shape().with_rank(rank).as_list()
         dynamic_shape = tf.unstack(tf.shape(image), rank)
-        return [
-            s if s is not None else d for s, d in zip(static_shape, dynamic_shape)
-        ]
+        return [s if s is not None else d for s, d in zip(static_shape, dynamic_shape)]
 
-def pad_to_bounding_box(image, offset_height, offset_width, target_height,
-                        target_width, pad_value):
+
+def pad_to_bounding_box(image, offset_height, offset_width, target_height, target_width, pad_value):
     """Pads the given image with the given pad_value.
 
     Works like tf.image.pad_to_bounding_box, except it can pad the image
@@ -186,18 +179,16 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
         ValueError: If the shape of image is incompatible with the offset_* or
         target_* arguments.
     """
-    
-    with ops.name_scope(None, 'pad_to_bounding_box', [image]):
-        image = tf.convert_to_tensor(image, name='image')
+
+    with ops.name_scope(None, "pad_to_bounding_box", [image]):
+        image = tf.convert_to_tensor(image, name="image")
         original_dtype = image.dtype
         if original_dtype != tf.float32 and original_dtype != tf.float64:
-        # If image dtype is not float, we convert it to int32 to avoid overflow.
+            # If image dtype is not float, we convert it to int32 to avoid overflow.
             image = tf.cast(image, tf.int32)
         image_rank_assert = tf.Assert(
-            tf.logical_or(
-                tf.equal(tf.rank(image), 3),
-                tf.equal(tf.rank(image), 4)),
-            ['Wrong image tensor rank.'])
+            tf.logical_or(tf.equal(tf.rank(image), 3), tf.equal(tf.rank(image), 4)), ["Wrong image tensor rank."]
+        )
 
         with tf.control_dependencies([image_rank_assert]):
             image -= pad_value
@@ -213,17 +204,12 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
             image = tf.expand_dims(image, 0)
             image.set_shape([None] * 4)
         elif image.get_shape().ndims != 4:
-            raise ValueError('Input image must have either 3 or 4 dimensions.')
-        
+            raise ValueError("Input image must have either 3 or 4 dimensions.")
+
         _, height, width, _ = _image_dimensions(image, rank=4)
 
-        target_width_assert = tf.Assert(
-            tf.greater_equal(
-                target_width, width),
-            ['target_width must be >= width'])
-        target_height_assert = tf.Assert(
-            tf.greater_equal(target_height, height),
-            ['target_height must be >= height'])
+        target_width_assert = tf.Assert(tf.greater_equal(target_width, width), ["target_width must be >= width"])
+        target_height_assert = tf.Assert(tf.greater_equal(target_height, height), ["target_height must be >= height"])
 
         with tf.control_dependencies([target_width_assert]):
             after_padding_width = target_width - offset_width - width
@@ -231,10 +217,9 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
             after_padding_height = target_height - offset_height - height
 
         offset_assert = tf.Assert(
-            tf.logical_and(
-                tf.greater_equal(after_padding_width, 0),
-                tf.greater_equal(after_padding_height, 0)),
-            ['target size not possible with the given target offsets'])
+            tf.logical_and(tf.greater_equal(after_padding_width, 0), tf.greater_equal(after_padding_height, 0)),
+            ["target size not possible with the given target offsets"],
+        )
 
         batch_params = tf.stack([0, 0])
         height_params = tf.stack([offset_height, after_padding_height])
@@ -242,8 +227,7 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
         channel_params = tf.stack([0, 0])
 
         with tf.control_dependencies([offset_assert]):
-            paddings = tf.stack([batch_params, height_params, width_params,
-                                channel_params])
+            paddings = tf.stack([batch_params, height_params, width_params, channel_params])
 
         padded = tf.pad(image, paddings)
 
@@ -257,7 +241,8 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
 
         return outputs
 
-def flip_dim(tensor_list, prob = 0.5, dim = 1):
+
+def flip_dim(tensor_list, prob=0.5, dim=1):
 
     """Randomly flips a dimension of the given tensor.
     The decision to randomly flip the `Tensors` is made together. In other words,
@@ -282,7 +267,7 @@ def flip_dim(tensor_list, prob = 0.5, dim = 1):
         flipped = []
         for tensor in tensor_list:
             if dim < 0 or dim >= len(tensor.get_shape().as_list()):
-                raise ValueError('dim must represent a valid dimension.')
+                raise ValueError("dim must represent a valid dimension.")
             flipped.append(tf.reverse(tensor, [dim]))
 
         return flipped
@@ -298,7 +283,7 @@ def flip_dim(tensor_list, prob = 0.5, dim = 1):
     return outputs
 
 
-def random_grayscale(tensor, prob = 0.5):
+def random_grayscale(tensor, prob=0.5):
 
     random_value = tf.random.uniform([])
     is_grayscale = tf.less(random_value, prob)
@@ -307,8 +292,8 @@ def random_grayscale(tensor, prob = 0.5):
         grayscale = tf.image.rgb_to_grayscale(tensor)
         return tf.image.grayscale_to_rgb(grayscale)
 
-    outputs = tf.cond(is_grayscale, to_grayscale, lambda:tensor)
-    
+    outputs = tf.cond(is_grayscale, to_grayscale, lambda: tensor)
+
     return outputs
 
 
@@ -324,16 +309,14 @@ def get_random_scale(min_scale_factor, max_scale_factor, step_size):
         ValueError: min_scale_factor has unexpected value.
     """
     if min_scale_factor < 0 or min_scale_factor > max_scale_factor:
-        raise ValueError('Unexpected value of min_scale_factor.')
+        raise ValueError("Unexpected value of min_scale_factor.")
 
     if min_scale_factor == max_scale_factor:
         return tf.cast(min_scale_factor, tf.float32)
 
     # When step_size = 0, we sample the value uniformly from [min, max).
     if step_size == 0:
-        return tf.random_uniform([1],
-                                minval=min_scale_factor,
-                                maxval=max_scale_factor)
+        return tf.random_uniform([1], minval=min_scale_factor, maxval=max_scale_factor)
 
     # When step_size != 0, we randomly select one discrete value from [min, max].
     num_steps = int((max_scale_factor - min_scale_factor) / step_size + 1)
@@ -341,7 +324,8 @@ def get_random_scale(min_scale_factor, max_scale_factor, step_size):
     shuffled_scale_factors = tf.random.shuffle(scale_factors)
     return shuffled_scale_factors[0]
 
-#@tf.function
+
+# @tf.function
 def randomly_scale_image_and_label(image, label=None, scale=1.0):
     """Randomly scales image and label.
     Args:
@@ -354,29 +338,30 @@ def randomly_scale_image_and_label(image, label=None, scale=1.0):
     # No random scaling if scale == 1.
     if scale == 1.0:
         return image, label
-        
+
     image_shape = tf.shape(image)
-    new_dim = tf.cast(
-        tf.cast([image_shape[0], image_shape[1]], tf.float32) * scale,
-        tf.int32)
+    new_dim = tf.cast(tf.cast([image_shape[0], image_shape[1]], tf.float32) * scale, tf.int32)
 
     # Need squeeze and expand_dims because image interpolation takes
     # 4D tensors as input.
     image = resize_image(image, new_dim)
-    
+
     if label is not None:
-        label = resize_image(label, new_dim, method = "nearest")
+        label = resize_image(label, new_dim, method="nearest")
 
     return image, label
 
-def resize_to_range(image,
-                label=None,
-                min_size=None,
-                max_size=None,
-                factor=None,
-                label_layout_is_chw=False,
-                scope=None,
-                method=tf.image.ResizeMethod.BILINEAR):
+
+def resize_to_range(
+    image,
+    label=None,
+    min_size=None,
+    max_size=None,
+    factor=None,
+    label_layout_is_chw=False,
+    scope=None,
+    method=tf.image.ResizeMethod.BILINEAR,
+):
     """Resizes image or label so their sides are within the provided range.
     The output size can be described by two cases:
     1. If the image can be rescaled so its minimum size is equal to min_size
@@ -406,16 +391,15 @@ def resize_to_range(image,
     Raises:
         ValueError: If the image is not a 3D tensor.
     """
-    with ops.name_scope(None, 'resize_to_range', [image]):
+    with ops.name_scope(None, "resize_to_range", [image]):
         new_tensor_list = []
         min_size = tf.cast(min_size, tf.float32)
         if max_size is not None:
             max_size = tf.cast(max_size, tf.float32)
-        # Modify the max_size to be a multiple of factor plus 1 and make sure the
-        # max dimension after resizing is no larger than max_size.
+            # Modify the max_size to be a multiple of factor plus 1 and make sure the
+            # max dimension after resizing is no larger than max_size.
             if factor is not None:
-                max_size = (max_size + (factor - (max_size - 1) % factor) % factor
-                            - factor)
+                max_size = max_size + (factor - (max_size - 1) % factor) % factor - factor
 
         [orig_height, orig_width, _] = resolve_shape(image, rank=3)
         orig_height = tf.cast(orig_height, tf.float32)
@@ -439,24 +423,25 @@ def resize_to_range(image,
             small_width = tf.cast(tf.math.ceil(orig_width * small_scale_factor), tf.int32)
             small_size = tf.stack([small_height, small_width])
             new_size = tf.cond(
-                tf.cast(tf.reduce_max(large_size), tf.float32) > max_size,
-                lambda: small_size,
-                lambda: large_size)
+                tf.cast(tf.reduce_max(large_size), tf.float32) > max_size, lambda: small_size, lambda: large_size
+            )
         # Ensure that both output sides are multiples of factor plus one.
         if factor is not None:
             new_size += (factor - (new_size - 1) % factor) % factor
-        new_tensor_list.append(tf.compat.v1.image.resize(image, new_size, method=method, align_corners = True))
+        new_tensor_list.append(tf.compat.v1.image.resize(image, new_size, method=method, align_corners=True))
         if label is not None:
             if label_layout_is_chw:
                 # Input label has shape [channel, height, width].
                 resized_label = tf.expand_dims(label, 3)
                 resized_label = tf.compat.v1.image.resize(
-                    resized_label, new_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners = True)
+                    resized_label, new_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=True
+                )
                 resized_label = tf.squeeze(resized_label, 3)
             else:
                 # Input label has shape [height, width, channel].
                 resized_label = tf.compat.v1.image.resize(
-                    label, new_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners = True)
+                    label, new_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=True
+                )
             new_tensor_list.append(resized_label)
         else:
             new_tensor_list.append(None)
@@ -465,28 +450,27 @@ def resize_to_range(image,
 
 
 @tf.function
-def resize_to_max (size, image, label = None):
+def resize_to_max(size, image, label=None):
 
-    image_dtype     = image.dtype
-    label_dtype     = label.dtype
+    image_dtype = image.dtype
+    label_dtype = label.dtype
 
-    image_shape     = tf.shape(image)
-    image_height    = image_shape[0]
-    image_width     = image_shape[1]
+    image_shape = tf.shape(image)
+    image_height = image_shape[0]
+    image_width = image_shape[1]
 
     if image_height > size or image_width > size:
-        image = tf.image.resize(image, size = (size, size), preserve_aspect_ratio = True, method=tf.image.ResizeMethod.BILINEAR)
+        image = tf.image.resize(
+            image, size=(size, size), preserve_aspect_ratio=True, method=tf.image.ResizeMethod.BILINEAR
+        )
         label = tf.compat.v1.image.resize_bilinear()
 
     return (image, label)
 
 
-def random_pad_single_pixel (tensor, ignore_label = 255):
+def random_pad_single_pixel(tensor, ignore_label=255):
     pass
     # tensor = tf.pad(tensor, paddings = )
-
-
-
 
 
 def resolve_shape(tensor, rank=None, scope=None):
@@ -500,7 +484,7 @@ def resolve_shape(tensor, rank=None, scope=None):
     Returns:
         shape: The full shape of the tensor.
     """
-    with ops.name_scope(None, 'resolve_shape', [tensor]):
+    with ops.name_scope(None, "resolve_shape", [tensor]):
         if rank is not None:
             shape = tensor.get_shape().with_rank(rank).as_list()
         else:
@@ -515,9 +499,7 @@ def resolve_shape(tensor, rank=None, scope=None):
         return shape
 
 
-
-
-def normalize_value_range (inputs, backbone_name = ss.RESNET103):
+def normalize_value_range(inputs, backbone_name=ss.RESNET103):
 
     if "resnet" in backbone_name and not is_resnet_beta(backbone_name):
         # return preprocess_subtract_imagenet_mean(inputs)
@@ -526,30 +508,30 @@ def normalize_value_range (inputs, backbone_name = ss.RESNET103):
     else:
         return preprocess_zero_mean_unit_range(inputs)
 
-    
-def is_resnet_beta (backbone_name):
+
+def is_resnet_beta(backbone_name):
     return backbone_name == ss.RESNET52 or backbone_name == ss.RESNET103
 
-    
-def preprocess_zero_mean_unit_range(inputs, dtype = tf.float32):
+
+def preprocess_zero_mean_unit_range(inputs, dtype=tf.float32):
     """Map image values from [0, 255] to [-1, 1]."""
-    
+
     preprocessed_inputs = (2.0 / 255.0) * tf.cast(inputs, tf.float32) - 1.0
 
     return tf.cast(preprocessed_inputs, dtype=dtype)
 
 
-def preprocess_subtract_imagenet_mean(inputs, dtype = tf.float32):
+def preprocess_subtract_imagenet_mean(inputs, dtype=tf.float32):
     """Subtract Imagenet mean RGB value."""
     mean_rgb = tf.reshape([123.15, 115.90, 103.06], [1, 1, 1, 3])
     num_channels = tf.shape(inputs)[-1]
     # We set mean pixel as 0 for the non-RGB channels.
-    mean_rgb_extended = tf.concat([mean_rgb, tf.zeros([1, 1, 1, num_channels - 3])], axis = 3)
+    mean_rgb_extended = tf.concat([mean_rgb, tf.zeros([1, 1, 1, num_channels - 3])], axis=3)
 
     return tf.cast(inputs - mean_rgb_extended, dtype=dtype)
 
 
-def get_mean_pixel(backbone_name = ss.RESNET103):
+def get_mean_pixel(backbone_name=ss.RESNET103):
 
     if "resnet" in backbone_name and not is_resnet_beta(backbone_name):
         return [123.15, 115.90, 103.06]

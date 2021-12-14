@@ -5,14 +5,11 @@
 
 import tensorflow as tf
 
-class CoreResult (object):
 
-    def __init__(self, loss_rates = 1., use_ohem = False, name = None):
+class CoreResult(object):
+    def __init__(self, loss_rates=1.0, use_ohem=False, name=None):
         super(CoreResult, self).__init__()
 
         self.name = name
         self.use_ohem = use_ohem
         self.loss_rates = loss_rates
-
-
-        

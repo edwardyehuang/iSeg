@@ -2,6 +2,7 @@
 
 import tensorflow as tf
 
+
 class DecoupledWeightDecayExtension:
     """This class allows to extend optimizers with decoupled weight decay.
     It implements the decoupled weight decay described by Loshchilov & Hutter
@@ -79,9 +80,7 @@ class DecoupledWeightDecayExtension:
 
         return cls(**config)
 
-    def minimize(
-        self, loss, var_list, grad_loss=None, name=None, decay_var_list=None, tape=None
-    ):
+    def minimize(self, loss, var_list, grad_loss=None, name=None, decay_var_list=None, tape=None):
         """Minimize `loss` by updating `var_list`.
         This method simply computes gradient using `tf.GradientTape` and calls
         `apply_gradients()`. If you want to process the gradient before
@@ -108,12 +107,8 @@ class DecoupledWeightDecayExtension:
         Raises:
             ValueError: If some of the variables are not `Variable` objects.
         """
-        self._decay_var_list = (
-            set([v.ref() for v in decay_var_list]) if decay_var_list else False
-        )
-        return super().minimize(
-            loss, var_list=var_list, grad_loss=grad_loss, name=name, tape=tape
-        )
+        self._decay_var_list = set([v.ref() for v in decay_var_list]) if decay_var_list else False
+        return super().minimize(loss, var_list=var_list, grad_loss=grad_loss, name=name, tape=tape)
 
     def apply_gradients(self, grads_and_vars, name=None, decay_var_list=None, **kwargs):
         """Apply gradients to variables.
@@ -134,17 +129,15 @@ class DecoupledWeightDecayExtension:
             TypeError: If `grads_and_vars` is malformed.
             ValueError: If none of the variables have gradients.
         """
-        self._decay_var_list = (
-            set([v.ref() for v in decay_var_list]) if decay_var_list else False
-        )
+        self._decay_var_list = set([v.ref() for v in decay_var_list]) if decay_var_list else False
         return super().apply_gradients(grads_and_vars, name=name, **kwargs)
 
     def _decay_weights_op(self, var, apply_state=None):
         if not self._decay_var_list or var.ref() in self._decay_var_list:
             var_device, var_dtype = var.device, var.dtype.base_dtype
-            coefficients = (apply_state or {}).get(
-                (var_device, var_dtype)
-            ) or self._fallback_apply_state(var_device, var_dtype)
+            coefficients = (apply_state or {}).get((var_device, var_dtype)) or self._fallback_apply_state(
+                var_device, var_dtype
+            )
 
             return var.assign_sub(coefficients["wd_t"] * var, self._use_locking)
         return tf.no_op()
@@ -152,18 +145,16 @@ class DecoupledWeightDecayExtension:
     def _decay_weights_sparse_op(self, var, indices, apply_state=None):
         if not self._decay_var_list or var.ref() in self._decay_var_list:
             var_device, var_dtype = var.device, var.dtype.base_dtype
-            coefficients = (apply_state or {}).get(
-                (var_device, var_dtype)
-            ) or self._fallback_apply_state(var_device, var_dtype)
+            coefficients = (apply_state or {}).get((var_device, var_dtype)) or self._fallback_apply_state(
+                var_device, var_dtype
+            )
 
             update = -coefficients["wd_t"] * tf.gather(var, indices)
             return self._resource_scatter_add(var, indices, update)
         return tf.no_op()
 
     def _prepare_local(self, var_device, var_dtype, apply_state):
-        super(DecoupledWeightDecayExtension, self)._prepare_local(
-            var_device, var_dtype, apply_state
-        )
+        super(DecoupledWeightDecayExtension, self)._prepare_local(var_device, var_dtype, apply_state)
 
         if "weight_decay" in self._hyper:
             wd_t = tf.identity(self._decayed_wd(var_dtype))
@@ -181,17 +172,13 @@ class DecoupledWeightDecayExtension:
     # super().apply_x resolves to the apply_x function of the BaseOptimizer.
 
     def _resource_apply_dense(self, grad, var, apply_state=None):
-        with tf.control_dependencies(
-            [self._decay_weights_op(var, apply_state=apply_state)]
-        ):
+        with tf.control_dependencies([self._decay_weights_op(var, apply_state=apply_state)]):
             return super()._resource_apply_dense(grad, var, apply_state=apply_state)
 
     def _resource_apply_sparse(self, grad, var, indices, apply_state=None):
         decay_op = self._decay_weights_sparse_op(var, indices, apply_state=apply_state)
         with tf.control_dependencies([decay_op]):
-            return super()._resource_apply_sparse(
-                grad, var, indices, apply_state=apply_state
-            )
+            return super()._resource_apply_sparse(grad, var, indices, apply_state=apply_state)
 
 
 class AdamW(DecoupledWeightDecayExtension, tf.keras.optimizers.Adam):
@@ -228,10 +215,10 @@ class AdamW(DecoupledWeightDecayExtension, tf.keras.optimizers.Adam):
     def __init__(
         self,
         weight_decay,
-        learning_rate = 0.001,
-        beta_1 = 0.9,
-        beta_2 = 0.999,
-        epsilon = 1e-07,
+        learning_rate=0.001,
+        beta_1=0.9,
+        beta_2=0.999,
+        epsilon=1e-07,
         amsgrad: bool = False,
         name: str = "AdamW",
         **kwargs,

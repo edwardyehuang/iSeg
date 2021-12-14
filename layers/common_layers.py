@@ -5,10 +5,8 @@
 
 import tensorflow as tf
 
-def extract_spatial_patches (x, size = 4, 
-                                use_mean_padding_value = False, 
-                                padding_direction = 0, 
-                                inverse_slice = False):
+
+def extract_spatial_patches(x, size=4, use_mean_padding_value=False, padding_direction=0, inverse_slice=False):
 
     inputs_shape = tf.shape(x)
     batch_size = inputs_shape[0]
@@ -42,13 +40,14 @@ def extract_spatial_patches (x, size = 4,
     if use_mean_padding_value:
         raise NotImplementedError()
 
-    possible_paddings_arr = [[[0, 0], [0, pad_h], [0, pad_w], [0, 0]],
-                             [[0, 0], [pad_h, 0], [0, pad_w], [0, 0]],
-                             [[0, 0], [pad_h, 0], [pad_w, 0], [0, 0]],
-                             [[0, 0], [0, pad_h], [pad_w, 0], [0, 0]]]
-    
+    possible_paddings_arr = [
+        [[0, 0], [0, pad_h], [0, pad_w], [0, 0]],
+        [[0, 0], [pad_h, 0], [0, pad_w], [0, 0]],
+        [[0, 0], [pad_h, 0], [pad_w, 0], [0, 0]],
+        [[0, 0], [0, pad_h], [pad_w, 0], [0, 0]],
+    ]
 
-    x = tf.pad(x, paddings = possible_paddings_arr[padding_direction], constant_values = padding_value)
+    x = tf.pad(x, paddings=possible_paddings_arr[padding_direction], constant_values=padding_value)
 
     if not inverse_slice:
         x = tf.reshape(x, [batch_size, num_row, patch_size_h, num_col, patch_size_w, channels])

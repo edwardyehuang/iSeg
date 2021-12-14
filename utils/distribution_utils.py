@@ -8,7 +8,8 @@ import os
 
 from distutils.version import LooseVersion
 
-def get_tpu_strategy(name = None):
+
+def get_tpu_strategy(name=None):
 
     cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(name)
     tf.config.experimental_connect_to_cluster(cluster_resolver)
@@ -26,15 +27,12 @@ def get_cpu_strategy():
     return tf.distribute.OneDeviceStrategy("/cpu:0")
 
 
-def get_distribution_strategy (gpu_memory_growth = True,
-                               cuda_visible_devices = None, 
-                               use_tpu = False, 
-                               tpu_name = None):
+def get_distribution_strategy(gpu_memory_growth=True, cuda_visible_devices=None, use_tpu=False, tpu_name=None):
 
     if use_tpu:
         if tpu_name == "colab":
             tpu_name = None
-            
+
         return get_tpu_strategy(tpu_name)
 
     if cuda_visible_devices is not None:
@@ -54,16 +52,15 @@ def get_distribution_strategy (gpu_memory_growth = True,
         strategy = tf.distribute.MirroredStrategy()
     else:
         # issue 41539 may be fixed: https://github.com/tensorflow/tensorflow/issues/41539
-        strategy = tf.distribute.MirroredStrategy(cross_device_ops = cross_device_ops)
+        strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_device_ops)
         # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
-
 
     return strategy
 
 
-def set_gpu_memory_growth (growth = False):
+def set_gpu_memory_growth(growth=False):
 
-    gpus = tf.config.experimental.list_physical_devices('GPU')
+    gpus = tf.config.experimental.list_physical_devices("GPU")
 
     if gpus:
         try:
@@ -74,10 +71,9 @@ def set_gpu_memory_growth (growth = False):
             print(e)
 
 
-
 def get_gpu_counts():
 
-    gpus = tf.config.experimental.list_physical_devices('GPU')
+    gpus = tf.config.experimental.list_physical_devices("GPU")
 
     if gpus:
         return len(gpus)

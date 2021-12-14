@@ -8,14 +8,11 @@ import iseg.data_process.utils as dataprocess
 
 from iseg.data_process.arguments.data_argument_base import DataArgumentBase, random_execute_helper
 
+
 class RandomContrastArgument(DataArgumentBase):
+    def __init__(self, lower=0.5, upper=1.5, execute_prob=0.5, name=None):
 
-    def __init__(self, lower = 0.5,
-                       upper = 1.5,
-                       execute_prob = 0.5,
-                       name = None):
-
-        super().__init__(name = name)
+        super().__init__(name=name)
 
         self.lower = lower
         self.upper = upper
@@ -24,8 +21,8 @@ class RandomContrastArgument(DataArgumentBase):
 
     def call(self, image, label):
 
-        image = random_execute_helper(self.execute_prob, 
-                                      lambda: tf.image.random_contrast(image, self.lower, self.upper),
-                                      lambda : image)
+        image = random_execute_helper(
+            self.execute_prob, lambda: tf.image.random_contrast(image, self.lower, self.upper), lambda: image
+        )
 
         return image, label

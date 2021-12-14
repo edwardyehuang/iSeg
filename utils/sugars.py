@@ -5,6 +5,7 @@
 
 import tensorflow as tf
 
+
 def default_if_not(value, default_value):
 
     return default_value if not value else value

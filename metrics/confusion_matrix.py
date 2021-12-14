@@ -9,7 +9,8 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import control_flow_ops
 
-def remove_squeezable_dimensions(labels, predictions, expected_rank_diff = 0, name = None):
+
+def remove_squeezable_dimensions(labels, predictions, expected_rank_diff=0, name=None):
     """Squeeze last dim if ranks differ from expected by exactly 1.
     In the common case where we expect shapes to match, `expected_rank_diff`
     defaults to 0, and we squeeze the last dimension of the larger rank if they
@@ -29,7 +30,7 @@ def remove_squeezable_dimensions(labels, predictions, expected_rank_diff = 0, na
     Returns:
         Tuple of `labels` and `predictions`, possibly with last dim squeezed.
     """
-    with ops.name_scope(name, 'remove_squeezable_dimensions',[labels, predictions]):
+    with ops.name_scope(name, "remove_squeezable_dimensions", [labels, predictions]):
         predictions = tf.convert_to_tensor(predictions)
         labels = tf.convert_to_tensor(labels)
         predictions_shape = predictions.get_shape()
@@ -39,35 +40,29 @@ def remove_squeezable_dimensions(labels, predictions, expected_rank_diff = 0, na
         if (labels_rank is not None) and (predictions_rank is not None):
             # Use static rank.
             rank_diff = predictions_rank - labels_rank
-            if (rank_diff == expected_rank_diff + 1 and predictions_shape.dims[-1].is_compatible_with(1)):
+            if rank_diff == expected_rank_diff + 1 and predictions_shape.dims[-1].is_compatible_with(1):
                 predictions = tf.squeeze(predictions, [-1])
-            elif (rank_diff == expected_rank_diff - 1 and labels_shape.dims[-1].is_compatible_with(1)):
+            elif rank_diff == expected_rank_diff - 1 and labels_shape.dims[-1].is_compatible_with(1):
                 labels = tf.squeeze(labels, [-1])
-        
+
             return labels, predictions
 
         # Use dynamic rank.
         rank_diff = tf.rank(predictions) - tf.rank(labels)
         if (predictions_rank is None) or (predictions_shape.dims[-1].is_compatible_with(1)):
-            predictions = tf.cond(tf.equal(expected_rank_diff + 1, rank_diff),
-                                  lambda: tf.squeeze(predictions, [-1]),
-                                  lambda: predictions)
+            predictions = tf.cond(
+                tf.equal(expected_rank_diff + 1, rank_diff), lambda: tf.squeeze(predictions, [-1]), lambda: predictions
+            )
 
         if (labels_rank is None) or (labels_shape.dims[-1].is_compatible_with(1)):
-            labels = tf.cond(tf.equal(expected_rank_diff - 1, rank_diff),
-                lambda: tf.squeeze(labels, [-1]),
-                lambda: labels)
-
+            labels = tf.cond(
+                tf.equal(expected_rank_diff - 1, rank_diff), lambda: tf.squeeze(labels, [-1]), lambda: labels
+            )
 
         return labels, predictions
 
 
-def confusion_matrix(labels,
-                     predictions,
-                     num_classes=None,
-                     weights=None,
-                     dtype=tf.int32,
-                     name=None):
+def confusion_matrix(labels, predictions, num_classes=None, weights=None, dtype=tf.int32, name=None):
     """Computes the confusion matrix from predictions and labels.
     The matrix columns represent the prediction labels and the rows represent the
     real labels. The confusion matrix is always a 2-D array of shape `[n, n]`,
@@ -109,33 +104,40 @@ def confusion_matrix(labels,
         mismatched shapes, or if `weights` is not `None` and its shape doesn't
         match `predictions`.
     """
-    with ops.name_scope(name, 'confusion_matrix',(predictions, labels, num_classes, weights)) as name:
-        labels, predictions = remove_squeezable_dimensions(tf.convert_to_tensor(labels, name='labels'),
-                                                           tf.convert_to_tensor(predictions, name='predictions'))
+    with ops.name_scope(name, "confusion_matrix", (predictions, labels, num_classes, weights)) as name:
+        labels, predictions = remove_squeezable_dimensions(
+            tf.convert_to_tensor(labels, name="labels"), tf.convert_to_tensor(predictions, name="predictions")
+        )
     predictions = tf.cast(predictions, tf.int32)
     labels = tf.cast(labels, tf.int32)
 
     # Sanity checks - underflow or overflow can cause memory corruption.
-    labels = control_flow_ops.with_dependencies([tf.debugging.assert_non_negative(labels, message='`labels` contains negative values')], labels)
-    predictions = control_flow_ops.with_dependencies([tf.debugging.assert_non_negative(predictions, message='`predictions` contains negative values')], predictions)
+    labels = control_flow_ops.with_dependencies(
+        [tf.debugging.assert_non_negative(labels, message="`labels` contains negative values")], labels
+    )
+    predictions = control_flow_ops.with_dependencies(
+        [tf.debugging.assert_non_negative(predictions, message="`predictions` contains negative values")], predictions
+    )
 
     if num_classes is None:
         num_classes = tf.maximum(tf.reduce_max(predictions), tf.reduce_max(labels)) + 1
     else:
         num_classes_int32 = tf.cast(num_classes, tf.int32)
-        labels = control_flow_ops.with_dependencies([tf.debugging.assert_less(labels, num_classes_int32, message='`labels` out of bound')], labels)
-        predictions = control_flow_ops.with_dependencies([tf.debugging.assert_less(predictions, num_classes_int32, message='`predictions` out of bound')], predictions)
+        labels = control_flow_ops.with_dependencies(
+            [tf.debugging.assert_less(labels, num_classes_int32, message="`labels` out of bound")], labels
+        )
+        predictions = control_flow_ops.with_dependencies(
+            [tf.debugging.assert_less(predictions, num_classes_int32, message="`predictions` out of bound")],
+            predictions,
+        )
 
     if weights is not None:
-        weights = tf.convert_to_tensor(weights, name='weights')
+        weights = tf.convert_to_tensor(weights, name="weights")
         predictions.get_shape().assert_is_compatible_with(weights.get_shape())
         weights = tf.cast(weights, dtype)
 
     shape = tf.stack([num_classes, num_classes])
-    indices = tf.stack([labels, predictions], axis = 1)
-    values = (tf.ones_like(predictions, dtype) if weights is None else weights)
-    
-    return tf.scatter_nd(indices = indices,
-                         updates = values,
-                         shape = tf.cast(shape, tf.int32))
+    indices = tf.stack([labels, predictions], axis=1)
+    values = tf.ones_like(predictions, dtype) if weights is None else weights
 
+    return tf.scatter_nd(indices=indices, updates=values, shape=tf.cast(shape, tf.int32))

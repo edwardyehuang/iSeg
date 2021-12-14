@@ -7,14 +7,13 @@ import tensorflow as tf
 
 from iseg.modelhelper import ModelHelper
 
-class CheckpointSaver (tf.keras.callbacks.Callback):
 
-    def __init__ (self, model_helper : ModelHelper):
+class CheckpointSaver(tf.keras.callbacks.Callback):
+    def __init__(self, model_helper: ModelHelper):
 
         super(CheckpointSaver, self).__init__()
 
         self.model_helper = model_helper
-
 
     def on_epoch_end(self, epoch, logs={}):
         self._save_ckpt()
@@ -23,7 +22,5 @@ class CheckpointSaver (tf.keras.callbacks.Callback):
 
         path = self.model_helper.save_checkpoint()
         print()
-        print ("Checkpoint is saved to ", path)
+        print("Checkpoint is saved to ", path)
         print()
-        
-

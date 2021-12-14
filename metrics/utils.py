@@ -8,8 +8,8 @@ import tensorflow as tf
 from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 from iseg.metrics.mean_iou import MeanIOU
 
-class SegMetricBuilder:
 
+class SegMetricBuilder:
     def __init__(self, num_class, ignore_label):
 
         self.num_class = num_class
@@ -17,8 +17,7 @@ class SegMetricBuilder:
 
         self.__metrics = []
 
-    
-    def add (self, prefix = "", use_iou = True, pre_compute_fn = None):
+    def add(self, prefix="", use_iou=True, pre_compute_fn=None):
 
         metrics_list = []
 
@@ -29,10 +28,9 @@ class SegMetricBuilder:
             prefix = prefix + "_"
 
         if use_iou:
-            iou_metric = SegMetricWrapper(MeanIOU(self.num_class), 
-                                          num_class = self.num_class, 
-                                          ignore_label = self.ignore_label, 
-                                          name = prefix + "IOU")
+            iou_metric = SegMetricWrapper(
+                MeanIOU(self.num_class), num_class=self.num_class, ignore_label=self.ignore_label, name=prefix + "IOU"
+            )
 
             iou_metric.add_pre_compute_fn(pre_compute_fn)
 
@@ -40,12 +38,6 @@ class SegMetricBuilder:
 
         self.__metrics.append(metrics_list)
 
-
     @property
     def metrics(self):
         return self.__metrics
-            
-
-
-
-    

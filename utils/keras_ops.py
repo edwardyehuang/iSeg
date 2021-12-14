@@ -14,12 +14,13 @@ from tensorflow.python.keras import backend as K
 
 from iseg.layers import SyncBatchNormalization
 
-def get_all_layers_v2 (model, recursive = True, include_self = True):
 
-    return list(getattr(model, "_flatten_layers")(recursive = recursive, include_self = include_self))
+def get_all_layers_v2(model, recursive=True, include_self=True):
+
+    return list(getattr(model, "_flatten_layers")(recursive=recursive, include_self=include_self))
 
 
-def get_all_layers (model):
+def get_all_layers(model):
 
     layers = []
 
@@ -32,7 +33,7 @@ def get_all_layers (model):
     return layers
 
 
-def set_weight_decay(model, weight_decay = 0.0001, skip_layer_norm = True):
+def set_weight_decay(model, weight_decay=0.0001, skip_layer_norm=True):
 
     layers = get_all_layers(model)
 
@@ -43,7 +44,6 @@ def set_weight_decay(model, weight_decay = 0.0001, skip_layer_norm = True):
             layer.beta_regularizer = tf.keras.regularizers.l2(weight_decay)
         if hasattr(layer, "gamma_regularizer"):
             layer.gamma_regularizer = tf.keras.regularizers.l2(weight_decay)
-        
 
 
 def set_kernel_initializer(model, initializer):
@@ -54,7 +54,7 @@ def set_kernel_initializer(model, initializer):
             layer.kernel_initializer = initializer
 
 
-def set_bn_momentum(model, momentum = 0.99):
+def set_bn_momentum(model, momentum=0.99):
 
     layers = get_all_layers(model)
 
@@ -65,7 +65,7 @@ def set_bn_momentum(model, momentum = 0.99):
             layer.momentum = momentum
 
 
-def set_bn_epsilon(model, epsilon = 1e-3):
+def set_bn_epsilon(model, epsilon=1e-3):
 
     layers = get_all_layers(model)
 
@@ -76,24 +76,23 @@ def set_bn_epsilon(model, epsilon = 1e-3):
             layer.epsilon = epsilon
 
 
-
-def save_model_to_h5(model : tf.keras.Model, path):
-    with h5py.File(path, 'w') as f:
+def save_model_to_h5(model: tf.keras.Model, path):
+    with h5py.File(path, "w") as f:
         save_weights_to_hdf5_group(f, get_all_layers(model))
 
 
-def load_h5_weight (model, path, skip_mismatch = False):
+def load_h5_weight(model, path, skip_mismatch=False):
 
-    with h5py.File(path, 'r') as f:
-        if 'layer_names' not in f.attrs and 'model_weights' in f:
-            f = f['model_weights']
-        
+    with h5py.File(path, "r") as f:
+        if "layer_names" not in f.attrs and "model_weights" in f:
+            f = f["model_weights"]
+
         layers = get_all_layers(model)
-        
-        load_weights_from_hdf5_group_by_name(f, layers, skip_mismatch = skip_mismatch)
+
+        load_weights_from_hdf5_group_by_name(f, layers, skip_mismatch=skip_mismatch)
 
 
-def get_training_value (training = None):
+def get_training_value(training=None):
 
     if training is None:
         training = K.learning_phase()
@@ -104,14 +103,15 @@ def get_training_value (training = None):
     return training
 
 
-def repeat_fn (fn, elems, global_elems, name = None):
+def repeat_fn(fn, elems, global_elems, name=None):
 
     if name is None:
         name = "repeat_fn"
 
-    with ops.name_scope (name):
+    with ops.name_scope(name):
+
         def loop_fn(i):
-            gathered_elems = tf.nest.map_structure(lambda x : tf.gather(x, i), elems)
+            gathered_elems = tf.nest.map_structure(lambda x: tf.gather(x, i), elems)
             return fn(gathered_elems + global_elems)
 
         batch_size = None
@@ -120,10 +120,10 @@ def repeat_fn (fn, elems, global_elems, name = None):
         _list = first_elem.shape.as_list()
 
         return pfor(loop_fn, _list[0])
-        
 
-@tf.function(experimental_relax_shapes = True)
-def multiply_with_sum (a, b, axis = 0, name = None):
+
+@tf.function(experimental_relax_shapes=True)
+def multiply_with_sum(a, b, axis=0, name=None):
     with tf.name_scope(name if name is not None else "multiply_with_sum") as scope:
 
         b = tf.cast(b, a.dtype)
@@ -159,7 +159,7 @@ def multiply_with_sum (a, b, axis = 0, name = None):
         a = tf.transpose(a, transpose_order)
         b = tf.transpose(b, transpose_order)
 
-        result = tf.zeros(final_shape, dtype = a.dtype)
+        result = tf.zeros(final_shape, dtype=a.dtype)
 
         for i in range(tf.shape(a)[0]):
             result += a[i] * b[i]
@@ -167,29 +167,28 @@ def multiply_with_sum (a, b, axis = 0, name = None):
         return result
 
 
-def capture_func (model, func_name):
+def capture_func(model, func_name):
     captured_func = getattr(model, func_name, None)
 
     if captured_func is not None and callable(captured_func):
         return captured_func
-    
+
     return None
 
-    
-class HookLayer (tf.keras.Model):
 
-    def __init__ (self, target):
+class HookLayer(tf.keras.Model):
+    def __init__(self, target):
         super(HookLayer, self).__init__()
 
         self.target = target
 
-    def call (self, inputs, training = None):
+    def call(self, inputs, training=None):
 
         self.input_features = inputs
 
         x = inputs
 
-        self.result = self.target(x, training = training)
+        self.result = self.target(x, training=training)
         x = self.result
 
         return x

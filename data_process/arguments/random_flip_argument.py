@@ -8,19 +8,18 @@ import iseg.data_process.utils as dataprocess
 
 from iseg.data_process.arguments.data_argument_base import DataArgumentBase
 
+
 class RandomFlipArgument(DataArgumentBase):
+    def __init__(self, prob_of_flip=0.5, name=None):
 
-    def __init__(self, prob_of_flip = 0.5,
-                       name = None):
-
-        super().__init__(name = name)
+        super().__init__(name=name)
 
         self.prob_of_flip = prob_of_flip
 
-    def call(self, image, label, reversed_label = None):
+    def call(self, image, label, reversed_label=None):
 
         random_value = tf.random.uniform([])
-        
+
         if label is not None and random_value <= self.prob_of_flip:
             image = tf.image.flip_left_right(image)
 
@@ -30,5 +29,3 @@ class RandomFlipArgument(DataArgumentBase):
                 label = tf.image.flip_left_right(label)
 
         return image, label
-
-        

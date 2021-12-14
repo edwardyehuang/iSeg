@@ -3,6 +3,7 @@
 import math
 import tensorflow as tf
 
+
 class CosineDecay(tf.keras.optimizers.schedules.LearningRateSchedule):
 
     """
@@ -78,5 +79,5 @@ class CosineDecay(tf.keras.optimizers.schedules.LearningRateSchedule):
             "initial_learning_rate": self.initial_learning_rate,
             "decay_steps": self.decay_steps,
             "alpha": self.alpha,
-            "name": self.name
+            "name": self.name,
         }

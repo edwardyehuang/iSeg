@@ -5,16 +5,16 @@
 
 import tensorflow as tf
 
-class SharedInitializer(tf.keras.initializers.Initializer):
 
-    def __init__(self, initializer, transpose_perm = None):
-        
+class SharedInitializer(tf.keras.initializers.Initializer):
+    def __init__(self, initializer, transpose_perm=None):
+
         self.__initializer = initializer
         self.__value = None
 
         self.__transpose_perm = transpose_perm
 
-    def __call__(self, shape, dtype = None, **kwargs):
+    def __call__(self, shape, dtype=None, **kwargs):
 
         if self.__value is None:
             self.__value = self.__initializer(shape, dtype, **kwargs)
@@ -26,8 +26,6 @@ class SharedInitializer(tf.keras.initializers.Initializer):
 
         return y
 
+    def transpose(self, perm=None):
 
-    def transpose (self, perm = None):
-
-        return SharedInitializer(self, transpose_perm = perm)
-
+        return SharedInitializer(self, transpose_perm=perm)
