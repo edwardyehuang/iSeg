@@ -48,7 +48,9 @@ class DenseExt(tf.keras.layers.Layer):
 
             self.bias = self.add_weight(
                 "bias",
-                shape=[self.units,],
+                shape=[
+                    self.units,
+                ],
                 initializer=self.bias_initializer,
                 regularizer=self.bias_regularizer,
                 dtype=self.dtype,
