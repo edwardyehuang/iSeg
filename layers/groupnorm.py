@@ -143,12 +143,7 @@ class GroupNormalization(tf.keras.layers.Layer):
 
         gamma, beta = self._get_reshaped_weights(input_shape)
         normalized_inputs = tf.nn.batch_normalization(
-            reshaped_inputs,
-            mean=mean,
-            variance=variance,
-            scale=gamma,
-            offset=beta,
-            variance_epsilon=self.epsilon,
+            reshaped_inputs, mean=mean, variance=variance, scale=gamma, offset=beta, variance_epsilon=self.epsilon,
         )
         return normalized_inputs
 
