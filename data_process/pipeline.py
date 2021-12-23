@@ -4,7 +4,7 @@
 # ================================================================
 
 import tensorflow as tf
-from iseg.data_process.arguments import *
+from iseg.data_process.augments import *
 
 
 class AugmentationsPipeLine(object):

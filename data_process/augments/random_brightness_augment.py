@@ -6,7 +6,7 @@
 import tensorflow as tf
 import iseg.data_process.utils as dataprocess
 
-from iseg.data_process.arguments.data_augment_base import DataAugmentationBase, random_execute_helper
+from iseg.data_process.augments.data_augment_base import DataAugmentationBase, random_execute_helper
 
 
 class RandomBrightnessAugment(DataAugmentationBase):
