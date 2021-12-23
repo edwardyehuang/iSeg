@@ -7,7 +7,7 @@ import tensorflow as tf
 from iseg.data_process.arguments import *
 
 
-class ArgumentsPipeLine(object):
+class AugmentationsPipeLine(object):
     def __init__(self, target_height=None, target_width=None, arguments=[], name=None) -> None:
         super().__init__()
 
@@ -75,7 +75,7 @@ class ArgumentsPipeLine(object):
         """
 
 
-class StandardArgumentsPipeline(ArgumentsPipeLine):
+class StandardAugmentationsPipeline(AugmentationsPipeLine):
     def __init__(
         self,
         training=False,
@@ -111,26 +111,26 @@ class StandardArgumentsPipeline(ArgumentsPipeLine):
         arguments = []
 
         if max_resize_value or min_resize_value:
-            arguments.append(ResizeArgument(min_resize_value, max_resize_value))
+            arguments.append(ResizeAugment(min_resize_value, max_resize_value))
 
         if training:
-            arguments.append(RandomScaleArgument(min_scale_factor, max_scale_factor, scale_factor_step_size))
+            arguments.append(RandomScaleAugment(min_scale_factor, max_scale_factor, scale_factor_step_size))
 
         pad_value = tf.reshape(mean_pixel, [1, 1, 3])
 
         if training:
             if photo_metric_distortions:
-                arguments.append(RandomContrastArgument(0.5, 1.5, execute_prob=0.5))
+                arguments.append(RandomContrastAugment(0.5, 1.5, execute_prob=0.5))
                 # arguments.append(RandomHueArgument())
-                arguments.append(RandomSaturationArgument(0.5, 1.5, execute_prob=0.5))
+                arguments.append(RandomSaturationAugment(0.5, 1.5, execute_prob=0.5))
 
             if random_brightness:
-                arguments.append(RandomBrightnessArgument(execute_prob=0.5))
+                arguments.append(RandomBrightnessAugment(execute_prob=0.5))
 
-        arguments.append(PadArgument(crop_height, crop_width, pad_value, ignore_label))
+        arguments.append(PadAugment(crop_height, crop_width, pad_value, ignore_label))
 
         if training:
-            arguments.append(RandomCropArgument(crop_height, crop_width))
-            arguments.append(RandomFlipArgument(prob_of_flip))
+            arguments.append(RandomCropAugment(crop_height, crop_width))
+            arguments.append(RandomFlipAugment(prob_of_flip))
 
         self.arguments = arguments

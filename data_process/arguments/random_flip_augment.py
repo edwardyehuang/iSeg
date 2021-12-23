@@ -6,10 +6,10 @@
 import tensorflow as tf
 import iseg.data_process.utils as dataprocess
 
-from iseg.data_process.arguments.data_argument_base import DataArgumentBase
+from iseg.data_process.arguments.data_augment_base import DataAugmentationBase
 
 
-class RandomFlipArgument(DataArgumentBase):
+class RandomFlipAugment(DataAugmentationBase):
     def __init__(self, prob_of_flip=0.5, name=None):
 
         super().__init__(name=name)

@@ -6,10 +6,10 @@
 import tensorflow as tf
 import iseg.data_process.utils as dataprocess
 
-from iseg.data_process.arguments.data_argument_base import DataArgumentBase
+from iseg.data_process.arguments.data_augment_base import DataAugmentationBase
 
 
-class ResizeArgument(DataArgumentBase):
+class ResizeAugment(DataAugmentationBase):
     def __init__(self, min_resize_value, max_resize_value, name=None):
         super().__init__(name=name)
 
