@@ -6,10 +6,10 @@
 import tensorflow as tf
 import iseg.data_process.utils as dataprocess
 
-from iseg.data_process.arguments.data_argument_base import DataArgumentBase
+from iseg.data_process.arguments.data_augment_base import DataAugmentationBase
 
 
-class PadArgument(DataArgumentBase):
+class PadAugment(DataAugmentationBase):
     def __init__(
         self, target_height, target_width, image_pad_value=[127.5, 127.5, 127.5], label_pad_value=255, name=None
     ):

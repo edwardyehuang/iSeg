@@ -6,9 +6,9 @@
 import tensorflow as tf
 
 
-class DataArgumentBase(object):
+class DataAugmentationBase(object):
     def __init__(self, name=None):
-        super(DataArgumentBase, self).__init__()
+        super(DataAugmentationBase, self).__init__()
 
         if name is None:
             name = type(self).__name__

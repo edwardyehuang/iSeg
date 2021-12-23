@@ -3,12 +3,12 @@
 # Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
 # ================================================================
 
-from iseg.data_process.arguments.resize_argument import ResizeArgument
-from iseg.data_process.arguments.random_scale_argument import RandomScaleArgument
-from iseg.data_process.arguments.pad_argument import PadArgument
-from iseg.data_process.arguments.random_crop_argument import RandomCropArgument
-from iseg.data_process.arguments.random_flip_argument import RandomFlipArgument
-from iseg.data_process.arguments.random_brightness_argument import RandomBrightnessArgument
-from iseg.data_process.arguments.random_contrast_argument import RandomContrastArgument
-from iseg.data_process.arguments.random_hue_argument import RandomHueArgument
-from iseg.data_process.arguments.random_saturation_argument import RandomSaturationArgument
+from iseg.data_process.arguments.resize_augment import ResizeAugment
+from iseg.data_process.arguments.random_scale_augment import RandomScaleAugment
+from iseg.data_process.arguments.pad_augment import PadAugment
+from iseg.data_process.arguments.random_crop_augment import RandomCropAugment
+from iseg.data_process.arguments.random_flip_augment import RandomFlipAugment
+from iseg.data_process.arguments.random_brightness_augment import RandomBrightnessAugment
+from iseg.data_process.arguments.random_contrast_augment import RandomContrastAugment
+from iseg.data_process.arguments.random_hue_augment import RandomHueAugment
+from iseg.data_process.arguments.random_saturation_augment import RandomSaturationAugment
