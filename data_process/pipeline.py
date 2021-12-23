@@ -8,14 +8,14 @@ from iseg.data_process.augments import *
 
 
 class AugmentationsPipeLine(object):
-    def __init__(self, target_height=None, target_width=None, arguments=[], name=None) -> None:
+    def __init__(self, target_height=None, target_width=None, augments=[], name=None) -> None:
         super().__init__()
 
         if name is None:
             name = type(self).__name__
 
         self.name = name
-        self.arguments = arguments
+        self.augments = augments
 
         self.target_height = target_height
         self.target_width = target_width
@@ -43,17 +43,17 @@ class AugmentationsPipeLine(object):
 
         processed_arugments = []
 
-        for argument in self.arguments:
+        for augment in self.augments:
 
             try:
-                inputs = argument(*inputs)
+                inputs = augment(*inputs)
 
             except:
-                print(f"Error : {argument.name}")
+                print(f"Error : {augment.name}")
 
-            processed_arugments.append(argument.name)
+            processed_arugments.append(augment.name)
 
-        print(f"Processed arguments = {processed_arugments}")
+        print(f"Processed augments = {processed_arugments}")
 
         return self.post_process(*inputs)
 
@@ -66,8 +66,8 @@ class AugmentationsPipeLine(object):
 
         """
         with tf.name_scope(self.name) as scope:
-            for argument in self.arguments:
-                ds = ds.map(argument, num_parallel_calls = tf.data.experimental.AUTOTUNE)
+            for augment in self.augments:
+                ds = ds.map(augment, num_parallel_calls = tf.data.experimental.AUTOTUNE)
 
             ds = ds.map(self.post_process, num_parallel_calls = tf.data.experimental.AUTOTUNE)
 
@@ -108,29 +108,29 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
 
         super().__init__(target_height=crop_height, target_width=crop_width, name=name)
 
-        arguments = []
+        augments = []
 
         if max_resize_value or min_resize_value:
-            arguments.append(ResizeAugment(min_resize_value, max_resize_value))
+            augments.append(ResizeAugment(min_resize_value, max_resize_value))
 
         if training:
-            arguments.append(RandomScaleAugment(min_scale_factor, max_scale_factor, scale_factor_step_size))
+            augments.append(RandomScaleAugment(min_scale_factor, max_scale_factor, scale_factor_step_size))
 
         pad_value = tf.reshape(mean_pixel, [1, 1, 3])
 
         if training:
             if photo_metric_distortions:
-                arguments.append(RandomContrastAugment(0.5, 1.5, execute_prob=0.5))
-                # arguments.append(RandomHueArgument())
-                arguments.append(RandomSaturationAugment(0.5, 1.5, execute_prob=0.5))
+                augments.append(RandomContrastAugment(0.5, 1.5, execute_prob=0.5))
+                # augments.append(RandomHueArgument())
+                augments.append(RandomSaturationAugment(0.5, 1.5, execute_prob=0.5))
 
             if random_brightness:
-                arguments.append(RandomBrightnessAugment(execute_prob=0.5))
+                augments.append(RandomBrightnessAugment(execute_prob=0.5))
 
-        arguments.append(PadAugment(crop_height, crop_width, pad_value, ignore_label))
+        augments.append(PadAugment(crop_height, crop_width, pad_value, ignore_label))
 
         if training:
-            arguments.append(RandomCropAugment(crop_height, crop_width))
-            arguments.append(RandomFlipAugment(prob_of_flip))
+            augments.append(RandomCropAugment(crop_height, crop_width))
+            augments.append(RandomFlipAugment(prob_of_flip))
 
-        self.arguments = arguments
+        self.augments = augments
