@@ -1,11 +1,7 @@
 import tensorflow as tf
+import sys
 
-class PlaceHolder (tf.keras.Model):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+def PlaceHolder(*args, **kwargs):
 
-    
-    def call(self, inputs, training = None):
-
-        raise NotImplementedError()
+    return sys.modules["placeholder_func"](*args, **kwargs)
