@@ -174,7 +174,7 @@ class SegFoundation(SegBase):
         self,
         num_class=21,
         num_aux_loss=0,
-        aux_loss_rate=4,
+        aux_loss_rate=0.4,
         aux_metric_names=None,
         use_ohem=False,
         ohem_thresh=0.7,
