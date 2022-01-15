@@ -6,6 +6,8 @@
 import os
 import tensorflow as tf
 
+from distutils.version import LooseVersion
+
 from iseg.utils.common import set_random_seed, enable_mixed_precision
 from iseg.utils.distribution_utils import get_distribution_strategy
 
@@ -21,8 +23,11 @@ def common_env_setup(
 ):
 
     if use_deterministic:
-        os.environ["TF_DETERMINISTIC_OPS"] = "1"
-        os.environ["TF_DISABLE_SEGMENT_REDUCTION_OP_DETERMINISM_EXCEPTIONS"] = "1"
+        if LooseVersion(tf.version.VERSION) < LooseVersion("2.8.0"):
+            os.environ["TF_DETERMINISTIC_OPS"] = "1"
+            os.environ["TF_DISABLE_SEGMENT_REDUCTION_OP_DETERMINISM_EXCEPTIONS"] = "1" # For 2.5.0+
+        else:
+            tf.config.experimental.enable_op_determinism()
 
     tf.config.run_functions_eagerly(run_eagerly)
 

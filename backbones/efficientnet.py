@@ -7,7 +7,12 @@ import tensorflow as tf
 import copy
 import math
 
-from tensorflow.python.keras.applications import imagenet_utils
+from distutils.version import LooseVersion
+
+if LooseVersion(tf.version.VERSION) < LooseVersion("2.7.0"):
+    from tensorflow.python.keras.applications import imagenet_utils
+else:
+    from keras.applications import imagenet_utils
 
 from iseg.layers.normalizations import normalization
 
