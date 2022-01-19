@@ -29,12 +29,16 @@ def common_env_setup(
         else:
             tf.config.experimental.enable_op_determinism()
 
+        if LooseVersion(tf.version.VERSION) >= LooseVersion("2.5.0"):
+            os.environ["TF_CUDNN_USE_FRONTEND"] = "1"
+
+    set_random_seed(random_seed)
+
     tf.config.run_functions_eagerly(run_eagerly)
 
     strategy = get_distribution_strategy(gpu_memory_growth, cuda_visible_devices, tpu_name is not None, tpu_name)
 
-    set_random_seed(random_seed)
-
+    
     if mixed_precision:
         enable_mixed_precision(use_tpu=tpu_name is not None)
 
