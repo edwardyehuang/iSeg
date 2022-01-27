@@ -15,8 +15,8 @@ def pad_to_odd (image, label=None, image_pad_value=[127.5, 127.5, 127.5], label_
     image_height = image_shape[0]
     image_width = image_shape[1]
 
-    image_height += tf.cast(image_height % 2 != 0, tf.int32)
-    image_width += tf.cast(image_width % 2 != 0, tf.int32)
+    image_height += tf.cast(image_height % 2 == 0, tf.int32)
+    image_width += tf.cast(image_width % 2 == 0, tf.int32)
 
     image = dataprocess.pad_to_bounding_box(
         image, 0, 0, image_height, image_width, pad_value=image_pad_value
