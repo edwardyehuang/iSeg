@@ -40,10 +40,13 @@ def set_weight_decay(model, weight_decay=0.0001, skip_layer_norm=True):
     for layer in layers:
         if hasattr(layer, "kernel_regularizer"):
             layer.kernel_regularizer = tf.keras.regularizers.l2(weight_decay)
+        
+        '''
         if hasattr(layer, "beta_regularizer"):
             layer.beta_regularizer = tf.keras.regularizers.l2(weight_decay)
         if hasattr(layer, "gamma_regularizer"):
             layer.gamma_regularizer = tf.keras.regularizers.l2(weight_decay)
+        '''
 
 
 def set_kernel_initializer(model, initializer):
