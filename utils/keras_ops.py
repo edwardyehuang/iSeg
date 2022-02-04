@@ -33,17 +33,23 @@ def get_all_layers(model):
     return layers
 
 
-def set_weight_decay(model, weight_decay=0.0001, skip_layer_norm=True):
+def set_weight_decay(
+    model, 
+    weight_decay=0.0001, 
+    decay_norm_vars=False,
+    ):
 
     layers = get_all_layers(model)
 
     for layer in layers:
         if hasattr(layer, "kernel_regularizer"):
             layer.kernel_regularizer = tf.keras.regularizers.l2(weight_decay)
-        if hasattr(layer, "beta_regularizer"):
-            layer.beta_regularizer = tf.keras.regularizers.l2(weight_decay)
-        if hasattr(layer, "gamma_regularizer"):
-            layer.gamma_regularizer = tf.keras.regularizers.l2(weight_decay)
+
+        if decay_norm_vars:
+            if hasattr(layer, "beta_regularizer"):
+                layer.beta_regularizer = tf.keras.regularizers.l2(weight_decay)
+            if hasattr(layer, "gamma_regularizer"):
+                layer.gamma_regularizer = tf.keras.regularizers.l2(weight_decay)
 
 
 def set_kernel_initializer(model, initializer):
