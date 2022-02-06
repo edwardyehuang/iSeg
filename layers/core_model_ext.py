@@ -28,6 +28,7 @@ class SegManaged(SegFoundation):
         label_as_backbone_inputs=False,
         label_as_head_inputs=False,
         use_custom_logits=False,
+        resnet_multi_grids=[1, 2, 4],
         **kwargs,
     ):
 
@@ -65,6 +66,7 @@ class SegManaged(SegFoundation):
             return_endpoints=True,
             image_shape=(1, 513, 513, 3),
             label_shape=label_shape,
+            resnet_multi_grids=resnet_multi_grids,
         )
 
         if not self.use_custom_logits:
