@@ -27,6 +27,7 @@ class SegManaged(SegFoundation):
         label_as_inputs=False,
         label_as_backbone_inputs=False,
         label_as_head_inputs=False,
+        use_custom_logits=False,
         **kwargs,
     ):
 
@@ -48,6 +49,8 @@ class SegManaged(SegFoundation):
         self.label_as_backbone_inputs = label_as_backbone_inputs
         self.label_as_head_inputs = label_as_head_inputs
 
+        self.use_custom_logits = use_custom_logits
+
         self.head = None
 
         label_shape = None
@@ -64,16 +67,18 @@ class SegManaged(SegFoundation):
             label_shape=label_shape,
         )
 
-        self.logits_conv = tf.keras.layers.Conv2D(self.num_class, (1, 1), name=f"{self.name}/logits_conv")
-        self.aux_logits_convs = []
+        if not self.use_custom_logits:
+            self.logits_conv = tf.keras.layers.Conv2D(self.num_class, (1, 1), name=f"{self.name}/logits_conv")
+            self.aux_logits_convs = []
 
-        for i in range(self.num_aux_loss):
-            prefix = "aux" if self.aux_metric_names is None else self.aux_metric_names[i]
+            for i in range(self.num_aux_loss):
+                prefix = "aux" if self.aux_metric_names is None else self.aux_metric_names[i]
 
-            aux_logits_conv = tf.keras.layers.Conv2D(
-                self.num_class, (1, 1), name=f"{self.name}/{prefix}_logits_conv_{i}"
-            )
-            self.aux_logits_convs.append(aux_logits_conv)
+                aux_logits_conv = tf.keras.layers.Conv2D(
+                    self.num_class, (1, 1), name=f"{self.name}/{prefix}_logits_conv_{i}"
+                )
+                self.aux_logits_convs.append(aux_logits_conv)
+
 
     def call(self, inputs, training=None):
 
@@ -111,10 +116,13 @@ class SegManaged(SegFoundation):
 
         assert len(head_results) == self.num_aux_loss + 1
 
-        logits_list = [self.logits_conv(head_results[0])]
+        if not self.use_custom_logits:
+            logits_list = [self.logits_conv(head_results[0])]
 
-        for i in range(self.num_aux_loss):
-            logits_list += [self.aux_logits_convs[i](head_results[i + 1])]
+            for i in range(self.num_aux_loss):
+                logits_list += [self.aux_logits_convs[i](head_results[i + 1])]
+        else:
+            logits_list = head_results
 
         y = [tf.cast(resize_image(logits, inputs_size), tf.float32) for logits in logits_list]
 
