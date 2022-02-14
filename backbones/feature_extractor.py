@@ -14,6 +14,7 @@ from iseg.backbones.mobilenetv2_common import MobileNetV2, build_atrous_mobilene
 from iseg.backbones.swin import swin_tiny_224, swin_base_384, swin_large_384
 
 from iseg.backbones.efficientnet import *
+from iseg.backbones.hrnet import HRNetW48, HRNetW32
 from iseg.backbones.placeholder import PlaceHolder
 
 
@@ -65,6 +66,8 @@ def get_backbone(
         ss.SWIN_BASE_384: swin_base_384,
         ss.SWIN_LARGE_384: swin_large_384,
         ss.MOBILENETV2: MobileNetV2,
+        ss.HRNET_W48: HRNetW48,
+        ss.HRNET_W32: HRNetW32,
         ss.PLACEHOLDER: PlaceHolder,
     }
 
