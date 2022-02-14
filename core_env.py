@@ -25,7 +25,7 @@ def common_env_setup(
     if use_deterministic:
         if LooseVersion(tf.version.VERSION) < LooseVersion("2.8.0"):
             os.environ["TF_DETERMINISTIC_OPS"] = "1"
-            os.environ["TF_DISABLE_SEGMENT_REDUCTION_OP_DETERMINISM_EXCEPTIONS"] = "1" # For 2.5.0+
+            os.environ["TF_DISABLE_SEGMENT_REDUCTION_OP_DETERMINISM_EXCEPTIONS"] = "1"  # For 2.5.0+
         else:
             tf.config.experimental.enable_op_determinism()
 
@@ -38,7 +38,6 @@ def common_env_setup(
 
     strategy = get_distribution_strategy(gpu_memory_growth, cuda_visible_devices, tpu_name is not None, tpu_name)
 
-    
     if mixed_precision:
         enable_mixed_precision(use_tpu=tpu_name is not None)
 

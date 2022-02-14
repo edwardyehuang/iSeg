@@ -2,6 +2,7 @@ import tensorflow as tf
 
 from PIL import Image
 
+
 def load_label_to_tensor(label_path):
     label_tensor = tf.py_function(__load_label_to_tensor_internel, [label_path], tf.int32)
     label_tensor.set_shape([None, None, 1])
@@ -32,7 +33,3 @@ def load_image_tensor_from_path(image_path, label_path=None):
         label_tensor = load_label_to_tensor(label_path)
 
     return image_tensor, label_tensor
-
-
-
-    

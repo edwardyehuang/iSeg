@@ -81,7 +81,6 @@ class SegManaged(SegFoundation):
                 )
                 self.aux_logits_convs.append(aux_logits_conv)
 
-
     def call(self, inputs, training=None):
 
         x = inputs

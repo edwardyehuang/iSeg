@@ -58,6 +58,9 @@ SWIN_LARGE_384 = "swin_large_384"
 
 MOBILENETV2 = "mobilenetv2"
 
+HRNET_W48 = "hrnet_w48"
+HRNET_W32 = "hrnet_w32"
+
 IMAGE = "image"
 LABEL = "label"
 
