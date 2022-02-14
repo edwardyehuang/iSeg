@@ -21,6 +21,7 @@ Some segmentation results on Flickr images:
 - [ ] MLP Mixer (WIP)
 - [ ] SegFormer
 - [x] Feature Pyramid Network
+- [x] HRNet
 - [x] Swin Transformer (Inputs size free)
 - [x] MobileNetV2
 
