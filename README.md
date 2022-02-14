@@ -24,6 +24,10 @@ Some segmentation results on Flickr images:
 - [x] HRNet
 - [x] Swin Transformer (Inputs size free)
 - [x] MobileNetV2
+- [ ] MAE-ViT (Coming soon)
+- [ ] ConvNeXt (Coming soon)
+
+Weights are expected to release in March
 
 ### Other features
 - [x] Mixed precision training and inference
