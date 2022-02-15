@@ -2,6 +2,8 @@ import tensorflow as tf
 
 from PIL import Image
 
+from iseg.data_process.augments.pad_to_odd_augment import pad_to_odd
+
 
 def load_label_to_tensor(label_path):
     label_tensor = tf.py_function(__load_label_to_tensor_internel, [label_path], tf.int32)
@@ -33,3 +35,25 @@ def load_image_tensor_from_path(image_path, label_path=None):
         label_tensor = load_label_to_tensor(label_path)
 
     return image_tensor, label_tensor
+
+
+def simple_load_image(image_path):
+
+    image_tensor, _ = load_image_tensor_from_path(image_path)
+    image_tensor = tf.expand_dims(tf.cast(image_tensor, tf.float32), axis=0)  # [1, H, W, 3]
+
+    image_size = tf.shape(image_tensor)[1:3]
+
+    pad_height = tf.cast(tf.math.ceil(image_size[0] / 32) * 32, tf.int32)
+    pad_width = tf.cast(tf.math.ceil(image_size[1] / 32) * 32, tf.int32)
+
+    pad_height = pad_height if pad_height % 2 != 0 else pad_height + 1
+    pad_width = pad_height if pad_width % 2 != 0 else pad_width + 1
+
+    from iseg.data_process.utils import pad_to_bounding_box, normalize_value_range
+
+    pad_image_tensor = pad_to_bounding_box(image_tensor, 0, 0, pad_height, pad_width, pad_value=[127.5, 127.5, 127.5])
+    pad_image_tensor = normalize_value_range(pad_image_tensor)
+
+    return pad_image_tensor, image_size
+

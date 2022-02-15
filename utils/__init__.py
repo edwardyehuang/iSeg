@@ -4,4 +4,4 @@
 # ================================================================
 
 from iseg.utils.sugars import *
-from iseg.utils.common import resize_image, simple_load_image
+from iseg.utils.common import resize_image
