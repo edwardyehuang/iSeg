@@ -41,7 +41,7 @@ class BasicBlock(tf.keras.Model):
         residual = tf.identity(inputs, name="residual")
 
         if self.downsample is not None:
-            residual = self.downsample(residual)
+            residual = self.downsample(residual, training=training)
 
         x = self.conv1(inputs)
         x = self.bn1(x, training=training)
@@ -85,7 +85,7 @@ class Bottleneck(tf.keras.Model):
         residual = tf.identity(inputs, name="residual")
 
         if self.downsample is not None:
-            residual = self.downsample(residual)
+            residual = self.downsample(residual, training=training)
 
         x = self.conv1(inputs)
         x = self.bn1(x, training=training)
