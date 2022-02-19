@@ -81,6 +81,8 @@ class SegManaged(SegFoundation):
                 )
                 self.aux_logits_convs.append(aux_logits_conv)
 
+        self.layers_for_multi_optimizers = None
+
     def call(self, inputs, training=None):
 
         x = inputs
@@ -131,3 +133,10 @@ class SegManaged(SegFoundation):
             y = y[0]
 
         return y
+
+    
+    def multi_optimizers_layers(self):
+        
+        return self.layers_for_multi_optimizers
+
+        #return super().multi_optimizers_layers()

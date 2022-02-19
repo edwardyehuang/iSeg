@@ -7,11 +7,15 @@ import tensorflow as tf
 import numpy as np
 import math
 
+
 from iseg.metrics.mean_iou import MeanIOU
 from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
 from iseg.ckpt_saver import CheckpointSaver
 from iseg.model_callback import ModelCallback
+from iseg.core_model import SegFoundation
+
+from iseg.optimizers.multi_optimizer import MultiOptimizer
 
 from iseg.utils.keras_ops import capture_func
 
@@ -28,9 +32,15 @@ class CoreTrain(object):
 
     def create_trainable_model(self, num_class, ignore_label=255, batch_size=1, epoch_steps=1000, initial_epoch=0):
 
+        model = self.model_helper.model
+
+        assert isinstance(model, SegFoundation), "Current only support SegFoundation based model"
+
+        model : SegFoundation = model
+
         # Loss functions
 
-        losses_func = getattr(self.model_helper.model, "custom_losses", None)
+        losses_func = getattr(model, "custom_losses", None)
 
         if losses_func is None or not callable(losses_func):
             losses_func = catecrossentropy_ignore_label_loss
@@ -40,7 +50,7 @@ class CoreTrain(object):
         # Loss weights:
 
         losses_weights = None
-        losses_weights_func = capture_func(self.model_helper.model, "custom_losses_weights")
+        losses_weights_func = capture_func(model, "custom_losses_weights")
 
         if losses_weights_func is not None:
             losses_weights = losses_weights_func()
@@ -49,18 +59,23 @@ class CoreTrain(object):
 
         metrics = None
 
-        metrics_func = getattr(self.model_helper.model, "custom_metrics", None)
+        metrics_func = getattr(model, "custom_metrics", None)
 
         if metrics_func is None or not callable(metrics_func):
             metrics_func = self.__get_default_metrics
 
         metrics = metrics_func(num_class, ignore_label)
 
+        # Multi LR
+
+        optimizer = self.model_helper.optimizer
+
+        if isinstance(optimizer, list):
+            optimizer = self.handle_multiple_optimizers(model, optimizer)
+
         # Compile
 
-        model = self.model_helper.model
-
-        model.compile(optimizer=self.model_helper.optimizer, metrics=metrics, loss=losses, loss_weights=losses_weights)
+        model.compile(optimizer=optimizer, metrics=metrics, loss=losses, loss_weights=losses_weights)
         model.optimizer.iterations.assign(epoch_steps * initial_epoch)
 
         return model
@@ -156,3 +171,33 @@ class CoreTrain(object):
             ds = ds.map(custom_data_process, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         return ds
+
+
+    def handle_multiple_optimizers(self, model, optimizers):
+
+        print("Processing multiple optimizers")
+
+        multi_optimizer_layers_fn = getattr(model, "multi_optimizers_layers", None)
+
+        if multi_optimizer_layers_fn is None or not callable(multi_optimizer_layers_fn):
+            print("Warning, multi_optimizers_layers is not implemented, use optimizer at index = 0")
+            return optimizers[0]
+
+        layers_for_multi_optimizers = multi_optimizer_layers_fn()
+
+        if layers_for_multi_optimizers is None:
+            print("Warning, multi_optimizers_layers is not implemented, use optimizer at index = 0")
+            return optimizers[0]
+
+        num_optimizers = len(optimizers)
+        num_layers = len(layers_for_multi_optimizers)
+
+        if num_optimizers != num_layers:
+            raise ValueError(f"Num of layers of multiple optimizers must equal to the number of optimizers, found {num_layers} vs {num_optimizers}")
+
+        optimizer_layer_pair_list = []
+
+        for i in range(num_optimizers):
+            optimizer_layer_pair_list += [(optimizers[i], layers_for_multi_optimizers[i])]
+
+        return MultiOptimizer(optimizer_layer_pair_list)

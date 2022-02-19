@@ -268,3 +268,9 @@ class SegFoundation(SegBase):
             metrics.add(f"{prefix}_{i}", use_iou=False)
 
         return metrics.metrics
+
+    
+    def multi_optimizers_layers(self):
+
+        return None
+
