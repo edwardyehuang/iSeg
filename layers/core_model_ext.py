@@ -22,6 +22,7 @@ class SegManaged(SegFoundation):
         num_aux_loss=0,
         aux_loss_rate=0.4,
         aux_metric_names=None,
+        custom_aux_loss_fns=[],
         use_ohem=False,
         ohem_thresh=0.7,
         label_as_inputs=False,
@@ -40,6 +41,7 @@ class SegManaged(SegFoundation):
             use_ohem=use_ohem,
             ohem_thresh=ohem_thresh,
             label_as_inputs=label_as_inputs,
+            custom_aux_loss_fns=custom_aux_loss_fns,
             **kwargs,
         )
 

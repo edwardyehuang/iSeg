@@ -179,6 +179,7 @@ class SegFoundation(SegBase):
         use_ohem=False,
         ohem_thresh=0.7,
         label_as_inputs=False,
+        custom_aux_loss_fns=[],
         **kwargs,
     ):
 
@@ -210,6 +211,8 @@ class SegFoundation(SegBase):
         self.ohem_thresh = ohem_thresh
         self.aux_metric_names = aux_metric_names
         self.label_as_inputs = label_as_inputs
+
+        self.custom_aux_loss_fns = custom_aux_loss_fns
 
     def inputs_process(self, image, label):
 
@@ -243,8 +246,18 @@ class SegFoundation(SegBase):
 
         loss_dict = {"output_1": loss(ohem_func)}
 
-        for i in range(self.num_aux_loss):
-            loss_dict[self.__aux_index_to_output_key(i)] = loss(None)
+        if self.custom_aux_loss_fns is None or len(self.custom_aux_loss_fns) == 0:
+            for i in range(self.num_aux_loss):
+                loss_dict[self.__aux_index_to_output_key(i)] = loss(None)
+        else:
+            assert (
+                len(self.custom_aux_loss_fns) == self.num_aux_loss
+            ), "custom_aux_loss_fns must be None or empty, or has same length with num_aux_loss"
+
+            for i in range(self.num_aux_loss):
+                loss_dict[self.__aux_index_to_output_key(i)] = (
+                    self.custom_aux_loss_fns[i] if self.custom_aux_loss_fns is not None else loss(None)
+                )
 
         return loss_dict
 
@@ -269,8 +282,6 @@ class SegFoundation(SegBase):
 
         return metrics.metrics
 
-    
     def multi_optimizers_layers(self):
 
         return None
-
