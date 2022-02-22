@@ -35,6 +35,7 @@ Weights are expected to release in March
 - [x] Training and inference on GPU <= 8
 - [x] Training and inference on TPU
 - [x] Typical image augmentation
+- [ ] One click/out of box deployment for industry (Plan mid 2022)
 
 ## Requirements
 
