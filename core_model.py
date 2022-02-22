@@ -258,8 +258,8 @@ class SegFoundation(SegBase):
 
             for i in range(self.num_aux_loss):
                 loss_dict[self.__aux_index_to_output_key(i)] = (
-                    self.custom_aux_loss_fns[i]
-                    if self.custom_aux_loss_fns(**common_kwargs, **kwargs) is not None
+                    self.custom_aux_loss_fns[i](**common_kwargs, **kwargs)
+                    if self.custom_aux_loss_fns[i] is not None
                     else loss(None)
                 )
 

@@ -29,6 +29,7 @@ class SegManaged(SegFoundation):
         label_as_backbone_inputs=False,
         label_as_head_inputs=False,
         use_custom_logits=False,
+        logits_upsample_masks=None,
         resnet_multi_grids=[1, 2, 4],
         **kwargs,
     ):
@@ -53,6 +54,7 @@ class SegManaged(SegFoundation):
         self.label_as_head_inputs = label_as_head_inputs
 
         self.use_custom_logits = use_custom_logits
+        self.logits_upsample_masks = logits_upsample_masks
 
         self.head = None
 
@@ -129,7 +131,18 @@ class SegManaged(SegFoundation):
         else:
             logits_list = head_results
 
-        y = [tf.cast(resize_image(logits, inputs_size), tf.float32) for logits in logits_list]
+        if self.logits_upsample_masks is None:
+            y = [tf.cast(resize_image(logits, inputs_size), tf.float32) for logits in logits_list]
+        else:
+            assert len(self.logits_upsample_masks) == len(logits_list)
+            y = []
+
+            for i in range(len(logits_list)):
+                logits = logits_list[i]
+                if self.logits_upsample_masks[i]:
+                    logits = resize_image(logits, inputs_size)
+
+                y += [tf.cast(logits, tf.float32)]
 
         if len(y) == 1:
             y = y[0]
