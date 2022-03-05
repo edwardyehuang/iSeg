@@ -61,6 +61,11 @@ MOBILENETV2 = "mobilenetv2"
 HRNET_W48 = "hrnet_w48"
 HRNET_W32 = "hrnet_w32"
 
+CONVNEXT = "convnext"
+CONVNEXT_TINY = "convnext_tiny"
+CONVNEXT_LARGE = "convnext_large"
+CONVNEXT_XLARGE = "convnext_xlarge"
+
 IMAGE = "image"
 LABEL = "label"
 

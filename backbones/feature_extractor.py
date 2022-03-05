@@ -16,6 +16,7 @@ from iseg.backbones.swin import swin_tiny_224, swin_base_384, swin_large_384
 from iseg.backbones.efficientnet import *
 from iseg.backbones.hrnet import HRNetW48, HRNetW32
 from iseg.backbones.placeholder import PlaceHolder
+from iseg.backbones.convnext import convnext_tiny, convnext_large, convnext_xlarge, build_dilated_convnext
 
 
 def get_backbone(
@@ -68,6 +69,9 @@ def get_backbone(
         ss.MOBILENETV2: MobileNetV2,
         ss.HRNET_W48: HRNetW48,
         ss.HRNET_W32: HRNetW32,
+        ss.CONVNEXT_TINY: convnext_tiny,
+        ss.CONVNEXT_LARGE: convnext_large,
+        ss.CONVNEXT_XLARGE: convnext_xlarge,
         ss.PLACEHOLDER: PlaceHolder,
     }
 
@@ -85,6 +89,8 @@ def get_backbone(
         build_dilated_efficientnet(backbone, output_stride=output_stride)
     elif name == ss.MOBILENETV2:
         build_atrous_mobilenetv2(backbone, output_stride=output_stride)
+    elif ss.CONVNEXT in name:
+        build_dilated_convnext(backbone, output_stride=output_stride)
 
     if weights_path is not None:
         if "swin" in name:

@@ -2,9 +2,9 @@
 
 Working in progress
 
-I am very busy at this moment (poor student....), but I will try my best to update this repo until Semantic Segmntation is solved.
+I am very busy at this moment (graduation etc), but I will try my best to update this repo until Semantic Segmntation is solved.
 
-I will also upload the code for dataset supports and some implementations of well-known networks (e.g. PSPNet, DeepLab, CCNet, DANet, OCRNet)
+I will also upload the code for some implementations of well-known networks (e.g. PSPNet, DeepLab, CCNet, DANet, OCRNet)
 
 Some segmentation results on Flickr images:
 
@@ -16,7 +16,6 @@ Some segmentation results on Flickr images:
 - [x] Modern ResNet
 - [x] Xception-65
 - [x] EfficientNetV1
-- [ ] EfficientNetV2
 - [ ] Vision Transformer (WIP)
 - [ ] MLP Mixer (WIP)
 - [ ] SegFormer
@@ -25,13 +24,13 @@ Some segmentation results on Flickr images:
 - [x] Swin Transformer (Inputs size free)
 - [x] MobileNetV2
 - [ ] MAE-ViT (Coming soon)
-- [ ] ConvNeXt (Coming soon)
+- [x] ConvNeXt
 
-Weights are expected to release in March
+Weights are expected to release in Mid March 2022
 
 ### Other features
 - [x] Mixed precision training and inference
-- [x] Deterministic (Currently not 100%, see https://github.com/NVIDIA/framework-determinism)
+- [x] Fully Deterministic (100%, see https://github.com/NVIDIA/framework-determinism)
 - [x] Training and inference on GPU <= 8
 - [x] Training and inference on TPU
 - [x] Typical image augmentation
