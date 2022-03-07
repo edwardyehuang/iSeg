@@ -19,6 +19,7 @@ def get_optimizer(
     decay_strategy="poly",
     optimizer="sgd",
     sgd_momentum_rate=0.9,
+    adamw_weight_decay=0.0001,
 ):
 
     kwargs = {
@@ -31,6 +32,7 @@ def get_optimizer(
         "decay_strategy": decay_strategy,
         "optimizer": optimizer,
         "sgd_momentum_rate": sgd_momentum_rate,
+        "adamw_weight_decay": adamw_weight_decay,
     }
 
     keys = kwargs.keys()
@@ -98,6 +100,7 @@ def __get_optimizer(
     decay_strategy="poly",
     optimizer="sgd",
     sgd_momentum_rate=0.9,
+    adamw_weight_decay=0.0001,
 ):
 
     learning_rate = initial_lr
@@ -127,7 +130,7 @@ def __get_optimizer(
     elif optimizer == "amsgrad":
         _optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=True)
     elif optimizer == "adamw":
-        _optimizer = AdamW(weight_decay=0, learning_rate=learning_rate)
+        _optimizer = AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
     else:
         raise ValueError(f"Unsupported optimizer {optimizer}")
 
