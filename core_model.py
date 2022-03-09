@@ -231,7 +231,14 @@ class SegFoundation(SegBase):
 
         return key
 
-    def custom_losses(self, num_class, ignore_label, batch_size, reduction=False, **kwargs):
+    def custom_losses(
+        self, 
+        num_class, 
+        ignore_label,
+        batch_size,
+        class_weights=None,
+        reduction=False, 
+        **kwargs):
 
         ohem_func = get_ohem_fn(thresh=self.ohem_thresh) if self.use_ohem else None
 
@@ -243,7 +250,10 @@ class SegFoundation(SegBase):
         }
 
         loss = lambda post_func: catecrossentropy_ignore_label_loss(
-            post_compute_fn=post_func, **common_kwargs, **kwargs,
+            post_compute_fn=post_func, 
+            class_weights=class_weights, 
+            **common_kwargs, 
+            **kwargs,
         )
 
         loss_dict = {"output_1": loss(ohem_func)}

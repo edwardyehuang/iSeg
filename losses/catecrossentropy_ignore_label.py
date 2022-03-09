@@ -9,6 +9,7 @@ import tensorflow as tf
 def catecrossentropy_ignore_label_loss(
     num_class=21,
     ignore_label=255,
+    class_weights=None,
     batch_size=2,
     reduction=False,
     pre_compute_fn=None,
@@ -29,17 +30,30 @@ def catecrossentropy_ignore_label_loss(
 
         y_true = tf.cast(y_true, tf.dtypes.int32)
 
-        y_pred = tf.reshape(y_pred, shape=[-1, num_class])
+        y_pred = tf.reshape(y_pred, shape=[-1, num_class]) # [NHW, class]
         y_true = tf.reshape(y_true, shape=[-1])
 
-        not_ignore_mask = tf.math.not_equal(y_true, ignore_label)
+        not_ignore_mask = tf.math.not_equal(y_true, ignore_label) # [NHW]
 
         if ignore_label == 0:
             y_true -= 1
 
-        one_hot_label = tf.one_hot(y_true, num_class)
+        one_hot_label = tf.one_hot(y_true, num_class) # [NHW, class]
 
-        loss_value = loss_func(one_hot_label, y_pred, not_ignore_mask)
+        sample_weights = tf.identity(not_ignore_mask, name="sample_weights") # [NHW]
+
+        if class_weights is not None and len(class_weights) > 0: # [class]
+            
+            assert len(class_weights) == num_class
+
+            _class_weights = tf.expand_dims(class_weights, axis=0) # [1, class]
+            _class_weights *= one_hot_label # [NHW, class]
+            _class_weights = tf.reduce_sum(_class_weights, axis=-1) # [NHW]
+
+            sample_weights *= _class_weights # [NHW]
+
+
+        loss_value = loss_func(one_hot_label, y_pred, sample_weights)
 
         if post_compute_fn is not None:
             loss_value = post_compute_fn(one_hot_label, y_pred, loss_value, local_batch_size)

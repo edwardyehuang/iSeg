@@ -30,7 +30,14 @@ class CoreTrain(object):
 
         self.use_tpu = use_tpu
 
-    def create_trainable_model(self, num_class, ignore_label=255, batch_size=1, epoch_steps=1000, initial_epoch=0):
+    def create_trainable_model(
+        self, 
+        num_class, 
+        ignore_label=255,
+        class_weights=None, 
+        batch_size=1, 
+        epoch_steps=1000, 
+        initial_epoch=0):
 
         model = self.model_helper.model
 
@@ -45,7 +52,12 @@ class CoreTrain(object):
         if losses_func is None or not callable(losses_func):
             losses_func = catecrossentropy_ignore_label_loss
 
-        losses = losses_func(num_class=num_class, ignore_label=ignore_label, batch_size=batch_size, reduction=False)
+        losses = losses_func(
+            num_class=num_class, 
+            ignore_label=ignore_label,
+            class_weights=class_weights,
+            batch_size=batch_size, 
+            reduction=False)
 
         # Loss weights:
 
@@ -85,6 +97,7 @@ class CoreTrain(object):
         distribute_strategy,
         num_class=21,
         ignore_label=255,
+        class_weights=None,
         batch_size=1,
         eval_batch_size=None,
         shuffle_rate=100,
@@ -102,6 +115,7 @@ class CoreTrain(object):
             model = self.create_trainable_model(
                 num_class,
                 ignore_label=ignore_label,
+                class_weights=class_weights,
                 batch_size=batch_size,
                 epoch_steps=epoch_steps,
                 initial_epoch=initial_epoch,
