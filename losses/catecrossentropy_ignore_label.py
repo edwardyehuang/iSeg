@@ -41,16 +41,19 @@ def catecrossentropy_ignore_label_loss(
         one_hot_label = tf.one_hot(y_true, num_class) # [NHW, class]
 
         sample_weights = tf.identity(not_ignore_mask, name="sample_weights") # [NHW]
+        
 
         if class_weights is not None and len(class_weights) > 0: # [class]
             
             assert len(class_weights) == num_class
 
+            sample_weights = tf.cast(sample_weights, tf.float32)
+
             _class_weights = tf.expand_dims(class_weights, axis=0) # [1, class]
             _class_weights *= one_hot_label # [NHW, class]
             _class_weights = tf.reduce_sum(_class_weights, axis=-1) # [NHW]
 
-            sample_weights *= _class_weights # [NHW]
+            sample_weights *= tf.cast(_class_weights, tf.float32) # [NHW]
 
 
         loss_value = loss_func(one_hot_label, y_pred, sample_weights)
