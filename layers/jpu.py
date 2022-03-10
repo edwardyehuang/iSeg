@@ -1,3 +1,12 @@
+# ================================================================
+# MIT License
+# Copyright (c) 2022 edwardyehuang (https://github.com/edwardyehuang)
+# ================================================================
+
+# Code implemented 
+# "FastFCN: Rethinking Dilated Convolution in the Backbone for Semantic Segmentation"
+# https://arxiv.org/pdf/1903.11816.pdf
+
 import tensorflow as tf
 
 from iseg.layers.normalizations import normalization
