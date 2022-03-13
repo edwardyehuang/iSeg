@@ -501,12 +501,15 @@ def resolve_shape(tensor, rank=None, scope=None):
 
 def normalize_value_range(inputs, backbone_name=ss.RESNET103):
 
+    '''
     if "resnet" in backbone_name and not is_resnet_beta(backbone_name):
         # return preprocess_subtract_imagenet_mean(inputs)
         raise NotImplementedError()
 
     else:
         return preprocess_zero_mean_unit_range(inputs)
+    '''
+    return preprocess_zero_mean_unit_range(inputs)
 
 
 def is_resnet_beta(backbone_name):
@@ -533,7 +536,11 @@ def preprocess_subtract_imagenet_mean(inputs, dtype=tf.float32):
 
 def get_mean_pixel(backbone_name=ss.RESNET103):
 
+    '''
     if "resnet" in backbone_name and not is_resnet_beta(backbone_name):
         return [123.15, 115.90, 103.06]
     else:
         return [127.5, 127.5, 127.5]
+    '''
+
+    return [127.5, 127.5, 127.5]
