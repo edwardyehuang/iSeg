@@ -1,12 +1,11 @@
 # iSeg : A TensorFlow 2 Library for Semantic Segmentation
 
-Working in progress
+## News
 
-I am very busy at this moment (graduation etc), but I will try my best to update this repo until Semantic Segmntation is solved.
+March-16-2022: We add an example project in [here](https://github.com/edwardyehuang/CAR), which is the re-implementation of the paper [CAR: Class-aware Regularizations for Semantic Segmentation](https://arxiv.org/pdf/2203.07160.pdf)
 
-I will also upload the code for some implementations of well-known networks (e.g. PSPNet, DeepLab, CCNet, DANet, OCRNet)
+March-16-2022: The backbone weights are now available in [here](backbones/weights_download.md), we will add more in future.
 
-Some segmentation results on Flickr images:
 
 <img src="demo.png" width=450>
 
@@ -26,7 +25,7 @@ Some segmentation results on Flickr images:
 - [ ] MAE-ViT (Coming soon)
 - [x] ConvNeXt
 
-Weights are expected to release in Mid March 2022
+Weights can be downloaded in [here](backbones/weights_download.md)
 
 ### Other features
 - [x] Mixed precision training and inference
