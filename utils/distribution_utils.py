@@ -35,25 +35,22 @@ def get_distribution_strategy(gpu_memory_growth=True, cuda_visible_devices=None,
 
         return get_tpu_strategy(tpu_name)
 
+    
+    dist_devices = None
+
     if cuda_visible_devices is not None:
-        os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
+        dist_devices = [cuda_visible_devices]
 
     set_gpu_memory_growth(gpu_memory_growth)
-
-    gpu_counts = get_gpu_counts()
 
     cross_device_ops = None
 
     if os.name == "nt":
         cross_device_ops = tf.distribute.HierarchicalCopyAllReduce()
 
-    if gpu_counts == 1:
-        # strategy = tf.distribute.OneDeviceStrategy("/gpu:0")
-        strategy = tf.distribute.MirroredStrategy()
-    else:
-        # issue 41539 may be fixed: https://github.com/tensorflow/tensorflow/issues/41539
-        strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_device_ops)
-        # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
+    # issue 41539 may be fixed: https://github.com/tensorflow/tensorflow/issues/41539
+    strategy = tf.distribute.MirroredStrategy(devices = dist_devices, cross_device_ops=cross_device_ops)
+    # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
 
     return strategy
 

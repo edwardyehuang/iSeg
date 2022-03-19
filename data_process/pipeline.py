@@ -17,8 +17,8 @@ class AugmentationsPipeLine(object):
         self.name = name
         self.augments = augments
 
-        self.target_height = target_height
-        self.target_width = target_width
+        self.target_height = target_height if target_height > 0 else None
+        self.target_width = target_width if target_width > 0 else None
 
     def post_process(self, image, label):
 
@@ -63,16 +63,6 @@ class AugmentationsPipeLine(object):
             return ds
 
         return ds.map(self.process, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-        """
-        with tf.name_scope(self.name) as scope:
-            for augment in self.augments:
-                ds = ds.map(augment, num_parallel_calls = tf.data.experimental.AUTOTUNE)
-
-            ds = ds.map(self.post_process, num_parallel_calls = tf.data.experimental.AUTOTUNE)
-
-            return ds
-        """
 
 
 class StandardAugmentationsPipeline(AugmentationsPipeLine):
