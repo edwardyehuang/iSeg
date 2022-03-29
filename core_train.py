@@ -88,7 +88,9 @@ class CoreTrain(object):
         # Compile
 
         model.compile(optimizer=optimizer, metrics=metrics, loss=losses, loss_weights=losses_weights)
-        model.optimizer.iterations.assign(epoch_steps * initial_epoch)
+
+        if initial_epoch != -1:
+            model.optimizer.iterations.assign(epoch_steps * initial_epoch)
 
         return model
 
@@ -120,6 +122,10 @@ class CoreTrain(object):
                 epoch_steps=epoch_steps,
                 initial_epoch=initial_epoch,
             )
+
+        if initial_epoch == -1:
+            current_iter = model.optimizer.iterations.value()
+            initial_epoch = current_iter // epoch_steps
 
         train_ds = self.prepare_train_dataset(model, batch_size, shuffle_rate)
         eval_ds = self.prepare_val_dataset(model, eval_batch_size)
