@@ -87,6 +87,63 @@ class SegManaged(SegFoundation):
 
         self.layers_for_multi_optimizers = None
 
+
+    def compute_head_results (self, head_inputs, training=None):
+
+        head_results = self.head(head_inputs, training=training)
+
+        if isinstance(head_results, tuple):
+            head_results = list(head_results)
+
+        if not isinstance(head_results, list):
+            head_results = [head_results]
+
+        assert len(head_results) == self.num_aux_loss + 1
+
+        return head_results
+
+
+    def compute_logits_results(self, logits_inputs):
+        
+        if not self.use_custom_logits:
+            logits_list = [self.logits_conv(logits_inputs[0])]
+
+            for i in range(self.num_aux_loss):
+                logits_list += [self.aux_logits_convs[i](logits_inputs[i + 1])]
+        else:
+            logits_list = logits_inputs
+
+        return logits_list
+
+
+    def compute_logits_upsample(self, logits_list, inputs_size):
+
+        if self.logits_upsample_masks is None:
+            y = [resize_image(logits, inputs_size) for logits in logits_list]
+        else:
+            assert len(self.logits_upsample_masks) == len(logits_list)
+            y = []
+
+            for i in range(len(logits_list)):
+                logits = logits_list[i]
+                if self.logits_upsample_masks[i]:
+                    logits = resize_image(logits, inputs_size)
+
+                y += [logits]
+
+        return y
+
+
+    def compute_final_results (self, logits_list):
+
+        y = [tf.cast(logits, tf.float32) for logits in logits_list]
+
+        if len(y) == 1:
+            y = y[0]
+
+        return y
+
+
     def call(self, inputs, training=None):
 
         x = inputs
@@ -111,43 +168,14 @@ class SegManaged(SegFoundation):
         if self.label_as_inputs and self.label_as_head_inputs:
             head_inputs = [head_inputs, label]
 
-        head_results = self.head(head_inputs, training=training)
+        head_results = self.compute_head_results(head_inputs, training=training)
 
-        # Handle results
+        # Handle logits
 
-        if isinstance(head_results, tuple):
-            head_results = list(head_results)
+        logits_list = self.compute_logits_results(head_results)
+        logits_list = self.compute_logits_upsample(logits_list, inputs_size=inputs_size)
 
-        if not isinstance(head_results, list):
-            head_results = [head_results]
-
-        assert len(head_results) == self.num_aux_loss + 1
-
-        if not self.use_custom_logits:
-            logits_list = [self.logits_conv(head_results[0])]
-
-            for i in range(self.num_aux_loss):
-                logits_list += [self.aux_logits_convs[i](head_results[i + 1])]
-        else:
-            logits_list = head_results
-
-        if self.logits_upsample_masks is None:
-            y = [tf.cast(resize_image(logits, inputs_size), tf.float32) for logits in logits_list]
-        else:
-            assert len(self.logits_upsample_masks) == len(logits_list)
-            y = []
-
-            for i in range(len(logits_list)):
-                logits = logits_list[i]
-                if self.logits_upsample_masks[i]:
-                    logits = resize_image(logits, inputs_size)
-
-                y += [tf.cast(logits, tf.float32)]
-
-        if len(y) == 1:
-            y = y[0]
-
-        return y
+        return self.compute_final_results(logits_list)
 
     
     def multi_optimizers_layers(self):
