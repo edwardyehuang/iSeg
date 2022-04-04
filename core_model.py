@@ -247,11 +247,11 @@ class SegFoundation(SegBase):
             "ignore_label": ignore_label,
             "batch_size": batch_size,
             "reduction": reduction,
+            "class_weights":class_weights,
         }
 
         loss = lambda post_func: catecrossentropy_ignore_label_loss(
             post_compute_fn=post_func, 
-            class_weights=class_weights, 
             **common_kwargs, 
             **kwargs,
         )
