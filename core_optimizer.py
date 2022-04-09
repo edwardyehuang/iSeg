@@ -15,7 +15,7 @@ def get_optimizer(
     epoch_steps=1000,
     train_epoch=30,
     warmup_steps=0,
-    warmup_lr=0.003,
+    warmup_lr=0.0,
     decay_strategy="poly",
     optimizer="sgd",
     sgd_momentum_rate=0.9,
