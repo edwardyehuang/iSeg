@@ -49,7 +49,7 @@ class WarmUpPolyDecay(tf.keras.optimizers.schedules.LearningRateSchedule):
             power = tf.cast(self.power, dtype)
 
             current_step = tf.cast(step, dtype)
-            max_steps = tf.cast(self.decay_steps, dtype)
+            max_steps = tf.cast(self.decay_steps, dtype) - self.warmup_steps
 
             current_step = tf.math.minimum(current_step, max_steps)
 
@@ -65,7 +65,7 @@ class WarmUpPolyDecay(tf.keras.optimizers.schedules.LearningRateSchedule):
                     / self.warmup_steps
                 )
 
-            p = tf.math.divide(adjusted_current_step, max_steps - self.warmup_steps)
+            p = tf.math.divide(adjusted_current_step, max_steps)
 
             learning_rate = tf.add(
                 tf.math.multiply(initial_learning_rate - end_learning_rate, tf.math.pow(1 - p, power)),
