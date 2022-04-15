@@ -176,6 +176,8 @@ class SegFoundation(SegBase):
         num_aux_loss=0,
         aux_loss_rate=0.4,
         aux_metric_names=None,
+        aux_metric_iou_masks=None,
+        aux_metric_pre_fns=[],
         use_ohem=False,
         ohem_thresh=0.7,
         label_as_inputs=False,
@@ -206,10 +208,13 @@ class SegFoundation(SegBase):
             len(aux_metric_names) == num_aux_loss
         ), f"aux_metric_names must be None or has equal length = num_aux_loss, found {len(aux_metric_names)}"
 
+
         self.aux_loss_rate = aux_loss_rate
         self.use_ohem = use_ohem
         self.ohem_thresh = ohem_thresh
         self.aux_metric_names = aux_metric_names
+        self.aux_metric_iou_masks = aux_metric_iou_masks
+        self.aux_metric_pre_fns = aux_metric_pre_fns
         self.label_as_inputs = label_as_inputs
 
         self.custom_aux_loss_fns = custom_aux_loss_fns
@@ -289,10 +294,32 @@ class SegFoundation(SegBase):
         metrics = SegMetricBuilder(num_class, ignore_label)
         metrics.add()
 
+        # IOU masks
+        aux_metric_iou_masks = self.aux_metric_iou_masks
+
+        if aux_metric_iou_masks is None or len(aux_metric_iou_masks) == 0:
+            aux_metric_iou_masks = [False] * self.num_aux_loss
+
+        assert len(aux_metric_iou_masks) == self.num_aux_loss
+
+        # Pre_compute_fns
+        aux_metric_pre_fns = self.aux_metric_pre_fns
+
+        if aux_metric_pre_fns is None or len(aux_metric_pre_fns) == 0:
+            aux_metric_pre_fns = [None] * self.num_aux_loss
+
+        assert len(aux_metric_pre_fns) == self.num_aux_loss
+
+        # Build aux metrics
+
         for i in range(self.num_aux_loss):
 
             prefix = "aux" if self.aux_metric_names is None else self.aux_metric_names[i]
-            metrics.add(f"{prefix}_{i}", use_iou=False)
+            metrics.add(
+                f"{prefix}_{i}", 
+                use_iou=aux_metric_iou_masks[i],
+                pre_compute_fn=aux_metric_pre_fns[i]
+                )
 
         return metrics.metrics
 
