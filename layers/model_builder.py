@@ -34,6 +34,7 @@ class ConvBnRelu(tf.keras.Model):
         dropout_rate=0,
         trainable=True,
         use_bias=False,
+        groups=1,
         name=None,
     ):
 
@@ -46,6 +47,7 @@ class ConvBnRelu(tf.keras.Model):
             use_bias=use_bias,
             kernel_initializer=conv_kernel_initializer,
             dilation_rate=dilation_rate,
+            groups=groups,
             trainable=trainable,
             name="{}_conv".format(name),
         )
