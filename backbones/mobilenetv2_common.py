@@ -29,7 +29,7 @@ class MobileNetV2(tf.keras.Model):
         self.__add_blocks(24, alpha, stride=2, expansion=6, repeated=2)
         self.__add_blocks(32, alpha, stride=2, expansion=6, repeated=3)
         self.__add_blocks(64, alpha, stride=2, expansion=6, repeated=4)
-        self.__add_blocks(96, alpha, stride=2, expansion=6, repeated=3)
+        self.__add_blocks(96, alpha, stride=1, expansion=6, repeated=3)
         self.__add_blocks(160, alpha, stride=2, expansion=6, repeated=3)
         self.__add_blocks(320, alpha, stride=1, expansion=6, repeated=1)
 
@@ -50,7 +50,7 @@ class MobileNetV2(tf.keras.Model):
 
         for block in self.blocks:
 
-            if block.strides > 1:
+            if block.orginal_stride > 1:
                 endpoints += [x]
 
             x = block(x, training=training)
@@ -85,7 +85,7 @@ class InvertedResBlock(tf.keras.Model):
         super().__init__()
 
         self.expansion = expansion
-        self.__stride = stride
+        self.orginal_stride = stride
         self.alpha = alpha
         self.filters = filters
         self.block_id = block_id
@@ -97,9 +97,9 @@ class InvertedResBlock(tf.keras.Model):
 
         self.depthwise = tf.keras.layers.DepthwiseConv2D(
             (3, 3),
-            strides=self.__stride,
+            strides=stride,
             use_bias=False,
-            padding="same" if self.__stride == 1 else "valid",
+            padding="same" if stride == 1 else "valid",
             name=self.prefix + "depthwise",
         )
 
@@ -116,9 +116,8 @@ class InvertedResBlock(tf.keras.Model):
                 self.expansion * self.in_channels, (1, 1), padding="same", use_bias=False, name=self.prefix + "expand"
             )
             self.expand_bn = normalization(name=self.prefix + "expand_BN")
-
-        if self.__stride == 2:
-            self.pad = tf.keras.layers.ZeroPadding2D(padding=correct_pad(input_shape, 3), name=self.prefix + "pad")
+            
+        self.pad = tf.keras.layers.ZeroPadding2D(padding=correct_pad(input_shape, 3), name=self.prefix + "pad")
 
         self.project = tf.keras.layers.Conv2D(
             self.pointwise_filters, (1, 1), padding="same", use_bias=False, name=self.prefix + "project"
@@ -137,6 +136,8 @@ class InvertedResBlock(tf.keras.Model):
         value = conv_utils.normalize_tuple(value, self.depthwise.rank, "strides")
 
         self.depthwise.strides = value
+        self.depthwise.padding = "same" if value[0] == 1 else "valid"
+        
 
     @property
     def atrous_rates(self):
@@ -158,7 +159,7 @@ class InvertedResBlock(tf.keras.Model):
             x = self.expand_bn(x, training=training)
             x = tf.nn.relu6(x)
 
-        if self.__stride == 2:
+        if self.strides == 2:
             x = self.pad(x)
 
         x = self.depthwise(x)
@@ -168,7 +169,7 @@ class InvertedResBlock(tf.keras.Model):
         x = self.project(x)
         x = self.project_bn(x, training=training)
 
-        if self.in_channels == self.pointwise_filters and self.__stride == 1:
+        if self.in_channels == self.pointwise_filters and self.orginal_stride == 1:
             x = inputs + x
 
         return x
@@ -201,7 +202,7 @@ def _make_divisible(v, divisor, min_value=None):
 
 def build_atrous_mobilenetv2(net: MobileNetV2, output_stride=32):
 
-    current_os = 1
+    current_os = 2
     current_dilation_rate = 1
 
     for block in net.blocks:
@@ -209,11 +210,11 @@ def build_atrous_mobilenetv2(net: MobileNetV2, output_stride=32):
 
         if block.strides > 1:
             if current_os >= output_stride:
-                current_dilation_rate *= 2
+                current_dilation_rate *= block.strides
                 block.strides = 1
                 block.atrous_rates = current_dilation_rate
             else:
-                current_os *= 2
+                current_os *= block.strides
         else:
             block.atrous_rates = current_dilation_rate
 

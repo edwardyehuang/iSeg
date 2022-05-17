@@ -139,6 +139,8 @@ class Block(tf.keras.Model):
         self.drop_rate = drop_rate
         self.id_skip = id_skip
 
+        self.output_endpoint = strides > 1
+
         filters = filters_in * expand_ratio
 
         if expand_ratio != 1:
@@ -334,7 +336,7 @@ class EfficientNet(tf.keras.Model):
 
         for block in self.blocks:
 
-            if block.dwconv.strides[0] > 1:
+            if block.output_endpoint:
                 endpoints += [x]
 
             x = block(x, training=training)
