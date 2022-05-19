@@ -51,6 +51,7 @@ EFFICIENTNETB4 = "efficientnetb4"
 EFFICIENTNETB5 = "efficientnetb5"
 EFFICIENTNETB6 = "efficientnetb6"
 EFFICIENTNETB7 = "efficientnetb7"
+EFFICIENTNETL2 = "efficientnetl2"
 
 SWIN_TINY_224 = "swin_tiny_224"
 SWIN_BASE_384 = "swin_base_384"
