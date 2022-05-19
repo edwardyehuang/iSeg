@@ -63,6 +63,7 @@ def get_backbone(
         ss.EFFICIENTNETB5: EfficientNetB5,
         ss.EFFICIENTNETB6: EfficientNetB6,
         ss.EFFICIENTNETB7: EfficientNetB7,
+        ss.EFFICIENTNETL2: EfficientNetL2,
         ss.SWIN_TINY_224: swin_tiny_224,
         ss.SWIN_BASE_384: swin_base_384,
         ss.SWIN_LARGE_384: swin_large_384,
