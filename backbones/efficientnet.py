@@ -449,6 +449,18 @@ def EfficientNetB7(return_endpoints=False):
     )
 
 
+def EfficientNetL2(return_endpoints=False):
+
+    return EfficientNet(
+        width_confficient=4.3,
+        depth_confficient=5.3,
+        default_size=800,
+        drop_connect_rate=0.5,
+        return_endpoints=return_endpoints,
+        name="efficientnetl2",
+    )
+
+
 def build_dilated_efficientnet(efficientnet, output_stride=16):
 
     current_os = 2
