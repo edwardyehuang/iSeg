@@ -20,6 +20,7 @@ def common_env_setup(
     random_seed=0,
     mixed_precision=True,
     use_deterministic=True,
+    numpy_behavior=False,
 ):
 
     if use_deterministic:
@@ -43,5 +44,9 @@ def common_env_setup(
 
     if mixed_precision:
         enable_mixed_precision(use_tpu=tpu_name is not None)
+
+    if numpy_behavior:
+        tf.experimental.numpy.experimental_enable_numpy_behavior(True)
+        print("Enable experimental numpy behavior")
 
     return strategy
