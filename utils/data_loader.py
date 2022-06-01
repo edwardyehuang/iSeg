@@ -55,8 +55,11 @@ def simple_process_image (image_tensor, label_tensor=None, ignore_label=255):
     pad_height = tf.cast(tf.math.ceil(image_size[0] / 32) * 32, tf.int32)
     pad_width = tf.cast(tf.math.ceil(image_size[1] / 32) * 32, tf.int32)
 
-    pad_height = pad_height if pad_height % 2 != 0 else pad_height + 1
-    pad_width = pad_height if pad_width % 2 != 0 else pad_width + 1
+    # pad_height = pad_height if pad_height % 2 != 0 else pad_height + 1
+    # pad_width = pad_height if pad_width % 2 != 0 else pad_width + 1
+
+    pad_height = tf.where(pad_height % 2 != 0, pad_height, pad_height + 1)
+    pad_width = tf.where(pad_width % 2 != 0, pad_width, pad_width + 1)
 
     from iseg.data_process.utils import pad_to_bounding_box, normalize_value_range
 
