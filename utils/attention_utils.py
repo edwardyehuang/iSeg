@@ -56,7 +56,7 @@ def compute_2d_self_attention(query, key, scale=False):
     return attention_map
 
 
-def get_axial_attention(query, key, axis=1):
+def get_axial_attention(query, key, axis=1, apply_scale=False):
 
     if axis == 1:
         query = tf.transpose(query, [0, 2, 1, 3])  # [N, W, H, C]
@@ -66,4 +66,4 @@ def get_axial_attention(query, key, axis=1):
     else:
         raise ValueError("axis must be 1 or 2")
 
-    return get_attention(query, key)  # [N, W, H, H] or [N, H, W, W]
+    return get_attention(query, key, apply_scale=apply_scale)  # [N, W, H, H] or [N, H, W, W]
