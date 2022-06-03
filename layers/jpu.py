@@ -16,8 +16,10 @@ from iseg.utils.common import resize_image
 
 
 class JointPyramidUpsampling(tf.keras.Model):
-    def __init__(self, name=None):
+    def __init__(self, width=512, name=None):
         super().__init__(name=name)
+
+        self.width = width
 
     def build(self, input_shape):
 
@@ -25,9 +27,9 @@ class JointPyramidUpsampling(tf.keras.Model):
 
         assert len(endpoints_shape_list) >= 3
 
-        base_filters = 512
+        base_filters = self.width
 
-        self.endpoints_convs = [ConvBnRelu(512, (3, 3), name=f"endpoint_conv_{i}") for i in range(3)]
+        self.endpoints_convs = [ConvBnRelu(base_filters, (3, 3), name=f"endpoint_conv_{i}") for i in range(3)]
 
         dilation_rates = [1, 2, 4, 8]
 
