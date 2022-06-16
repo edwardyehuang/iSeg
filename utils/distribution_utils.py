@@ -52,15 +52,25 @@ def get_distribution_strategy(gpu_memory_growth=True, cuda_visible_devices=None,
         strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
     else:
         strategy = tf.distribute.MirroredStrategy(devices = dist_devices, cross_device_ops=cross_device_ops)
-        # issue 41539 may be fixed: https://github.com/tensorflow/tensorflow/issues/41539
-        # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
+    # issue 41539 may be fixed: https://github.com/tensorflow/tensorflow/issues/41539
+    # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
 
     return strategy
 
 
+def list_gpus():
+
+    if LooseVersion(tf.version.VERSION) < LooseVersion("2.8.0"):
+        gpus = tf.config.experimental.list_physical_devices("GPU")
+    else:
+        gpus = tf.config.list_physical_devices("GPU")
+
+    return gpus
+
+
 def set_gpu_memory_growth(growth=False):
 
-    gpus = tf.config.experimental.list_physical_devices("GPU")
+    gpus = list_gpus()
 
     if gpus:
         try:
@@ -73,7 +83,7 @@ def set_gpu_memory_growth(growth=False):
 
 def get_gpu_counts():
 
-    gpus = tf.config.experimental.list_physical_devices("GPU")
+    gpus = list_gpus()
 
     if gpus:
         return len(gpus)
