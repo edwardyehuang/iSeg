@@ -115,7 +115,14 @@ class Stack2(tf.keras.Model):
 
 class ResNet(tf.keras.Model):
     def __init__(
-        self, stacks, use_bias=True, norm_method=None, replace_7x7_conv=False, return_endpoints=False, name="resnet"
+        self, 
+        stacks, 
+        use_bias=True, 
+        norm_method=None,
+        conv1_depth_multiplier=1,
+        replace_7x7_conv=False, 
+        return_endpoints=False, 
+        name="resnet"
     ):
 
         super(ResNet, self).__init__(name=name)
@@ -123,7 +130,11 @@ class ResNet(tf.keras.Model):
         self.replace_7x7_conv = replace_7x7_conv
 
         conv1_fn = self.build_3x3_resnet if self.replace_7x7_conv else self.build_7x7_resnet
-        conv1_fn(use_bias=use_bias, norm_method=norm_method)
+        conv1_fn(
+            depth_multiplier=conv1_depth_multiplier,
+            use_bias=use_bias, 
+            norm_method=norm_method
+            )
 
         if not replace_7x7_conv:
             self.poo1_pad = tf.keras.layers.ZeroPadding2D(padding=(1, 1), name="poo1_pad")
@@ -136,11 +147,16 @@ class ResNet(tf.keras.Model):
 
         self.return_endpoints = return_endpoints
 
-    def build_7x7_resnet(self, use_bias=True, norm_method=None):
+    ### ResNet 7x7 ###################
+
+    def build_7x7_resnet(self, depth_multiplier=1, use_bias=True, norm_method=None):
 
         self.conv1_pad = tf.keras.layers.ZeroPadding2D(padding=(3, 3), name="conv1_pad")
-        self.conv1_conv = tf.keras.layers.Conv2D(64, 7, strides=2, use_bias=use_bias, name="conv1_conv")
+        self.conv1_conv = tf.keras.layers.Conv2D(
+            int(64 * depth_multiplier), 7, strides=2, use_bias=use_bias, name="conv1_conv"
+            )
         self.conv1_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_bn")
+
 
     def compute_7x7_resnet(self, inputs, training=None, **kwargs):
 
@@ -151,22 +167,25 @@ class ResNet(tf.keras.Model):
 
         return x
 
-    def build_3x3_resnet(self, use_bias=True, norm_method=None):
+    ### ResNet 3x3 ###################
+
+    def build_3x3_resnet(self, depth_multiplier=1, use_bias=True, norm_method=None):
 
         self.conv1_1_conv = tf.keras.layers.Conv2D(
-            64, 3, strides=2, padding="SAME", use_bias=use_bias, name="conv1_1_conv"
+            int(64 * depth_multiplier), 3, strides=2, padding="SAME", use_bias=use_bias, name="conv1_1_conv"
         )
         self.conv1_1_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_1_bn")
 
         self.conv1_2_conv = tf.keras.layers.Conv2D(
-            64, 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_2_conv"
+            int(64 * depth_multiplier), 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_2_conv"
         )
         self.conv1_2_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_2_bn")
 
         self.conv1_3_conv = tf.keras.layers.Conv2D(
-            128, 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_3_conv"
+            int(128 * depth_multiplier), 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_3_conv"
         )
         self.conv1_3_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_3_bn")
+
 
     def compute_3x3_resnet(self, inputs, training=None, **kwargs):
 
@@ -183,6 +202,8 @@ class ResNet(tf.keras.Model):
         x = tf.nn.relu(x)
 
         return x
+
+    ### ResNet Call ###################
 
     def call(self, inputs, training=None, **kwargs):
 
