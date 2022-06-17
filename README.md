@@ -15,21 +15,17 @@ March-16-2022: The backbone weights are now available in [here](backbones/weight
 - [x] Modern ResNet
 - [x] Xception-65
 - [x] EfficientNetV1
-- [ ] Vision Transformer (WIP)
-- [ ] MLP Mixer (WIP)
-- [ ] SegFormer
 - [x] Feature Pyramid Network
 - [x] HRNet
 - [x] Swin Transformer (Inputs size free)
 - [x] MobileNetV2
-- [ ] MAE-ViT (Coming soon)
 - [x] ConvNeXt
 
 Weights can be downloaded in [here](backbones/weights_download.md)
 
 ### Other features
 - [x] Mixed precision training and inference
-- [x] Fully Deterministic (100%, see https://github.com/NVIDIA/framework-determinism)
+- [x] Fully Deterministic result (100%, see https://github.com/NVIDIA/framework-determinism)
 - [x] Training and inference on GPU <= 8
 - [x] Training and inference on TPU
 - [x] Typical image augmentation
@@ -37,6 +33,6 @@ Weights can be downloaded in [here](backbones/weights_download.md)
 
 ## Requirements
 
-* TensorFlow >= 2.4 (2.3 is fine for TPU users)
-* TensorFlow >= 2.6 for Apple M1 users.
+* TensorFlow >= 2.4 (2.3 is fine for TPU users), we recommend to use >= 2.8 for [determinism](https://github.com/NVIDIA/framework-determinism).
+* TensorFlow >= 2.8 for Apple M1 users.
 * Mixed precision only supports GPU architectures after Volta (included).
