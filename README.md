@@ -14,6 +14,7 @@ March-16-2022: The backbone weights are now available in [here](backbones/weight
 
 - [x] Modern ResNet
 - [x] Xception-65
+- [x] MobileNetV2
 - [x] EfficientNetV1
 - [x] Feature Pyramid Network
 - [x] HRNet
@@ -33,6 +34,6 @@ Weights can be downloaded in [here](backbones/weights_download.md)
 
 ## Requirements
 
-* TensorFlow >= 2.4 (2.3 is fine for TPU users), we recommend to use >= 2.8 for [determinism](https://github.com/NVIDIA/framework-determinism).
+* TensorFlow >= 2.4, <= 2.10 (2.3 is fine for TPU users), we recommend to use >= 2.8 for [determinism](https://github.com/NVIDIA/framework-determinism).
 * TensorFlow >= 2.8 for Apple M1 users.
 * Mixed precision only supports GPU architectures after Volta (included).
