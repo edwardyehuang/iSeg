@@ -247,6 +247,7 @@ def resnet50(
 
     return get_resnet(
         resnet_name=ss.RESNET50,
+        num_of_blocks=[3, 4, 6, 3],
         use_bias=use_bias,
         norm_method=norm_method,
         replace_7x7_conv=replace_7x7_conv,
@@ -267,6 +268,7 @@ def resnet101(
 
     return get_resnet(
         resnet_name=ss.RESNET101,
+        num_of_blocks=[3, 4, 23, 3],
         use_bias=use_bias,
         norm_method=norm_method,
         replace_7x7_conv=replace_7x7_conv,
@@ -287,6 +289,7 @@ def resnet152(
 
     return get_resnet(
         resnet_name=ss.RESNET152,
+        num_of_blocks=[3, 8, 36, 3],
         use_bias=use_bias,
         norm_method=norm_method,
         replace_7x7_conv=replace_7x7_conv,
@@ -296,20 +299,9 @@ def resnet152(
     )
 
 
-def get_resnet_stack_num(name=ss.RESNET50):
-
-    if name == ss.RESNET50 or name == ss.RESNET52:
-        return [3, 4, 6, 3]
-    elif name == ss.RESNET101 or name == ss.RESNET103:
-        return [3, 4, 23, 3]
-    elif name == ss.RESNET152:
-        return [3, 8, 36, 3]
-
-    raise ValueError("Unsupported layer num")
-
-
 def get_resnet(
     resnet_name=ss.RESNET50,
+    num_of_blocks=[3, 4, 6, 3],
     use_bias=True,
     norm_method=None,
     replace_7x7_conv=False,
@@ -319,7 +311,7 @@ def get_resnet(
 ):
 
     stacks = build_stacks(
-        get_resnet_stack_num(resnet_name),
+        num_of_blocks=num_of_blocks,
         use_bias=use_bias,
         norm_method=norm_method,
         slim_behaviour=slim_behaviour,
