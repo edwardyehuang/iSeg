@@ -7,11 +7,13 @@
 # The modifications are refer to https://github.com/tensorflow/models/blob/master/research/deeplab/core/resnet_v1_beta.py
 # and "Bag of Tricks for Image Classification with Convolutional Neural Networks", CVPR2019
 
+from sympy import im
 import iseg.static_strings as ss
 import tensorflow as tf
 from iseg.layers.normalizations import normalization
 
 from iseg.backbones.resnet_blocks import BlockType1, BlockType2
+from iseg.backbones.resnet_blocks_small import BlockType2Small
 
 BN_EPSILON = 1.001e-5
 
@@ -234,6 +236,49 @@ class ResNet(tf.keras.Model):
             return endpoints
         else:
             return x
+
+
+def resnet9(
+    use_bias=True,
+    norm_method=None,
+    replace_7x7_conv=False,
+    slim_behaviour=False,
+    custom_block=None,
+    return_endpoints=False,
+):
+
+    return get_resnet(
+        resnet_name=ss.RESNET9,
+        num_of_blocks=[1, 1, 1, 1],
+        use_bias=use_bias,
+        norm_method=norm_method,
+        replace_7x7_conv=replace_7x7_conv,
+        slim_behaviour=slim_behaviour,
+        custom_block=BlockType2Small if custom_block is None else custom_block,
+        return_endpoints=return_endpoints,
+    )
+
+
+
+def resnet18(
+    use_bias=True,
+    norm_method=None,
+    replace_7x7_conv=False,
+    slim_behaviour=False,
+    custom_block=None,
+    return_endpoints=False,
+):
+
+    return get_resnet(
+        resnet_name=ss.RESNET18,
+        num_of_blocks=[2, 2, 2, 2],
+        use_bias=use_bias,
+        norm_method=norm_method,
+        replace_7x7_conv=replace_7x7_conv,
+        slim_behaviour=slim_behaviour,
+        custom_block=BlockType2Small if custom_block is None else custom_block,
+        return_endpoints=return_endpoints,
+    )
 
 
 def resnet50(

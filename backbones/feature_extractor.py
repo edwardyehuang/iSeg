@@ -50,6 +50,8 @@ def get_backbone(
         general_kwargs.update(resnet_kwargs)
 
     backbone_dicts = {
+        ss.RESNET9: resnet9,
+        ss.RESNET18: resnet18,
         ss.RESNET50: resnet50,
         ss.RESNET52: resnet50,
         ss.RESNET101: resnet101,
