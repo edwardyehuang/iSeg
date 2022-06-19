@@ -7,7 +7,6 @@
 # The modifications are refer to https://github.com/tensorflow/models/blob/master/research/deeplab/core/resnet_v1_beta.py
 # and "Bag of Tricks for Image Classification with Convolutional Neural Networks", CVPR2019
 
-from sympy import im
 import iseg.static_strings as ss
 import tensorflow as tf
 from iseg.layers.normalizations import normalization
