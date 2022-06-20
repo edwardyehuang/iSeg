@@ -22,7 +22,7 @@ March-16-2022: The backbone weights are now available in [here](backbones/weight
 - [x] MobileNetV2
 - [x] ConvNeXt
 
-Weights can be downloaded in [here](backbones/weights_download.md)
+Weights can be downloaded in [here](backbones/README.md)
 
 ### Other features
 - [x] Mixed precision training and inference

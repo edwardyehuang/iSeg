@@ -252,6 +252,7 @@ def resnet9(
         use_bias=use_bias,
         norm_method=norm_method,
         replace_7x7_conv=replace_7x7_conv,
+        conv1_depth_multiplier=0.5,
         slim_behaviour=slim_behaviour,
         custom_block=BlockType2Small if custom_block is None else custom_block,
         return_endpoints=return_endpoints,
@@ -274,6 +275,7 @@ def resnet18(
         use_bias=use_bias,
         norm_method=norm_method,
         replace_7x7_conv=replace_7x7_conv,
+        conv1_depth_multiplier=0.5,
         slim_behaviour=slim_behaviour,
         custom_block=BlockType2Small if custom_block is None else custom_block,
         return_endpoints=return_endpoints,
@@ -350,6 +352,7 @@ def get_resnet(
     norm_method=None,
     replace_7x7_conv=False,
     slim_behaviour=False,
+    conv1_depth_multiplier=1,
     custom_block=None,
     return_endpoints=False,
 ):
@@ -367,6 +370,7 @@ def get_resnet(
         use_bias=use_bias,
         norm_method=norm_method,
         replace_7x7_conv=replace_7x7_conv,
+        conv1_depth_multiplier=conv1_depth_multiplier,
         return_endpoints=return_endpoints,
         name=resnet_name,
     )
