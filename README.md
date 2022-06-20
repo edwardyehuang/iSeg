@@ -4,7 +4,7 @@
 
 March-16-2022: We add an example project in [here](https://github.com/edwardyehuang/CAR), which is the re-implementation of the paper [CAR: Class-aware Regularizations for Semantic Segmentation](https://arxiv.org/pdf/2203.07160.pdf)
 
-March-16-2022: The backbone weights are now available in [here](backbones/weights_download.md), we will add more in future.
+March-16-2022: The backbone weights are now available in [here](backbones/README.md), we will add more in future.
 
 
 <img src="demo.png" width=450>
