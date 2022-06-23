@@ -100,7 +100,6 @@ class BlockType2Small(tf.keras.Model):
 
         x = self.conv2_conv(x, training=training)
         x = self.conv2_bn(x, training=training)
-        x = tf.nn.relu(x)
 
         x = tf.add(shortcut, x)
         x = tf.nn.relu(x)
