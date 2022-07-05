@@ -63,8 +63,8 @@ def simple_process_image (image_tensor, label_tensor=None, ignore_label=255):
     r_height = tf.math.floormod(pad_height, 2, name="height_mod")
     r_width = tf.math.floormod(pad_width, 2, name="width_mod")
 
-    cond_height= tf.math.not_equal(r_height, zero, name="cond_height")
-    cond_width = tf.math.not_equal(r_width, zero, name="cond_width")
+    cond_height= tf.math.equal(r_height, zero, name="cond_height")
+    cond_width = tf.math.equal(r_width, zero, name="cond_width")
 
     # pad_height = tf.cond(cond_height, lambda:pad_height, lambda:pad_height + 1, name="odd_pad_height")
     # pad_width = tf.cond(cond_width, lambda:pad_width, lambda:pad_width + 1, name="odd_pad_width")
