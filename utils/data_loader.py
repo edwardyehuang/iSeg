@@ -45,7 +45,7 @@ def simple_load_image(image_path, label_path=None, ignore_label=255):
     if label_tensor is not None:
         label_tensor = tf.expand_dims(label_tensor, axis=0) # [1, H, W, 1]
 
-    return simple_process_image(image_tensor, label_tensor, ignore_lable=ignore_label)
+    return simple_process_image(image_tensor, label_tensor, ignore_label=ignore_label)
 
 
 def simple_process_image (image_tensor, label_tensor=None, ignore_label=255):
