@@ -27,7 +27,7 @@ class ConvBnRelu(tf.keras.Model):
         self,
         filters=256,
         kernel_size=1,
-        dilation_rate=(1, 1),
+        dilation_rate=1,
         use_bn=True,
         activation=tf.nn.relu,
         conv_kernel_initializer="glorot_uniform",
@@ -35,12 +35,13 @@ class ConvBnRelu(tf.keras.Model):
         trainable=True,
         use_bias=False,
         groups=1,
+        conv_func=tf.keras.layers.Conv2D,
         name=None,
     ):
 
         super(ConvBnRelu, self).__init__(trainable=trainable, name=name if name is not None else "ConvBnRelu")
 
-        self.conv = tf.keras.layers.Conv2D(
+        self.conv = conv_func(
             filters,
             kernel_size,
             padding="same",
