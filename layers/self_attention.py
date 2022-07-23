@@ -54,7 +54,7 @@ class SelfAttention(tf.keras.Model):
 
     def call(self, inputs, training=None):
 
-        inputs_shape = tf.shape(inputs)
+        batch_size, height, width, channels = get_tensor_shape(inputs)
 
         query = self.query_conv(inputs, training=training)
         key = self.key_conv(inputs, training=training)
@@ -66,9 +66,6 @@ class SelfAttention(tf.keras.Model):
         attention = get_attention(query, key, apply_scale=self.apply_scale)
 
         if self.vis_manager.recording:
-            height = inputs_shape[-3]
-            width = inputs_shape[-2]
-
             self.vis_manager.easy_add(tf.reshape(attention, (-1, height, width, height, width)), name="attention_map")
 
         value = flatten_hw(value)
@@ -76,7 +73,7 @@ class SelfAttention(tf.keras.Model):
         attention = self.attention_dropout(attention, training=training)
 
         value = tf.matmul(attention, value)
-        value = tf.reshape(value, inputs_shape)
+        value = tf.reshape(value, [batch_size, height, width, value.shape[-1]])
 
         value = self.feature_dropout(value, training=training)
 
