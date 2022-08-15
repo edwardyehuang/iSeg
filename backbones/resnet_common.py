@@ -68,28 +68,36 @@ class Stack2(tf.keras.Model):
 
         self.blocks = []
 
-        self.blocks.append(
-            block_func(
-                filters, stride=1, conv_shortcut=True, use_bias=use_bias, norm_method=norm_method, name=name + "_block1"
+        if blocks_count > 1:
+            self.blocks.append(
+                block_func(
+                    filters, stride=1, conv_shortcut=True, use_bias=use_bias, norm_method=norm_method, name=name + "_block1"
+                )
             )
-        )
 
-        for i in range(2, blocks_count):
-            block = block_func(
-                filters, conv_shortcut=False, use_bias=use_bias, norm_method=norm_method, name=name + "_block" + str(i)
-            )
-            self.blocks.append(block)
+            # 2022-08-15 This is correct. But it scared me when I checked it.
+            for i in range(2, blocks_count):
+                block = block_func(
+                    filters, conv_shortcut=False, use_bias=use_bias, norm_method=norm_method, name=name + "_block" + str(i)
+                )
+                self.blocks.append(block)
 
-        self.blocks.append(
-            block_func(
-                filters,
-                stride=stride1,
-                conv_shortcut=False,
-                use_bias=use_bias,
-                norm_method=norm_method,
-                name=name + "_block" + str(blocks_count),
+            self.blocks.append(
+                block_func(
+                    filters,
+                    stride=stride1,
+                    conv_shortcut=False,
+                    use_bias=use_bias,
+                    norm_method=norm_method,
+                    name=name + "_block" + str(blocks_count),
+                )
             )
-        )
+        else:
+            self.blocks = [block_func(
+                    filters, stride=stride1, conv_shortcut=True, use_bias=use_bias, norm_method=norm_method, name=name + "_block1"
+                )]
+
+        assert len(self.blocks) == blocks_count
 
         self.output_endpoint = stride1 > 1
 
@@ -172,18 +180,24 @@ class ResNet(tf.keras.Model):
 
     def build_3x3_resnet(self, depth_multiplier=1, use_bias=True, norm_method=None):
 
+        if isinstance(depth_multiplier, tuple):
+            depth_multiplier = list(depth_multiplier)
+
+        if not isinstance(depth_multiplier, list):
+            depth_multiplier = [depth_multiplier] * 3
+
         self.conv1_1_conv = tf.keras.layers.Conv2D(
-            int(64 * depth_multiplier), 3, strides=2, padding="SAME", use_bias=use_bias, name="conv1_1_conv"
+            int(64 * depth_multiplier[0]), 3, strides=2, padding="SAME", use_bias=use_bias, name="conv1_1_conv"
         )
         self.conv1_1_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_1_bn")
 
         self.conv1_2_conv = tf.keras.layers.Conv2D(
-            int(64 * depth_multiplier), 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_2_conv"
+            int(64 * depth_multiplier[1]), 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_2_conv"
         )
         self.conv1_2_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_2_bn")
 
         self.conv1_3_conv = tf.keras.layers.Conv2D(
-            int(128 * depth_multiplier), 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_3_conv"
+            int(128 * depth_multiplier[2]), 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_3_conv"
         )
         self.conv1_3_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_3_bn")
 
@@ -253,6 +267,28 @@ def resnet9(
         norm_method=norm_method,
         replace_7x7_conv=replace_7x7_conv,
         conv1_depth_multiplier=0.5,
+        slim_behaviour=slim_behaviour,
+        custom_block=BlockType2Small if custom_block is None else custom_block,
+        return_endpoints=return_endpoints,
+    )
+
+
+def resnet10(
+    use_bias=True,
+    norm_method=None,
+    replace_7x7_conv=False,
+    slim_behaviour=False,
+    custom_block=None,
+    return_endpoints=False,
+):
+
+    return get_resnet(
+        resnet_name=ss.RESNET9,
+        num_of_blocks=[1, 1, 1, 1],
+        use_bias=use_bias,
+        norm_method=norm_method,
+        replace_7x7_conv=replace_7x7_conv,
+        conv1_depth_multiplier=(0.375, 0.5, 0.5) if replace_7x7_conv else 0.5,
         slim_behaviour=slim_behaviour,
         custom_block=BlockType2Small if custom_block is None else custom_block,
         return_endpoints=return_endpoints,

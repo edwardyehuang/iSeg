@@ -45,7 +45,6 @@ class BlockType2Small(tf.keras.Model):
             self.shortcut_conv = tf.keras.layers.Conv2D(
                 self.filters, 
                 kernel_size=1, 
-                strides=self.conv1_conv.strides, 
                 use_bias=self.use_bias, 
                 name=self.name + "_0_conv"
             )
@@ -63,9 +62,6 @@ class BlockType2Small(tf.keras.Model):
 
         self.conv1_conv.strides = value
 
-        if self.conv_shortcut:
-            self.shortcut_conv.strides = value
-
     @property
     def atrous_rates(self):
         return self.conv1_conv.dilation_rate[0]
@@ -81,18 +77,19 @@ class BlockType2Small(tf.keras.Model):
 
     def call(self, inputs, training=None, **kwargs):
 
+        shortcut = inputs
+
         if self.conv_shortcut:
-            shortcut = self.shortcut_conv(inputs)
+            shortcut = self.shortcut_conv(shortcut)
             shortcut = self.shortcut_bn(shortcut, training=training)
-        elif self.strides > 1:
+
+        if self.strides > 1:
             if "avg" in self.downsample_method:
-                shortcut = tf.nn.avg_pool2d(inputs, self.conv1_conv.strides, self.conv1_conv.strides, "SAME")
+                shortcut = tf.nn.avg_pool2d(shortcut, self.conv1_conv.strides, self.conv1_conv.strides, "SAME")
             elif "max" in self.downsample_method:
-                shortcut = tf.nn.max_pool2d(inputs, self.conv1_conv.strides, self.conv1_conv.strides, "SAME")
+                shortcut = tf.nn.max_pool2d(shortcut, self.conv1_conv.strides, self.conv1_conv.strides, "SAME")
             else:
                 raise ValueError("Only max or avg are supported")
-        else:
-            shortcut = inputs
 
         x = self.conv1_conv(inputs)
         x = self.conv1_bn(x, training=training)

@@ -165,18 +165,19 @@ class BlockType2(tf.keras.Model):
 
     def call(self, inputs, training=None, **kwargs):
 
+        shortcut = inputs
+
         if self.conv_shortcut:
-            shortcut = self.shortcut_conv(inputs)
+            shortcut = self.shortcut_conv(shortcut)
             shortcut = self.shortcut_bn(shortcut, training=training)
-        elif self.strides > 1:
+
+        if self.strides > 1:
             if "avg" in self.downsample_method:
-                shortcut = tf.nn.avg_pool2d(inputs, self.conv2_conv.strides, self.conv2_conv.strides, "SAME")
+                shortcut = tf.nn.avg_pool2d(shortcut, self.conv2_conv.strides, self.conv2_conv.strides, "SAME")
             elif "max" in self.downsample_method:
-                shortcut = tf.nn.max_pool2d(inputs, self.conv2_conv.strides, self.conv2_conv.strides, "SAME")
+                shortcut = tf.nn.max_pool2d(shortcut, self.conv2_conv.strides, self.conv2_conv.strides, "SAME")
             else:
                 raise ValueError("Only max or avg are supported")
-        else:
-            shortcut = inputs
 
         x = self.conv1_conv(inputs)
         x = self.conv1_bn(x, training=training)

@@ -33,6 +33,7 @@ PLACEHOLDER = "placeholder"
 
 RESNET = "resnet"
 RESNET9 = "resnet9"
+RESNET10 = "resnet10"
 RESNET18 = "resnet18"
 RESNET50 = "resnet50"
 RESNET52 = "resnet52"

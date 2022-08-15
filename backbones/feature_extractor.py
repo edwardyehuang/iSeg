@@ -51,6 +51,7 @@ def get_backbone(
 
     backbone_dicts = {
         ss.RESNET9: resnet9,
+        ss.RESNET10: resnet10,
         ss.RESNET18: resnet18,
         ss.RESNET50: resnet50,
         ss.RESNET52: resnet50,
