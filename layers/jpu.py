@@ -16,8 +16,8 @@ from iseg.utils.common import resize_image
 
 
 class JointPyramidUpsampling(tf.keras.Model):
-    def __init__(self, width=512, name=None):
-        super().__init__(name=name)
+    def __init__(self, width=512, trainable=True, name=None):
+        super().__init__(trainable=trainable, name=name)
 
         self.width = width
 
@@ -29,18 +29,33 @@ class JointPyramidUpsampling(tf.keras.Model):
 
         base_filters = self.width
 
-        self.endpoints_convs = [ConvBnRelu(base_filters, (3, 3), name=f"endpoint_conv_{i}") for i in range(3)]
+        self.endpoints_convs = [
+            ConvBnRelu(base_filters, (3, 3), trainable=self.trainable, name=f"endpoint_conv_{i}") 
+            for i in range(3)
+        ]
 
         dilation_rates = [1, 2, 4, 8]
 
         self.end_depthwise_convs = [
-            tf.keras.layers.DepthwiseConv2D((3, 3), padding="same", dilation_rate=r, name=f"end_depthwise_conv_{r}")
+            tf.keras.layers.DepthwiseConv2D(
+                (3, 3), 
+                padding="same", 
+                dilation_rate=r, 
+                trainable=self.trainable, 
+                name=f"end_depthwise_conv_{r}"
+                )
             for r in dilation_rates
         ]
 
-        self.end_depthwise_bns = [normalization(name=f"end_depthwise_bn_{r}") for r in dilation_rates]
+        self.end_depthwise_bns = [
+            normalization(trainable=self.trainable, name=f"end_depthwise_bn_{r}") 
+            for r in dilation_rates
+        ]
 
-        self.end_pointwise_convs = [ConvBnRelu(base_filters, name=f"end_pointwise_convs_{r}") for r in dilation_rates]
+        self.end_pointwise_convs = [
+            ConvBnRelu(base_filters, trainable=self.trainable, name=f"end_pointwise_convs_{r}") 
+            for r in dilation_rates
+        ]
 
     def call(self, inputs, training=None):
 
