@@ -10,6 +10,7 @@ from iseg.optimizers.polydecay import WarmUpPolyDecay
 from iseg.optimizers.cosinedecay import CosineDecay
 
 def get_optimizer(
+    distribute_strategy,
     initial_lr=0.007,
     end_lr=0.0,
     epoch_steps=1000,
@@ -23,6 +24,7 @@ def get_optimizer(
 ):
 
     kwargs = {
+        "distribute_strategy": distribute_strategy,
         "initial_lr": initial_lr,
         "end_lr": end_lr,
         "epoch_steps": epoch_steps,
@@ -91,6 +93,7 @@ def get_optimizer(
 
 
 def __get_optimizer(
+    distribute_strategy,
     initial_lr=0.007,
     end_lr=0.0,
     epoch_steps=1000,
@@ -123,15 +126,16 @@ def __get_optimizer(
 
         learning_rate = CosineDecay(learning_rate, steps)
 
-    if optimizer == "sgd":
-        _optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate)
-    elif optimizer == "adam":
-        _optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=False)
-    elif optimizer == "amsgrad":
-        _optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=True)
-    elif optimizer == "adamw":
-        _optimizer = AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
-    else:
-        raise ValueError(f"Unsupported optimizer {optimizer}")
+    with distribute_strategy.scope():
+        if optimizer == "sgd":
+            _optimizer = tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate)
+        elif optimizer == "adam":
+            _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=False)
+        elif optimizer == "amsgrad":
+            _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=True)
+        elif optimizer == "adamw":
+            _optimizer = tf.keras.optimizers.experimental.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
+        else:
+            raise ValueError(f"Unsupported optimizer {optimizer}")
 
-    return _optimizer
+        return _optimizer
