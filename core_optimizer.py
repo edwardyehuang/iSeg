@@ -3,6 +3,7 @@
 # Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
 # ================================================================
 
+from distutils.version import LooseVersion
 import tensorflow as tf
 
 from iseg.optimizers.adamw import AdamW
@@ -127,15 +128,29 @@ def __get_optimizer(
         learning_rate = CosineDecay(learning_rate, steps)
 
     with distribute_strategy.scope():
-        if optimizer == "sgd":
-            _optimizer = tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate)
-        elif optimizer == "adam":
-            _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=False)
-        elif optimizer == "amsgrad":
-            _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=True)
-        elif optimizer == "adamw":
-            _optimizer = tf.keras.optimizers.experimental.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
+        if LooseVersion(tf.version.VERSION) < LooseVersion("2.10.0"):
+            print("TensorFlow version < 2.10, use legacy optimizer")
+
+            if optimizer == "sgd":
+                _optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate)
+            elif optimizer == "adam":
+                _optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=False)
+            elif optimizer == "amsgrad":
+                _optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=True)
+            elif optimizer == "adamw":
+                _optimizer = AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
+            else:
+                raise ValueError(f"Unsupported optimizer {optimizer}")
         else:
-            raise ValueError(f"Unsupported optimizer {optimizer}")
+            if optimizer == "sgd":
+                _optimizer = tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate)
+            elif optimizer == "adam":
+                _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=False)
+            elif optimizer == "amsgrad":
+                _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=True)
+            elif optimizer == "adamw":
+                _optimizer = tf.keras.optimizers.experimental.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
+            else:
+                raise ValueError(f"Unsupported optimizer {optimizer}")
 
         return _optimizer
