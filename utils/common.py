@@ -19,6 +19,7 @@ def set_random_seed(seed=0):
 
     print('Use the random seed "{}"'.format(seed))
     tf.random.set_seed(seed)
+    tf.keras.utils.set_random_seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
