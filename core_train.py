@@ -276,6 +276,6 @@ class CoreTrain(object):
                 for excluded_name in excluded_name_list:
                     print(excluded_name)
 
-            optimizer.exclude_from_weight_decay_func(
+            exclude_from_weight_decay_func(
                 var_names=excluded_name_list
             )
