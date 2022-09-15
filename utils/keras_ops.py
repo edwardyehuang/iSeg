@@ -44,6 +44,9 @@ def set_weight_decay(
     for layer in layers:
         if hasattr(layer, "kernel_regularizer"):
             layer.kernel_regularizer = tf.keras.regularizers.l2(weight_decay)
+        
+            if hasattr(layer, "kernel"):
+                layer.kernel.regularizer = tf.keras.regularizers.l2(weight_decay)
 
         if decay_norm_vars:
             if hasattr(layer, "beta_regularizer"):
