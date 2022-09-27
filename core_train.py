@@ -233,7 +233,7 @@ class CoreTrain(object):
 
         layers = get_all_layers_v2(model)
 
-        excluded_name_list = []
+        excluded_name_list = ["bias"]
 
         for layer in layers:
             
