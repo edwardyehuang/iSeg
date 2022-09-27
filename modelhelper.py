@@ -28,7 +28,7 @@ def model_common_setup(
     if restore_checkpoint:
         model_helper.restore_checkpoint()
 
-    if weight_decay is not None:
+    if weight_decay is not None and weight_decay > 0:
         set_weight_decay(model_helper.model, weight_decay, decay_norm_vars)
 
     if bn_epsilon is not None:
