@@ -14,7 +14,7 @@ from iseg.data_process.utils import pad_to_bounding_box, resize_to_range, normal
 from iseg.core_inference import *
 
 from iseg.core_model import SegBase
-
+from iseg.utils.data_loader import load_image_tensor_from_path
 
 def __load_batch_image_mapfn(input_path, output_path):
 
@@ -27,11 +27,9 @@ def __load_batch_image_mapfn(input_path, output_path):
     orginal_sizes = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True, name="orginal_sizes")
 
     for i in tf.range(batch_size):
-        image_tensor = tf.image.decode_jpeg(tf.io.read_file(input_path[i]), channels=3)
+        image_tensor, _ = load_image_tensor_from_path(tf.io.read_file(input_path[i]))
         image_tensor = tf.expand_dims(image_tensor, axis=0)
         image_size = tf.shape(image_tensor)[1:3]
-
-        image_tensor = tf.cast(image_tensor, tf.float32)
 
         batched_images = batched_images.write(i, image_tensor)
         orginal_sizes = orginal_sizes.write(i, image_size)
