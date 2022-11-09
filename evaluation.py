@@ -98,13 +98,13 @@ def eval_step(ds_inputs, model: SegBase, scale_rates, flip, loss_func, loss_metr
 
 def prepare_dataset(distribute_strategy, data, batch_size=16, val_image_count=0):
 
-    AUTOTUNE = tf.data.experimental.AUTOTUNE
+    # AUTOTUNE = tf.data.experimental.AUTOTUNE
 
     ds = data
     # ds = ds.repeat()
     ds = ds.batch(batch_size, drop_remainder=False)
 
-    ds = ds.prefetch(buffer_size=AUTOTUNE)
+    # ds = ds.prefetch(buffer_size=AUTOTUNE)
 
     ds = distribute_strategy.experimental_distribute_dataset(ds)
 
