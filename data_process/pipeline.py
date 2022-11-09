@@ -48,8 +48,9 @@ class AugmentationsPipeLine(object):
             try:
                 inputs = augment(*inputs)
 
-            except:
+            except Exception as e:
                 print(f"Error : {augment.name}")
+                raise e
 
             processed_arugments.append(augment.name)
 

@@ -216,18 +216,20 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height, targe
         with tf.control_dependencies([target_height_assert]):
             after_padding_height = target_height - offset_height - height
 
+        '''
         offset_assert = tf.Assert(
             tf.logical_and(tf.greater_equal(after_padding_width, 0), tf.greater_equal(after_padding_height, 0)),
             ["target size not possible with the given target offsets"],
         )
 
+        '''
         batch_params = tf.stack([0, 0])
         height_params = tf.stack([offset_height, after_padding_height])
         width_params = tf.stack([offset_width, after_padding_width])
         channel_params = tf.stack([0, 0])
 
-        with tf.control_dependencies([offset_assert]):
-            paddings = tf.stack([batch_params, height_params, width_params, channel_params])
+        # with tf.control_dependencies([offset_assert]):
+        paddings = tf.stack([batch_params, height_params, width_params, channel_params])
 
         padded = tf.pad(image, paddings)
 
