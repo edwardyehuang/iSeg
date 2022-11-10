@@ -75,7 +75,14 @@ class SegBase(tf.keras.Model):
 
         return sizes
 
-    def inference_with_scale(self, inputs, training=False, scale_rate=1.0, flip=False):
+    def inference_with_scale(
+        self, 
+        inputs, 
+        training=False, 
+        scale_rate=1.0, 
+        flip=False, 
+        resize_method="bilinear"
+    ):
 
         inputs_size = tf.shape(inputs)[1:3]
 
@@ -83,7 +90,7 @@ class SegBase(tf.keras.Model):
 
         sizes = self.get_scaled_size(inputs, scale_rate)
 
-        inputs = resize_image(inputs, sizes, method="bilinear", name="inference_resize")
+        inputs = resize_image(inputs, sizes, method=resize_method, name="inference_resize")
 
         sliding_window_size = self.inference_sliding_window_size
 
@@ -111,7 +118,7 @@ class SegBase(tf.keras.Model):
         logits = convert_to_list_if_single(logits)
 
         logits = multi_results_handler(
-            logits, lambda x: resize_image(x, inputs_size, method="bilinear", name="inference_resize_back")
+            logits, lambda x: resize_image(x, inputs_size, method=resize_method, name="inference_resize_back")
         )
 
         logits = multi_results_handler(
@@ -122,7 +129,14 @@ class SegBase(tf.keras.Model):
 
         return logits
 
-    def inference_with_multi_scales(self, inputs, training=False, scale_rates=[1.0], flip=False):
+    def inference_with_multi_scales(
+        self, 
+        inputs, 
+        training=False, 
+        scale_rates=[1.0], 
+        flip=False,
+        resize_method="bilinear",
+    ):
 
         # print("Traced ! ! inference_with_multi_scales.")
 
@@ -137,19 +151,25 @@ class SegBase(tf.keras.Model):
 
         logits_sum_list = None
 
-        def loop_body(image, scale_rate=1.0, flip=False):
+        def loop_body(image, scale_rate=1.0, inner_flip=False):
 
             scale_rate = tf.constant(scale_rate)
-            flip = tf.convert_to_tensor(flip)
+            inner_flip = tf.convert_to_tensor(inner_flip)
 
-            logits_list = self.inference_with_scale(image, training=training, scale_rate=scale_rate, flip=flip)
+            logits_list = self.inference_with_scale(
+                image, 
+                training=training, 
+                scale_rate=scale_rate, 
+                flip=inner_flip,
+                resize_method=resize_method,
+            )
 
             return convert_to_list_if_single(logits_list)
 
-        logits_sum_list = loop_body(inputs, scale_rates[0], flip=False)
+        logits_sum_list = loop_body(inputs, scale_rates[0], inner_flip=False)
 
         for i in range(1, num_rates):
-            logits_list = loop_body(inputs, scale_rates[i], flip=False)
+            logits_list = loop_body(inputs, scale_rates[i], inner_flip=False)
             logits_sum_list = multi_results_add(logits_sum_list, logits_list)
 
         if flip:
@@ -157,7 +177,7 @@ class SegBase(tf.keras.Model):
             logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.image.flip_left_right(x))
 
             for i in range(0, num_rates):
-                logits_list = loop_body(inputs, scale_rates[i], flip=False)
+                logits_list = loop_body(inputs, scale_rates[i], inner_flip=False)
                 logits_sum_list = multi_results_add(logits_sum_list, logits_list)
 
             logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.image.flip_left_right(x))
