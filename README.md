@@ -2,6 +2,8 @@
 
 ## News
 
+November-12-2022: Add support of [MOAT](https://arxiv.org/abs/2210.01820).
+
 September-7-2022: Drop support for TensorFlow < 2.10
 
 March-16-2022: We add an example project in [here](https://github.com/edwardyehuang/CAR), which is the re-implementation of the paper [CAR: Class-aware Regularizations for Semantic Segmentation](https://arxiv.org/pdf/2203.07160.pdf)
@@ -23,6 +25,7 @@ March-16-2022: The backbone weights are now available in [here](backbones/README
 - [x] Swin Transformer (Inputs size free)
 - [x] MobileNetV2
 - [x] ConvNeXt
+- [x] MOAT
 
 Weights can be downloaded in [here](backbones/README.md)
 

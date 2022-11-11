@@ -202,6 +202,8 @@ class TrailDense(tf.keras.layers.Layer):
         weight_str = '{}{}'.format(i_only_str, o_only_str)
         self.einsum_expr = '{},{}->{}'.format(input_str, weight_str, output_str)
 
+        super().build(input_shape)
+
     def call(self, inputs):
         output = tf.einsum(self.einsum_expr, inputs, self.weight)
         if self._use_bias:
@@ -209,7 +211,7 @@ class TrailDense(tf.keras.layers.Layer):
         return output
 
 
-class Attention(tf.keras.layers.Layer):
+class Attention(tf.keras.Model):
 
     def __init__(
         self,
@@ -232,26 +234,26 @@ class Attention(tf.keras.layers.Layer):
             output_trailing_dimensions=[self.num_heads, head_size],
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
-            name='q'
+            name=f"{self.name}/q",
         )
         self._k_proj = TrailDense(
             output_trailing_dimensions=[self.num_heads, head_size],
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
-            name='k'
+            name=f"{self.name}/k",
         )
         self._v_proj = TrailDense(
             output_trailing_dimensions=[self.num_heads, head_size],
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
-            name='v'
+            name=f"{self.name}/v",
         )
         self._o_proj = TrailDense(
             output_trailing_dimensions=[hidden_size],
             input_begin_axis=-2,
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
-            name='o'
+            name=f"{self.name}/o",
         )
 
         self._q_scale = head_size ** -0.5
@@ -309,6 +311,8 @@ class Attention(tf.keras.layers.Layer):
                     h_axis=relative_position_embedding_height_axis)
         elif self.relative_position_embedding_type is None:
             self.reindexed_position_embedding = None
+
+        super().build(input_shape)
 
     def call(self, query, training):
         _, h, w, channels = query.shape.as_list()

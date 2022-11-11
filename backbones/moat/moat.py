@@ -13,41 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""MOAT: This file contains the implementation of MOAT [1].
+# Code is largely modified based on offical implementation at
+# https://github.com/google-research/deeplab2/blob/main/model/pixel_encoder/moat.py
 
-[1] MOAT: Alternating Mobile Convolution and Attention
-        Brings Strong Vision Models,
-        arXiv: 2210.01820.
-            Chenglin Yang, Siyuan Qiao, Qihang Yu, Xiaoding Yuan,
-            Yukun Zhu, Alan Yuille, Hartwig Adam, Liang-Chieh Chen.
-"""
+# We fixed many bugs and improved code structure for TensorFlow 2.0
 
-import copy
-import re
-from typing import Optional, Any
 
-from absl import logging
 import tensorflow as tf
 
 from .moat_blocks import MBConvBlock
 from .moat_blocks import MOATBlock
 
+from iseg.layers.normalizations import normalization
+
 
 # This handles the invalid name scope of tf.keras.sequential
 # used in stem layers.
-_STEM_LAYER_NAME_SCOPE = 'moat/stem/'
+_STEM_LAYER_NAME_SCOPE = 'stem'
 
-# This is for loading the exponential moving average of variables
-# in the checkpoint.
-_EMA_VARIABLE_NAME_POSTFIX = '/ExponentialMovingAverage'
-
-# The position embedding size at stride 16 and 32.
-# The input size changes, but the number of learnable parameters of position
-# embedding does not change. The position embeddings are interpolated for
-# different input sizes.
 _STRIDE_16_POSITION_EMBEDDING_SIZE = 14
 _STRIDE_32_POSITION_EMBEDDING_SIZE = 7
 
+DEFAULT_POS_EMB_SIZE=[
+    None, None,
+    _STRIDE_16_POSITION_EMBEDDING_SIZE,
+    _STRIDE_32_POSITION_EMBEDDING_SIZE
+]
 
 class MOAT(tf.keras.Model):
     """MOAT backbone."""
@@ -62,7 +53,7 @@ class MOAT(tf.keras.Model):
         expansion_rate=4,
         se_ratio=0.25,
         head_size=32,
-        window_size=[None, None, [14, 14], [7, 7]],
+        window_size=[None, None, None, None],
         position_embedding_size=[
             None, None,
             _STRIDE_16_POSITION_EMBEDDING_SIZE,
@@ -76,12 +67,16 @@ class MOAT(tf.keras.Model):
         survival_prob=None,
         kernel_initializer=tf.random_normal_initializer(stddev=0.02),
         bias_initializer=tf.zeros_initializer,
-        build_classification_head_with_class_num=None,
+        return_endpoints=False,
         name="moat",
     ):
         super().__init__(name=name)
 
         stage_number = len(block_type_list)
+
+        if position_embedding_size is None:
+            position_embedding_size = [None] * stage_number
+            relative_position_embedding_type = None
 
         if (len(num_blocks) != stage_number or len(hidden_size) != stage_number):
             raise ValueError('The lengths of block_type, num_blocks and hidden_size ',
@@ -112,7 +107,7 @@ class MOAT(tf.keras.Model):
         self.kernel_initializer = kernel_initializer
         self.bias_initializer = bias_initializer
 
-        self.build_classification_head_with_class_num = build_classification_head_with_class_num
+        self.return_endpoints = return_endpoints
 
     def _build_stem(self):
         stem_layers = []
@@ -125,35 +120,19 @@ class MOAT(tf.keras.Model):
                 kernel_initializer=self.kernel_initializer,
                 bias_initializer=self.bias_initializer,
                 use_bias=True,
-                name=f"conv_{i}"
+                name=f"{_STEM_LAYER_NAME_SCOPE}/conv_{i}"
             )
             stem_layers.append(conv_layer)
             if i < len(self.stem_size) - 1:
-                stem_layers.append(self.norm_class(name=f"norm_{i}"))
+                stem_layers.append(self.norm_class(name=f"{_STEM_LAYER_NAME_SCOPE}/norm_{i}"))
                 stem_layers.append(
-                    tf.keras.layers.Activation(self.activation, name=f"act_{i}")
+                    tf.keras.layers.Activation(self.activation, name=f"{_STEM_LAYER_NAME_SCOPE}/act_{i}")
                 )
         # The name scope of tf.keras.Sequential is invalid, see error handling
         # in the part of loading checkpoints in function get_model.
         self._stem = tf.keras.Sequential(
             layers=stem_layers,
             name='stem'
-        )
-
-    def _build_classification_head(self):
-        self._final_layer_norm = tf.keras.layers.LayerNormalization(
-            epsilon=self.ln_epsilon,
-            name='final_layer_norm'
-        )
-        self._logits_head = tf.keras.layers.Conv2D(
-            filters=self.build_classification_head_with_class_num,
-            kernel_size=1,
-            strides=1,
-            kernel_initializer=self.kernel_initializer,
-            bias_initializer=self.bias_initializer,
-            padding='same',
-            use_bias=True,
-            name='logits_head'
         )
 
     def _adjust_survival_rate(self, block_id, total_num_blocks):
@@ -166,7 +145,7 @@ class MOAT(tf.keras.Model):
 
 
     def build(self, input_shape: list[int]) -> None:
-        norm_class = tf.keras.layers.experimental.SyncBatchNormalization
+        norm_class = normalization
         self.norm_class = norm_class
         self.activation = tf.nn.gelu
 
@@ -224,6 +203,7 @@ class MOAT(tf.keras.Model):
                         pool_size=self.pool_size,
                         norm_class=self.norm_class,
                         activation=self.activation,
+                        survival_prob=self.survival_prob,
                         head_size=self.head_size, #?
                         window_size=local_window_size,
                         relative_position_embedding_type=self.relative_position_embedding_type,
@@ -241,88 +221,79 @@ class MOAT(tf.keras.Model):
 
             self._blocks.append(stage_blocks)
 
-        if self.build_classification_head_with_class_num is not None:
-            self._build_classification_head()
+        super().build(input_shape)
 
     def call(self, inputs, training=False, mask=None):
-        endpoints = {}
-
+        
         output = self._stem(inputs, training=training)
-        endpoints['stage1'] = output
-        endpoints['res1'] = self.activation(output)
+        endpoints = [output]
 
-        for stage_id, stage_blocks in enumerate(self._blocks):
+        for _, stage_blocks in enumerate(self._blocks):
             for block in stage_blocks:
                 output = block(output, training=training)
-            endpoints['stage{}'.format(stage_id + 2)] = output
-            endpoints['res{}'.format(stage_id + 2)] = self.activation(output)
+            endpoints += [output]
 
-        if self.build_classification_head_with_class_num is None:
+        if self.return_endpoints:
+            assert len(endpoints) == 5
+
             return endpoints
-        else:
-            reduce_axes = list(range(1, output.shape.rank - 1))
-            output = tf.reduce_mean(output, axis=reduce_axes, keepdims=True)
-            output = self._final_layer_norm(output)
-            output = self._logits_head(output, training=training)
-            logits = tf.squeeze(output, axis=[1, 2])
-            return logits
+
+        return output
 
 
-tiny_moat0_config = Config(
-        stem_size=[32, 32],
-        block_type_list=['mbconv', 'mbconv', 'moat', 'moat'],
-        num_blocks=[2, 3, 7, 2],
-        hidden_size=[32, 64, 128, 256],
-)
-
-no_relative_pe = Config(
-        relative_position_embedding_type=None,
-)
-
-
-def moat0():
+def moat0(return_endpoints=False, use_pos_emb=True):
     return MOAT(
         stem_size=[64, 64],
         block_type_list=['mbconv', 'mbconv', 'moat', 'moat'],
         num_blocks=[2, 3, 7, 2],
         hidden_size=[96, 192, 384, 768],
-        survival_prob=0.8,   
+        position_embedding_size=DEFAULT_POS_EMB_SIZE if use_pos_emb else None,
+        survival_prob=0.8,
+        return_endpoints=return_endpoints,
     )
 
-def moat1():
+def moat1(return_endpoints=False, use_pos_emb=True):
     return MOAT(
         stem_size=[64, 64],
         block_type_list=['mbconv', 'mbconv', 'moat', 'moat'],
         num_blocks=[2, 6, 14, 2],
         hidden_size=[96, 192, 384, 768],
-        survival_prob=0.7,   
+        position_embedding_size=DEFAULT_POS_EMB_SIZE if use_pos_emb else None,
+        survival_prob=0.7,
+        return_endpoints=return_endpoints,
     )
 
 
-def moat2():
+def moat2(return_endpoints=False, use_pos_emb=True):
     return MOAT(
         stem_size=[128, 128],
         block_type_list=['mbconv', 'mbconv', 'moat', 'moat'],
         num_blocks=[2, 6, 14, 2],
         hidden_size=[128, 256, 512, 1024],
-        survival_prob=0.7,   
+        position_embedding_size=DEFAULT_POS_EMB_SIZE if use_pos_emb else None,
+        survival_prob=0.7,
+        return_endpoints=return_endpoints,
     )
 
 
-def moat3():
+def moat3(return_endpoints=False, use_pos_emb=True):
     return MOAT(
         stem_size=[160, 160],
         block_type_list=['mbconv', 'mbconv', 'moat', 'moat'],
         num_blocks=[2, 12, 28, 2],
         hidden_size=[160, 320, 640, 1280],
-        survival_prob=0.4,   
+        position_embedding_size=DEFAULT_POS_EMB_SIZE if use_pos_emb else None,
+        survival_prob=0.4,
+        return_endpoints=return_endpoints,
     )
 
-def moat4():
+def moat4(return_endpoints=False, use_pos_emb=True):
     return MOAT(
         stem_size=[256, 256],
         block_type_list=['mbconv', 'mbconv', 'moat', 'moat'],
         num_blocks=[2, 12, 28, 2],
         hidden_size=[256, 512, 1024, 2048],
-        survival_prob=0.3,   
+        position_embedding_size=DEFAULT_POS_EMB_SIZE if use_pos_emb else None,
+        survival_prob=0.3,
+        return_endpoints=return_endpoints,
     )

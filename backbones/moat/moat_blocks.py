@@ -13,26 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This file contains blocks used in MOAT [1].
-
-This file includes MOAT blocks [1] and MBConv [2] blocks.
-The MBConv implementation is based on CoAtNet [3].
-
-[1] MOAT: Alternating Mobile Convolution and Attention
-        Brings Strong Vision Models,
-        arXiv: 2210.01820.
-            Chenglin Yang, Siyuan Qiao, Qihang Yu, Xiaoding Yuan,
-            Yukun Zhu, Alan Yuille, Hartwig Adam, Liang-Chieh Chen.
-
-[2] MobileNetV2: Inverted Residuals and Linear Bottlenecks
-        CVPR 2018.
-            Mark Sandler, Andrew Howard, Menglong Zhu,
-            Andrey Zhmoginov, Liang-Chieh Chen.
-
-[3] CoAtNet: Marrying Convolution and Attention for All Data Sizes
-        NeurIPS 2021.
-            Zihang Dai, Hanxiao Liu, Quoc V. Le, Mingxing Tan.
-"""
 
 import math
 import tensorflow as tf
@@ -71,15 +51,18 @@ def drop_connect(inputs: tf.Tensor, training: bool, survival_prob: float) -> tf.
 
 
 def residual_add_with_drop_path(
-        residual: tf.Tensor, shortcut: tf.Tensor,
-        survival_prob: float, training: bool) -> tf.Tensor:
+    residual: tf.Tensor, 
+    shortcut: tf.Tensor,
+    survival_prob: float, 
+    training: bool
+) -> tf.Tensor:
     """Combines residual and shortcut."""
     if survival_prob is not None and 0 < survival_prob < 1:
         residual = drop_connect(residual, training, survival_prob)
     return shortcut + residual
 
 
-class SqueezeAndExcitation(tf.keras.layers.Layer):
+class SqueezeAndExcitation(tf.keras.Model):
     """Implementation of Squeeze-and-excitation layer."""
 
     def __init__(
@@ -102,7 +85,7 @@ class SqueezeAndExcitation(tf.keras.layers.Layer):
             use_bias=True,
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
-            name='reduce_conv2d'
+            name=f"{self.name}/reduce_conv2d"
         )
         self._se_expand = tf.keras.layers.Conv2D(
             output_filters,
@@ -112,19 +95,25 @@ class SqueezeAndExcitation(tf.keras.layers.Layer):
             use_bias=True,
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
-            name='expand_conv2d'
+            name=f"{self.name}/expand_conv2d"
         )
 
         self.activation_fn = activation
+
+
+    def build(self, input_shape):
+        
+        super().build(input_shape)
+
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         _ = inputs.get_shape().with_rank(4)
         se_tensor = tf.reduce_mean(inputs, [1, 2], keepdims=True)
         se_tensor = self._se_expand(self.activation_fn(self._se_reduce(se_tensor)))
-        return tf.sigmoid(se_tensor) * inputs
+        return tf.cast(tf.sigmoid(se_tensor), inputs.dtype) * inputs
 
 
-class MBConvBlock(tf.keras.layers.Layer):
+class MBConvBlock(tf.keras.Model):
 
     def __init__(
         self,
@@ -171,10 +160,10 @@ class MBConvBlock(tf.keras.layers.Layer):
                 kernel_initializer=self.kernel_initializer,
                 bias_initializer=self.bias_initializer,
                 use_bias=True,
-                name='shortcut_conv'
+                name=f"{self.name}/shortcut_conv"
             )
 
-        self._pre_norm = self._norm_class(name='pre_norm')
+        self._pre_norm = self._norm_class(name=f"{self.name}/pre_norm")
         self._expand_conv = tf.keras.layers.Conv2D(
             filters=inner_size,
             kernel_size=1,
@@ -182,18 +171,18 @@ class MBConvBlock(tf.keras.layers.Layer):
             kernel_initializer=self.kernel_initializer,
             padding='same',
             use_bias=False,
-            name='expand_conv'
+            name=f"{self.name}/expand_conv"
         )
-        self._expand_norm = self._norm_class(name='expand_norm')
+        self._expand_norm = self._norm_class(name=f"{self.name}/expand_norm")
         self._depthwise_conv = tf.keras.layers.DepthwiseConv2D(
             kernel_size=self.kernel_size,
             strides=self.block_stride,
             depthwise_initializer=self.kernel_initializer,
             padding='same',
             use_bias=False,
-            name='depthwise_conv'
+            name=f"{self.name}/depthwise_conv"
         )
-        self._depthwise_norm = self._norm_class(name='depthwise_norm')
+        self._depthwise_norm = self._norm_class(name=f"{self.name}/depthwise_norm")
 
         self._se = None
         if self.se_ratio is not None:
@@ -203,7 +192,7 @@ class MBConvBlock(tf.keras.layers.Layer):
                 output_filters=inner_size,
                 kernel_initializer=self.kernel_initializer,
                 bias_initializer=self.bias_initializer,
-                name='se'
+                name=f"{self.name}/se"
             )
 
         self._shrink_conv = tf.keras.layers.Conv2D(
@@ -214,8 +203,11 @@ class MBConvBlock(tf.keras.layers.Layer):
             kernel_initializer=self.kernel_initializer,
             bias_initializer=self.bias_initializer,
             use_bias=True,
-            name='shrink_conv'
+            name=f"{self.name}/shrink_conv"
         )
+
+        super().build(input_shape)
+
 
     def _shortcut_downsample(self, inputs, name):
         output = inputs
@@ -256,12 +248,12 @@ class MBConvBlock(tf.keras.layers.Layer):
             output = self._se(output)
         output = self._shrink_conv(output)
         output = residual_add_with_drop_path(
-                output, shortcut,
-                self._config.survival_prob, training)
+                output, tf.cast(shortcut, output.dtype),
+                self.survival_prob, training)
         return output
 
 
-class MOATBlock(tf.keras.layers.Layer):
+class MOATBlock(tf.keras.Model):
     """Implementation of MOAT block [1].
 
     [1] MOAT: Alternating Mobile Convolution and Attention
@@ -285,6 +277,7 @@ class MOATBlock(tf.keras.layers.Layer):
         relative_position_embedding_type="2d_multi_head",
         position_embedding_size=7,
         ln_epsilon=1e-5,
+        survival_prob=None,
         kernel_initializer= tf.random_normal_initializer(stddev=0.02),
         bias_initializer=tf.zeros_initializer,
         use_checkpointing_for_attention=False,
@@ -306,6 +299,7 @@ class MOATBlock(tf.keras.layers.Layer):
         self.relative_position_embedding_type = relative_position_embedding_type
         self.position_embedding_size = position_embedding_size
         self.ln_epsilon = ln_epsilon
+        self.survival_prob = survival_prob
         self.kernel_initializer = kernel_initializer
         self.bias_initializer = bias_initializer
 
@@ -313,6 +307,7 @@ class MOATBlock(tf.keras.layers.Layer):
 
 
     def build(self, input_shape: list[int]) -> None:
+
         height, width, input_size = input_shape[-3:]
         inner_size = self.hidden_size * self.expansion_rate
 
@@ -339,10 +334,10 @@ class MOATBlock(tf.keras.layers.Layer):
                 kernel_initializer=self.kernel_initializer,
                 bias_initializer=self.bias_initializer,
                 use_bias=True,
-                name='shortcut_conv'
+                name=f"{self.name}/shortcut_conv"
             )
 
-        self._pre_norm = self._norm_class(name='pre_norm')
+        self._pre_norm = self._norm_class(name=f"{self.name}/pre_norm")
         self._expand_conv = tf.keras.layers.Conv2D(
             filters=inner_size,
             kernel_size=1,
@@ -350,18 +345,18 @@ class MOATBlock(tf.keras.layers.Layer):
             kernel_initializer=self.kernel_initializer,
             padding='same',
             use_bias=False,
-            name='expand_conv'
+            name=f"{self.name}/expand_conv",
         )
-        self._expand_norm = self._norm_class(name='expand_norm')
+        self._expand_norm = self._norm_class(name=f"{self.name}/expand_norm")
         self._depthwise_conv = tf.keras.layers.DepthwiseConv2D(
             kernel_size=self.kernel_size,
             strides=self.block_stride,
             depthwise_initializer=self.kernel_initializer,
             padding='same',
             use_bias=False,
-            name='depthwise_conv'
+            name=f"{self.name}/depthwise_conv",
         )
-        self._depthwise_norm = self._norm_class(name='depthwise_norm')
+        self._depthwise_norm = self._norm_class(name=f"{self.name}/depthwise_norm")
         self._shrink_conv = tf.keras.layers.Conv2D(
             filters=self.hidden_size,
             kernel_size=1,
@@ -370,13 +365,13 @@ class MOATBlock(tf.keras.layers.Layer):
             kernel_initializer=self.kernel_initializer,
             bias_initializer=self.bias_initializer,
             use_bias=True,
-            name='shrink_conv'
+            name=f"{self.name}/shrink_conv",
         )
 
         self._attention_norm = tf.keras.layers.LayerNormalization(
             axis=-1,
             epsilon=self.ln_epsilon,
-            name='attention_norm'
+            name=f"{self.name}/attention_norm",
         )
 
         scale_ratio = None
@@ -399,11 +394,16 @@ class MOATBlock(tf.keras.layers.Layer):
                     self.relative_position_embedding_type),
             scale_ratio=scale_ratio,
             kernel_initializer=self.kernel_initializer,
-            bias_initializer=self.bias_initializer
+            bias_initializer=self.bias_initializer,
+            name=f"{self.name}/attention"
         )
 
-    def _make_wondows(self, inputs):
+        super().build(input_shape)
+        
+
+    def _make_windows(self, inputs):
         _, height, width, channels = inputs.get_shape().with_rank(4).as_list()
+
         inputs = tf.reshape(
             inputs,
             (
@@ -473,8 +473,8 @@ class MOATBlock(tf.keras.layers.Layer):
         output = self._activation_fn(output)
         output = self._shrink_conv(output)
         output = residual_add_with_drop_path(
-                output, mbconv_shortcut,
-                self._config.survival_prob, training)
+                output, tf.cast(mbconv_shortcut, output.dtype),
+                self.survival_prob, training)
 
         # For classification, the window size is the same as feature map size.
         # For downstream tasks, the window size can be set the same as
@@ -482,10 +482,17 @@ class MOATBlock(tf.keras.layers.Layer):
         attention_shortcut = output
         def _func(output):
             output = self._attention_norm(output)
-            _, height, width, _ = output.get_shape().with_rank(4).as_list()
-            output = self._make_wondows(output)
+            _, height, width, channels = output.get_shape().with_rank(4).as_list()
+
+            if self.window_size:
+                output = self._make_windows(output)
             output = self._attention(output)
-            output = self._remove_windows(output, height, width)
+
+            if self.window_size:
+                output = self._remove_windows(output, height, width)
+            else:
+                output = tf.reshape(output, [-1, height, width, channels])
+
             return output
 
         func = _func
@@ -495,5 +502,5 @@ class MOATBlock(tf.keras.layers.Layer):
         output = func(output)
         output = residual_add_with_drop_path(
                 output, attention_shortcut,
-                self._config.survival_prob, training)
+                self.survival_prob, training)
         return output

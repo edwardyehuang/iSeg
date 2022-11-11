@@ -70,6 +70,13 @@ CONVNEXT_TINY = "convnext_tiny"
 CONVNEXT_LARGE = "convnext_large"
 CONVNEXT_XLARGE = "convnext_xlarge"
 
+MOAT = "moat"
+MOAT0 = "moat0"
+MOAT1 = "moat1"
+MOAT2 = "moat2"
+MOAT3 = "moat3"
+MOAT4 = "moat4"
+
 IMAGE = "image"
 LABEL = "label"
 

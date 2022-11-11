@@ -17,6 +17,7 @@ from iseg.backbones.efficientnet import *
 from iseg.backbones.hrnet import HRNetW48, HRNetW32
 from iseg.backbones.placeholder import PlaceHolder
 from iseg.backbones.convnext import convnext_tiny, convnext_large, convnext_xlarge, build_dilated_convnext
+from iseg.backbones.moat.moat import moat0, moat1, moat2, moat3, moat4
 
 
 def get_backbone(
@@ -29,6 +30,7 @@ def get_backbone(
     return_endpoints=False,
     image_shape=(1, 513, 513, 3),
     label_shape=None,
+    moat_use_pos_encoding=False,
 ):
 
     backbone = None
@@ -48,6 +50,11 @@ def get_backbone(
 
     if ss.RESNET in name:
         general_kwargs.update(resnet_kwargs)
+
+    if ss.MOAT in name:
+        general_kwargs.update({
+            "use_pos_emb": moat_use_pos_encoding,
+        })
 
     backbone_dicts = {
         ss.RESNET9: resnet9,
@@ -76,6 +83,11 @@ def get_backbone(
         ss.CONVNEXT_TINY: convnext_tiny,
         ss.CONVNEXT_LARGE: convnext_large,
         ss.CONVNEXT_XLARGE: convnext_xlarge,
+        ss.MOAT0: moat0,
+        ss.MOAT1: moat1,
+        ss.MOAT2: moat2,
+        ss.MOAT3: moat3,
+        ss.MOAT4: moat4,
         ss.PLACEHOLDER: PlaceHolder,
     }
 
