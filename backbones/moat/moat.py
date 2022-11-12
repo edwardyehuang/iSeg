@@ -144,7 +144,7 @@ class MOAT(tf.keras.Model):
         return survival_prob
 
 
-    def build(self, input_shape: list[int]) -> None:
+    def build(self, input_shape) -> None:
         norm_class = normalization
         self.norm_class = norm_class
         self.activation = tf.nn.gelu
