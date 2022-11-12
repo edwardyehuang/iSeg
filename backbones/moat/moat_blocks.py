@@ -146,7 +146,7 @@ class MBConvBlock(tf.keras.Model):
         self.kernel_initializer = kernel_initializer
         self.bias_initializer = bias_initializer
 
-    def build(self, input_shape: list[int]) -> None:
+    def build(self, input_shape):
         input_size = input_shape[-1]
         inner_size = self.hidden_size * self.expansion_rate
 
