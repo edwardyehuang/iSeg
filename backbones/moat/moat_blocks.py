@@ -306,7 +306,7 @@ class MOATBlock(tf.keras.Model):
         self.use_checkpointing_for_attention = use_checkpointing_for_attention
 
 
-    def build(self, input_shape: list[int]) -> None:
+    def build(self, input_shape) -> None:
 
         height, width, input_size = input_shape[-3:]
         inner_size = self.hidden_size * self.expansion_rate
