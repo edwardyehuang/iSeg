@@ -11,7 +11,8 @@ import math
 from iseg.metrics.mean_iou import MeanIOU
 from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
-from iseg.ckpt_saver import CheckpointSaver
+from iseg.callbacks.ckpt_saver import CheckpointSaver
+from iseg.callbacks.time_callback import TimeCallback
 from iseg.model_callback import ModelCallback
 from iseg.core_model import SegFoundation
 
@@ -150,7 +151,12 @@ class CoreTrain(object):
             epochs=train_epoches,
             validation_data=eval_ds,
             shuffle=False,
-            callbacks=[tensorboard_callback, checkpoint_saver, model_callback],
+            callbacks=[
+                tensorboard_callback, 
+                checkpoint_saver, 
+                model_callback, 
+                TimeCallback(),
+            ],
             initial_epoch=initial_epoch,
             steps_per_epoch=epoch_steps,
             validation_steps=val_steps,

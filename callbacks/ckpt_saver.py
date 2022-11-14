@@ -11,7 +11,7 @@ from iseg.modelhelper import ModelHelper
 class CheckpointSaver(tf.keras.callbacks.Callback):
     def __init__(self, model_helper: ModelHelper):
 
-        super(CheckpointSaver, self).__init__()
+        super().__init__()
 
         self.model_helper = model_helper
 
