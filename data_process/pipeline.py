@@ -20,6 +20,8 @@ class AugmentationsPipeLine(object):
         self.target_height = target_height if target_height > 0 else None
         self.target_width = target_width if target_width > 0 else None
 
+        self._printed_processed_augments = False
+
     def post_process(self, image, label):
 
         image = tf.cast(image, tf.float32)
@@ -54,7 +56,9 @@ class AugmentationsPipeLine(object):
 
             processed_arugments.append(augment.name)
 
-        print(f"Processed augments = {processed_arugments}")
+        if not self._printed_processed_augments:
+            print(f"Processed augments = {processed_arugments}")
+            self._printed_processed_augments = True
 
         return self.post_process(*inputs)
 
