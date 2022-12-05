@@ -27,7 +27,7 @@ def __load_batch_image_mapfn(input_path, output_path):
     orginal_sizes = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True, name="orginal_sizes")
 
     for i in tf.range(batch_size):
-        image_tensor, _ = load_image_tensor_from_path(tf.io.read_file(input_path[i]))
+        image_tensor, _ = load_image_tensor_from_path(input_path[i])
         image_tensor = tf.expand_dims(image_tensor, axis=0)
         image_size = tf.shape(image_tensor)[1:3]
 
@@ -116,7 +116,7 @@ def predict_with_dir(
 
             counter += batch_size
 
-            tf.print(tf.strings.format("processed : {}", counter))
+            tf.print("processed : ", counter)
 
 
 def dir_data_generator(input_dir, output_dir):
