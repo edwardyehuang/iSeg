@@ -17,6 +17,8 @@ def __load_label_to_tensor_internel(path_tensor):
     label_path = path_tensor.numpy()
     label_image = Image.open(label_path)
     label_array = tf.keras.preprocessing.image.img_to_array(label_image, "channels_last")
+    label_image.close()
+
 
     label_tensor = tf.convert_to_tensor(label_array)
     label_tensor = tf.cast(label_tensor, tf.int32)
