@@ -75,7 +75,7 @@ def predict_with_dir(
 ):
 
     if not tf.io.gfile.exists(output_dir):
-        tf.io.gfile.mkdir(output_dir)
+        tf.io.gfile.makedirs(output_dir)
 
     with distribute_strategy.scope():
 
