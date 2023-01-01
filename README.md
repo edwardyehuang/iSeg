@@ -43,3 +43,9 @@ Weights can be downloaded in [here](backbones/README.md)
 
 * TensorFlow >= 2.10 (For iseg <= 0.04, we support TensorFlow >= 2.4)
 * Mixed precision only supports GPU architectures after Volta (included).
+
+## Installation (Conda)
+
+```
+conda create -n tf210 python=3.8 tensorflow-gpu=2.10 pillow tqdm -c conda-forge
+```
