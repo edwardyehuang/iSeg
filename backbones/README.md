@@ -14,3 +14,5 @@ We will update other links soon.
 | ConvNeXt-Tiny|[-]()|[Baidu Drive](https://pan.baidu.com/s/1DwEMc4I5iRDKrwZnL-zuFQ?pwd=fagu)
 | ConvNeXt-Large|[Google Drive](https://drive.google.com/file/d/1VHFKRfFLoqJHTaNihIoIhqjJp6Wb2TvT/view?usp=sharing)|[Baidu Drive](https://pan.baidu.com/s/1k2MhezeIgSkhKbdDKq_rwA?pwd=ubuw)
 | ConvNeXt-XLarge|[-]()|[Baidu Drive](https://pan.baidu.com/s/13YSjwUFT_cKcVcVQBYYXMw?pwd=n6qg)
+| MOAT-0|[-]()|[Baidu Drive](https://pan.baidu.com/s/15RugeCjW8jmk3EXI9FcT4Q?pwd=x4fj)
+| MOAT-4|[-]()|[Baidu Drive](https://pan.baidu.com/s/1UvsJbxIO1CZJUwvKUUwsQg?pwd=vjmx)
