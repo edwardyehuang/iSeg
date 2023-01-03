@@ -14,3 +14,4 @@
 | ConvNeXt-XLarge|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.3/convnext_xlarge.h5)|[Baidu Drive](https://pan.baidu.com/s/13YSjwUFT_cKcVcVQBYYXMw?pwd=n6qg)
 | MOAT-0|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.3/moat0_no_pos.h5)|[Baidu Drive](https://pan.baidu.com/s/15RugeCjW8jmk3EXI9FcT4Q?pwd=x4fj)
 | MOAT-4|[-]()|[Baidu Drive](https://pan.baidu.com/s/1UvsJbxIO1CZJUwvKUUwsQg?pwd=vjmx)
+| ConvNeXtV2-Tiny|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.4/convnext_v2_tiny.h5)|[Baidu Drive](https://pan.baidu.com/s/1ZMmL391HPgFd8ONI5imvcw?pwd=ckqj)
