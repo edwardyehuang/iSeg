@@ -18,6 +18,7 @@ from iseg.backbones.hrnet import HRNetW48, HRNetW32
 from iseg.backbones.placeholder import PlaceHolder
 from iseg.backbones.convnext import convnext_tiny, convnext_large, convnext_xlarge, build_dilated_convnext
 from iseg.backbones.moat.moat import moat0, moat1, moat2, moat3, moat4
+from iseg.backbones.convnext_v2 import convnext_v2_nano, convnext_v2_tiny, convnext_v2_large, convnext_v2_huge
 
 
 def get_backbone(
@@ -88,6 +89,10 @@ def get_backbone(
         ss.MOAT2: moat2,
         ss.MOAT3: moat3,
         ss.MOAT4: moat4,
+        ss.CONVNEXT_V2_NANO: convnext_v2_nano,
+        ss.CONVNEXT_V2_TINY: convnext_v2_tiny,
+        ss.CONVNEXT_V2_LARGE: convnext_v2_large,
+        ss.CONVNEXT_V2_HUGE: convnext_v2_huge,
         ss.PLACEHOLDER: PlaceHolder,
     }
 

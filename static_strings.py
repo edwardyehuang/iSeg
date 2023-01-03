@@ -71,6 +71,12 @@ CONVNEXT_TINY = "convnext_tiny"
 CONVNEXT_LARGE = "convnext_large"
 CONVNEXT_XLARGE = "convnext_xlarge"
 
+CONVNEXT_V2 = "convnext"
+CONVNEXT_V2_NANO = "convnext_v2_nano"
+CONVNEXT_V2_TINY = "convnext_v2_tiny"
+CONVNEXT_V2_LARGE = "convnext_v2_large"
+CONVNEXT_V2_HUGE = "convnext_v2_huge"
+
 MOAT = "moat"
 MOAT0 = "moat0"
 MOAT1 = "moat1"
