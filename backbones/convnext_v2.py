@@ -13,8 +13,10 @@ from iseg.utils.drops import drop_path
 
 class GlobalResponseNormlizationLayer(tf.keras.layers.Layer):
 
-    def __init__(self, trainable=True, name=None):
+    def __init__(self, trainable=True, epsilon=1e-6, name=None):
         super().__init__(trainable=trainable, name=name)
+
+        self.epsilon = epsilon
 
 
     def build(self, input_shape):
@@ -26,6 +28,7 @@ class GlobalResponseNormlizationLayer(tf.keras.layers.Layer):
             shape=[1, 1, 1, channels],
             trainable=self.trainable,
             initializer=tf.zeros_initializer(),
+            dtype=tf.float32,
         )
 
         self.beta = self.add_weight(
@@ -33,15 +36,26 @@ class GlobalResponseNormlizationLayer(tf.keras.layers.Layer):
             shape=[1, 1, 1, channels],
             trainable=self.trainable,
             initializer=tf.zeros_initializer(),
+            dtype=tf.float32,
         )
 
         super().build(input_shape)
 
-    def call (self, inputs):
-        gx = tf.nn.l2_normalize(inputs, axis=(1, 2))
-        nx = gx / (tf.reduce_mean(gx, axis=-1, keepdims=True) + 1e-6)
+    def call (self, inputs, training=None):
 
-        return self.gamma * (inputs * nx) + self.beta + inputs
+        x = inputs
+        x = tf.cast(x, tf.float32)
+
+        beta = tf.cast(self.beta, tf.float32)
+        gamma = tf.cast(self.gamma, tf.float32)
+
+        gx = tf.pow((tf.reduce_sum(tf.pow(x, 2), axis=(1, 2), keepdims=True) + self.epsilon), 0.5)
+        # gx = tf.nn.l2_normalize(x, axis=(1, 2), epsilon=1e-6)
+        nx = gx / (tf.reduce_mean(gx, axis=-1, keepdims=True) + self.epsilon)
+
+        x = gamma * (x * nx) + beta + x
+
+        return tf.cast(x, inputs.dtype)
 
 
 class Block(tf.keras.Model):
