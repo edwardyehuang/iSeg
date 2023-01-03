@@ -14,4 +14,7 @@
 | ConvNeXt-XLarge|[-]()|[Baidu Drive](https://pan.baidu.com/s/13YSjwUFT_cKcVcVQBYYXMw?pwd=n6qg)
 | MOAT-0|[-]()|[Baidu Drive](https://pan.baidu.com/s/15RugeCjW8jmk3EXI9FcT4Q?pwd=x4fj)
 | MOAT-4|[-]()|[Baidu Drive](https://pan.baidu.com/s/1UvsJbxIO1CZJUwvKUUwsQg?pwd=vjmx)
+| ConvNeXtV2-Nano|[-]()|[Baidu Drive](https://pan.baidu.com/s/1Kk2m_dd0RYhnMxbE4e2zvg?pwd=vy42)
 | ConvNeXtV2-Tiny|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.4/convnext_v2_tiny.h5)|[Baidu Drive](https://pan.baidu.com/s/1ZMmL391HPgFd8ONI5imvcw?pwd=ckqj)
+| ConvNeXtV2-Large|[-]()|[Baidu Drive](https://pan.baidu.com/s/1lUK9Z6ZCoElI68JIOd1lTg?pwd=rt7n)
+| ConvNeXtV2-Huge|[-]()|[Baidu Drive](https://pan.baidu.com/s/1QgKUzUj0g4XGum1cO3v71w?pwd=6p4g)
