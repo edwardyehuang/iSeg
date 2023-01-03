@@ -2,6 +2,8 @@
 
 ## News
 
+January-03-2023: Add support of [ConvNeXtV2](https://arxiv.org/abs/2301.00808).
+
 November-12-2022: Add support of [MOAT](https://arxiv.org/abs/2210.01820).
 
 September-7-2022: Drop support for TensorFlow < 2.10
@@ -26,6 +28,7 @@ March-16-2022: The backbone weights are now available in [here](backbones/README
 - [x] MobileNetV2
 - [x] ConvNeXt
 - [x] MOAT
+- [x] ConvNeXtV2
 
 Weights can be downloaded in [here](backbones/README.md)
 
