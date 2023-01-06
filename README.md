@@ -40,7 +40,6 @@ Weights can be downloaded in [here](backbones/README.md)
 - [x] Typical image augmentation
 - [x] Support for Windows 10/11
 - [x] Support for Windows WSL2
-- [ ] One click/out of box deployment for industry (Comming soon)
 
 ## Requirements
 
