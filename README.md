@@ -13,7 +13,7 @@ March-16-2022: We add an example project in [here](https://github.com/edwardyehu
 March-16-2022: The backbone weights are now available in [here](backbones/README.md), we will add more in future.
 
 
-<img src="demo.png" width=450>
+<img src="demo.png" width=400>
 
 ## Features
 ### Backbone support
