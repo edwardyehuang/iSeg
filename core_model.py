@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow.python.keras.engine import data_adapter
 
 from iseg.core_inference import *
-from iseg.utils.common import resize_image
+from iseg.utils.common import resize_image, get_scaled_size
 
 from iseg.metrics.utils import SegMetricBuilder
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
@@ -58,22 +58,6 @@ class SegBase(tf.keras.Model):
 
         return results
 
-    def get_scaled_size(self, inputs, scale_rate):
-
-        inputs_size = tf.shape(inputs)[1:3]
-
-        inputs_size_h = inputs_size[0]
-        inputs_size_w = inputs_size[1]
-
-        target_size_h = tf.cast(scale_rate * tf.cast(inputs_size_h, tf.float32), tf.int32)
-        target_size_w = tf.cast(scale_rate * tf.cast(inputs_size_w, tf.float32), tf.int32)
-
-        target_size_h = tf.where((target_size_h % 2 == 0) & (inputs_size_h % 2 != 0), target_size_h + 1, target_size_h)
-        target_size_w = tf.where((target_size_w % 2 == 0) & (inputs_size_w % 2 != 0), target_size_w + 1, target_size_w)
-
-        sizes = [target_size_h, target_size_w]
-
-        return sizes
 
     def inference_with_scale(
         self, 
@@ -88,7 +72,7 @@ class SegBase(tf.keras.Model):
 
         inputs = tf.raw_ops.SelectV2(condition=flip, t=tf.image.flip_left_right(inputs), e=inputs)
 
-        sizes = self.get_scaled_size(inputs, scale_rate)
+        sizes = get_scaled_size(inputs, scale_rate, pad_mode=1)
 
         inputs = resize_image(inputs, sizes, method=resize_method, name="inference_resize")
 
