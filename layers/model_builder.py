@@ -98,6 +98,63 @@ class ConvBnRelu(tf.keras.Model):
         weight.assign(initializer(weight.shape, weight.dtype))
 
 
+class SepConvBnReLU (tf.keras.Model):
+    
+    def __init__ (
+        self, 
+        filters, 
+        kernel_size, 
+        apply_bn=True,
+        dilation_rate=1, 
+        activation=tf.nn.relu, 
+        apply_pointwise=True,
+        apply_pointwise_bn=True,
+        name=None
+        ):
+
+        super().__init__(name=name)
+
+        self.use_bn = apply_bn
+        self.activation = activation
+        self.apply_pointwise = apply_pointwise
+
+        self.depthwise_conv = tf.keras.layers.DepthwiseConv2D(
+            kernel_size, 
+            padding="same",
+            dilation_rate=dilation_rate,
+            use_bias=False, 
+            name="depthwise_conv"
+            )
+
+        if self.use_bn:
+            self.depthwise_bn = normalization(name="depthwise_bn")
+
+        if self.apply_pointwise:
+            self.pointwise_conv = ConvBnRelu(
+                filters,
+                use_bn=apply_pointwise_bn, 
+                activation=activation, 
+                name="pointwise_conv"
+            )
+
+
+    def call (self, inputs, training=None):
+
+        x = self.depthwise_conv(inputs)
+
+        if self.use_bn:
+            x = self.depthwise_bn(x, training=training)
+
+        if self.activation is not None:
+            x = self.activation(x)
+
+        if self.apply_pointwise:
+            x = self.pointwise_conv(x, training=training)
+
+        return x 
+
+
+
 class LnConvGelu(tf.keras.Model):
     def __init__(
         self,
