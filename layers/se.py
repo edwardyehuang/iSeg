@@ -4,10 +4,11 @@ from iseg.layers.normalizations import normalization
 
 
 class SqueezeAndExcitationModule(tf.keras.Model):
-    def __init__(self, ratio=16, name=None):
+    def __init__(self, ratio=16, activation=tf.nn.relu, name=None):
         super().__init__(name=name)
 
         self.ratio = ratio
+        self.activation = activation
 
     def build(self, input_shape):
 
@@ -23,7 +24,7 @@ class SqueezeAndExcitationModule(tf.keras.Model):
 
         x = tf.math.reduce_mean(x, axis=[1, 2], keepdims=True)
         x = self.down_conv(x)
-        x = tf.nn.relu(x)
+        x = self.activation(x)
 
         x = self.expand_conv(x)
         x = tf.nn.sigmoid(x)
