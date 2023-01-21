@@ -9,10 +9,21 @@ import tensorflow as tf
 
 from iseg.utils.attention_utils import flatten_hw
 from iseg.layers.model_builder import get_tensor_shape
+from iseg.layers.common_layers import PatchEmbed
 
 
 class VisionTransformer(tf.keras.Model):
-    def __init__(self, patch_size, num_layer, num_head, filters=768, mlp_filters=4096, dropout_rate=0.1, name=None):
+    def __init__(
+        self, 
+        patch_size, 
+        num_layer, 
+        num_head, 
+        filters=768, 
+        mlp_filters=4096, 
+        dropout_rate=0.1,
+        return_endpoints=False,
+        name=None
+    ):
 
         super().__init__(name=name)
 
@@ -23,13 +34,13 @@ class VisionTransformer(tf.keras.Model):
         self.mlp_filters = mlp_filters
         self.dropout_rate = dropout_rate
 
+        self.return_endpoints = return_endpoints
+
     def build(self, input_shape):
 
-        self.patch_encoder = tf.keras.layers.Conv2D(
-            filters=self.filters,
-            kernel_size=(self.patch_size, self.patch_size),
-            strides=(self.patch_size, self.patch_size),
-            padding="valid",
+        self.patch_encoder = PatchEmbed(
+            patch_size=(self.patch_size, self.patch_size),
+            embed_filters=self.filters,
             name="embedding",
         )
 
@@ -49,15 +60,23 @@ class VisionTransformer(tf.keras.Model):
         x = inputs
 
         x = self.patch_encoder(x)
+
+        batch_size, height, width, channels = get_tensor_shape(x)
+
         x = flatten_hw(x)
 
-        with tf.name_scope("Transformer"):
-            x = self.positional_encoder(x)
+        x = self.positional_encoder(x)
 
-            for i in range(self.num_layer):
-                x = self.blocks[i](x, training=training)
+        for i in range(self.num_layer):
+            x = self.blocks[i](x, training=training)
 
-            return x
+        x = tf.reshape(x, [batch_size, height, width, channels])
+
+        if self.return_endpoints:
+            x = [x]
+
+        return x
+            
 
 
 class PositionalEncoder(tf.keras.Model):
@@ -147,16 +166,40 @@ class MLPBlock(tf.keras.Model):
         return x
 
 
-def ViT16L():
+def ViT16L(return_endpoints=False):
 
-    return VisionTransformer(patch_size=16, num_layer=24, num_head=16, filters=1024, mlp_filters=4096, name="ViT-L_16")
+    return VisionTransformer(
+        patch_size=16, 
+        num_layer=24, 
+        num_head=16, 
+        filters=1024, 
+        mlp_filters=4096, 
+        return_endpoints=return_endpoints,
+        name="ViT-L_16"
+    )
 
 
-def ViT16B():
+def ViT16B(return_endpoints=False):
 
-    return VisionTransformer(patch_size=16, num_layer=12, num_head=12, filters=768, mlp_filters=3072, name="ViT-B_16")
+    return VisionTransformer(
+        patch_size=16, 
+        num_layer=12, 
+        num_head=12, 
+        filters=768, 
+        mlp_filters=3072,
+        return_endpoints=return_endpoints,
+        name="ViT-B_16"
+    )
 
 
-def ViT16S():
+def ViT16S(return_endpoints=False):
 
-    return VisionTransformer(patch_size=16, num_layer=12, num_head=6, filters=384, mlp_filters=1536, name="ViT-S_16")
+    return VisionTransformer(
+        patch_size=16, 
+        num_layer=12, 
+        num_head=6, 
+        filters=384, 
+        mlp_filters=1536,
+        return_endpoints=return_endpoints, 
+        name="ViT-S_16"
+    )
