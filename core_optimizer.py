@@ -22,6 +22,7 @@ def get_optimizer(
     optimizer="sgd",
     sgd_momentum_rate=0.9,
     adamw_weight_decay=0.0001,
+    clipnorm=None,
 ):
 
     kwargs = {
@@ -36,7 +37,11 @@ def get_optimizer(
         "optimizer": optimizer,
         "sgd_momentum_rate": sgd_momentum_rate,
         "adamw_weight_decay": adamw_weight_decay,
+        "clipnorm": clipnorm,
     }
+
+    print("Optimizer info : **********************")
+    print(kwargs)
 
     keys = kwargs.keys()
 
@@ -105,6 +110,7 @@ def __get_optimizer(
     optimizer="sgd",
     sgd_momentum_rate=0.9,
     adamw_weight_decay=0.0001,
+    clipnorm=None,
 ):
 
     learning_rate = initial_lr
@@ -143,13 +149,13 @@ def __get_optimizer(
                 raise ValueError(f"Unsupported optimizer {optimizer}")
         else:
             if optimizer == "sgd":
-                _optimizer = tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate)
+                _optimizer = tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate, clipnorm=clipnorm)
             elif optimizer == "adam":
-                _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=False)
+                _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=False, clipnorm=clipnorm)
             elif optimizer == "amsgrad":
-                _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=True)
+                _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=True, clipnorm=clipnorm)
             elif optimizer == "adamw":
-                _optimizer = tf.keras.optimizers.experimental.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
+                _optimizer = tf.keras.optimizers.experimental.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate, clipnorm=clipnorm)
             else:
                 raise ValueError(f"Unsupported optimizer {optimizer}")
 
