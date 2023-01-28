@@ -1,5 +1,7 @@
 # iSeg : A TensorFlow 2 Library for Semantic Segmentation
 
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/tensorflow-gpu/badges/version.svg)](https://anaconda.org/conda-forge/tensorflow-gpu)
+
 ## News
 
 January-03-2023: Add support of [ConvNeXtV2](https://arxiv.org/abs/2301.00808).
