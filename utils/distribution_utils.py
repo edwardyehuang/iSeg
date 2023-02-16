@@ -32,8 +32,10 @@ def get_distribution_strategy(gpu_memory_growth=True, cuda_visible_devices=None,
     if use_tpu:
         if tpu_name == "colab":
             tpu_name = None
+        '''
         elif tpu_name == "local":
             tpu_name = None
+        '''
 
         return get_tpu_strategy(tpu_name)
 
