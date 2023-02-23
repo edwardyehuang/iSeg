@@ -32,6 +32,7 @@ class ConvBnRelu(tf.keras.Model):
         activation=tf.nn.relu,
         conv_kernel_initializer="glorot_uniform",
         dropout_rate=0,
+        dropout_before_bn=False,
         trainable=True,
         use_bias=False,
         groups=1,
@@ -61,6 +62,7 @@ class ConvBnRelu(tf.keras.Model):
             self.activation = None
 
         self.dropout = None
+        self.dropout_before_bn = dropout_before_bn
 
         if dropout_rate > 0:
             self.dropout = tf.keras.layers.Dropout(dropout_rate, name="{}_dropout".format(name))
@@ -69,13 +71,18 @@ class ConvBnRelu(tf.keras.Model):
 
         x = self.conv(inputs)
 
+        should_dropout = (self.dropout is not None) and self.trainable
+
+        if should_dropout and self.dropout_before_bn:
+            x = self.dropout(x, training=training)
+
         if self.bn is not None:
             x = self.bn(x, training=training)
 
         if self.activation is not None:
             x = self.activation(x)
 
-        if self.dropout is not None and self.trainable:
+        if should_dropout and not self.dropout_before_bn:
             x = self.dropout(x, training=training)
 
         return x
