@@ -441,14 +441,18 @@ def build_stacks(num_of_blocks=[3, 4, 23, 3], use_bias=True, norm_method=None, s
     return stacks
 
 
-def build_atrous_resnet(resnet, output_stride=32):
+def build_atrous_resnet(resnet : ResNet, output_stride=32):
 
     stacks = resnet.stacks
 
     if len(stacks) != 4:
         return ValueError("Len of stacks must be 4")
-
+    
     current_os = 4
+    
+    if output_stride == 2:
+        resnet.poo1_pool.strides = (1, 1)
+
     current_atrous_rate = 1
 
     for stack in stacks:
