@@ -44,6 +44,7 @@ Weights can be downloaded in [here](backbones/README.md)
 - [x] Typical image augmentation
 - [x] Support for Windows 10/11
 - [x] Support for Windows WSL2
+- [x] Support for Apple M1 chip macOS
 
 ## Requirements
 
