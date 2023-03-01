@@ -219,7 +219,7 @@ class CoreTrain(object):
             options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
             ds = ds.with_options(options)
 
-            return ds
+        return ds
 
 
     def handle_custom_dataprocess(self, ds, model):
