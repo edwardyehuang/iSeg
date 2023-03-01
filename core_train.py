@@ -22,7 +22,15 @@ from iseg.utils.keras_ops import capture_func, get_all_layers_v2
 
 
 class CoreTrain(object):
-    def __init__(self, model_helper, train_dataset, val_dataset=None, val_image_count=0, use_tpu=False):
+    def __init__(
+            self, 
+            model_helper, 
+            train_dataset, 
+            val_dataset=None, 
+            val_image_count=0, 
+            use_tpu=False,
+            use_tpu_pod=False,
+        ):
 
         self.model_helper = model_helper
         self.training_dataset = train_dataset
@@ -30,6 +38,7 @@ class CoreTrain(object):
         self.val_image_count = val_image_count
 
         self.use_tpu = use_tpu
+        self.use_tpu_pod = use_tpu_pod
 
     def create_trainable_model(
         self, 
@@ -178,6 +187,8 @@ class CoreTrain(object):
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
 
+        ds = self.data_based_shard_policy(ds)
+
         ds = ds.prefetch(buffer_size=AUTOTUNE)
 
         return ds
@@ -191,9 +202,25 @@ class CoreTrain(object):
         ds = self.handle_custom_dataprocess(self.val_dataset, model)
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
+
+        ds = self.data_based_shard_policy(ds)
+
         ds = ds.prefetch(buffer_size=AUTOTUNE)
 
         return ds
+    
+
+    def data_based_shard_policy(self, ds):
+        
+        if self.use_tpu and self.use_tpu_pod:
+            print("Use TPU pod! Set AutoShardPolicy to DATA")
+
+            options = tf.data.Options()
+            options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+            ds = ds.with_options(options)
+
+            return ds
+
 
     def handle_custom_dataprocess(self, ds, model):
 
