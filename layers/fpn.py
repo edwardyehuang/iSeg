@@ -121,7 +121,7 @@ class SemanticPyramidNetworkBlock_V2(tf.keras.Model):
                 conv = ConvBnRelu(self.filters, (3, 3), name=f"s_{i}_conv_{j}")
                 self.convs.append(conv)
 
-        self.end_conv = ConvBnRelu(self.num_feature_map * self.filters, name="end_conv")
+        self.end_conv = ConvBnRelu(self.filters, name="end_conv")
 
     def call(self, inputs, training=None):
 
