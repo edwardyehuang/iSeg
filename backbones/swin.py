@@ -513,7 +513,7 @@ class SwinTransformerModel(tf.keras.Model):
         qk_scale=None,
         dropout_rate=0.0,
         attention_dropout_rate=0.0,
-        drop_path_rate=0.1,
+        drop_path_rate=0.3,
         norm_layer=tf.keras.layers.LayerNormalization,
         use_absolute_pos_embed=False,
         patch_norm=True,
