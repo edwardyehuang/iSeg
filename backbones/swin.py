@@ -629,6 +629,7 @@ def swin_tiny_224(return_endpoints=False):
         embed_dim=96,
         depths=[2, 2, 6, 2],
         num_heads=[3, 6, 12, 24],
+        drop_path_rate=0.1,
         return_endpoints=return_endpoints,
     )
 
@@ -641,6 +642,7 @@ def swin_base_384(return_endpoints=False):
         embed_dim=128,
         depths=[2, 2, 18, 2],
         num_heads=[4, 8, 16, 32],
+        drop_path_rate=0.2,
         return_endpoints=return_endpoints,
     )
 
@@ -653,5 +655,6 @@ def swin_large_384(return_endpoints=False):
         embed_dim=192,
         depths=[2, 2, 18, 2],
         num_heads=[6, 12, 24, 48],
+        drop_path_rate=0.3,
         return_endpoints=return_endpoints,
     )
