@@ -266,7 +266,7 @@ class CoreTrain(object):
 
         layers = get_all_layers_v2(model)
 
-        excluded_name_list = ["bias"]
+        excluded_name_list = ["bias", "relative_position_bias_table"]
 
         for layer in layers:
             
