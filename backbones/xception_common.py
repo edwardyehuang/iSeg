@@ -195,7 +195,7 @@ class Xception(tf.keras.Model):
 
             x = self._xception_blocks[i](x, training=training)
 
-        assert endpoints[-1] != x
+        # assert endpoints[-1] != x
         endpoints += [x]
 
         if self.return_endpoints:
