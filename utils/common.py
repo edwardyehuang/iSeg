@@ -13,6 +13,7 @@ import tensorflow as tf
 from distutils.version import LooseVersion
 
 DEFAULT_IMAGE_RESIZE_METHOD = "bilinear"
+DEFAULT_ALIGN_CORNERS = True
 
 
 def set_random_seed(seed=0):
@@ -55,8 +56,12 @@ def resize_image(images, size, method=None, name=None):
         method = tf.image.ResizeMethod.BICUBIC
     else:
         raise ValueError("Not support")
+    
+    align_corners = DEFAULT_ALIGN_CORNERS
 
-    x = tf.compat.v1.image.resize(images, size, method=method, align_corners=True, name=name)
+    print(f"align_corners = {align_corners}")
+
+    x = tf.compat.v1.image.resize(images, size, method=method, align_corners=align_corners, name=name)
     x = tf.cast(x, images.dtype)
 
     return x
