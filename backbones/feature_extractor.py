@@ -127,7 +127,8 @@ def get_backbone(
 
         if ".h5" in weights_path[-3:]:
             print(f"Load backbone weights {weights_path} as H5 format")
-            load_h5_weight(backbone, weights_path)
+            backbone.load_weights(weights_path, by_name=True) 
+            # load_h5_weight(backbone, weights_path)
         elif ".ckpt" in weights_path[-5:]:
             print(f"Load backbone weights {weights_path} as ckpt format")
             backbone.load_weights(weights_path)

@@ -4,8 +4,8 @@
 | Backbone | Links ||
 |  ----  | ----  | ---- |
 | ResNet-18|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.5/resnet18.h5)|[Baidu Drive](https://pan.baidu.com/s/1WZtxrTZuKqlM913QfiWQhg?pwd=vsrj)
-| ResNet-50|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.2/resnet50.h5)|[Baidu Drive](https://pan.baidu.com/s/1RKmoZb5sZSb-SslcF7cqww?pwd=5ywi)
-| ResNet-101|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.2/resnet101.h5)|[Baidu Drive](https://pan.baidu.com/s/1E2OQtIrHCbCjtQA1zkYzFQ?pwd=h5dv)
+| ResNet-50|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.2/resnet50.h5)|[Baidu Drive](https://pan.baidu.com/s/1ZAzDY0XJwpOunmvpxU0nDA?pwd=959x)
+| ResNet-101|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.2/resnet101.h5)|[Baidu Drive](https://pan.baidu.com/s/11NhChVvxnKEtmhcp9rCYaw?pwd=4ibz)
 | Swin-Tiny|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.5/swin_tiny_224_1k.h5)|[Baidu Drive](https://pan.baidu.com/s/1_kF1TLPtI6e5g-lNxp5yWQ?pwd=tdet)
 | Swin-Large|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.5/swin_large_384.h5)|[Baidu Drive](https://pan.baidu.com/s/1nRcbi19ieJmEZuse9_KMvA?pwd=43yt)
 | HRNet-W48|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.5/hrnetw48c.h5)|[Baidu Drive](https://pan.baidu.com/s/19lsB6k8XLX6OxaM_MeVPdQ?pwd=4s82)

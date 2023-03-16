@@ -4,6 +4,8 @@
 
 ## News
 
+March-17-2023: Drop the support for old ResNet-50/100 h5 weights. Updated versions have been provided.
+
 March-01-2023: Add support of TPU pod training, we will add an example project soon.
 
 January-03-2023: Add support of [ConvNeXtV2](https://arxiv.org/abs/2301.00808).
