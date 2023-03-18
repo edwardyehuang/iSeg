@@ -183,7 +183,7 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height, targe
     with ops.name_scope(None, "pad_to_bounding_box", [image]):
         image = tf.convert_to_tensor(image, name="image")
         original_dtype = image.dtype
-        if original_dtype != tf.float32 and original_dtype != tf.float64:
+        if original_dtype != tf.float32 and original_dtype != tf.float64 and original_dtype != tf.bfloat16 and original_dtype != tf.float16:
             # If image dtype is not float, we convert it to int32 to avoid overflow.
             image = tf.cast(image, tf.int32)
         image_rank_assert = tf.Assert(
