@@ -69,7 +69,7 @@ class ModelHelper:
 
         last_checkpoint = self.ckpt_manager.latest_checkpoint
 
-        if last_checkpoint != None:
+        if last_checkpoint is not None:
             self.ckpt.restore(last_checkpoint).expect_partial()
 
         return last_checkpoint
