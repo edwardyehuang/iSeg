@@ -284,7 +284,8 @@ def ViT16L(return_endpoints=False):
         num_layer=24, 
         num_head=16, 
         filters=1024, 
-        mlp_filters=4096, 
+        mlp_filters=4096,
+        pretrain_size=384, 
         return_endpoints=return_endpoints,
         name="ViT-L_16"
     )

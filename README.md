@@ -22,7 +22,7 @@ March-16-2022: The backbone weights are now available in [here](backbones/README
 <img src="demo.png" width=400>
 
 ## Features
-### Backbone support
+### Backbone support (Inputs size free)
 
 - [x] Modern ResNet
 - [x] Xception-65
@@ -30,7 +30,8 @@ March-16-2022: The backbone weights are now available in [here](backbones/README
 - [x] EfficientNetV1
 - [x] Feature Pyramid Network
 - [x] HRNet
-- [x] Swin Transformer (Inputs size free)
+- [x] Vision Transformer
+- [x] Swin Transformer 
 - [x] MobileNetV2
 - [x] ConvNeXt
 - [x] MOAT
