@@ -64,17 +64,24 @@ class PatchEmbed(tf.keras.Model):
         super().__init__(name=name)
 
         self.patch_size = patch_size
-        self.embed_dim = embed_filters
+        self.embed_filters = embed_filters
+
+        self.norm_layer = norm_layer
+
+    def build(self, input_shape):
 
         self.proj = tf.keras.layers.Conv2D(
-            embed_filters, kernel_size=patch_size, strides=patch_size, name=f"{name}/proj"
+            self.embed_filters, 
+            kernel_size=self.patch_size, 
+            strides=self.patch_size, 
+            name=f"{self.name}/projection"
         )
-        if norm_layer is not None:
-            self.norm = norm_layer(epsilon=1e-5, name=f"{name}/norm")
+        
+        if self.norm_layer is not None:
+            self.norm = self.norm_layer(epsilon=1e-5, name=f"{self.name}/norm")
         else:
             self.norm = None
 
-    def build(self, input_shape):
         super().build(input_shape)
 
     def call(self, x):
@@ -93,7 +100,13 @@ class PatchEmbed(tf.keras.Model):
         x = self.proj(x)
 
         x = tf.reshape(
-            x, shape=[-1, (padded_height // self.patch_size[0]), (padded_width // self.patch_size[0]), self.embed_dim]
+            x, 
+            shape=[
+                -1, 
+                (padded_height // self.patch_size[0]), 
+                (padded_width // self.patch_size[0]), 
+                self.embed_filters
+            ]
         )
 
         if self.norm is not None:
