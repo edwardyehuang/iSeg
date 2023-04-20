@@ -20,3 +20,4 @@
 | ConvNeXtV2-Huge|[-]()|[Baidu Drive](https://pan.baidu.com/s/1QgKUzUj0g4XGum1cO3v71w?pwd=6p4g)
 | ViT-Base|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.7/vit_base_384_21k.h5)|[Baidu Drive](https://pan.baidu.com/s/1C3m4g3n88SjzGzd2mt_dwA?pwd=p83i)
 | ViT-Large|[-]()|[Baidu Drive](https://pan.baidu.com/s/1-py5JEVaUdAbsYSyEIGeLA?pwd=txag)
+| ViT-Base-SAM|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.7/vit_base_SAM.h5)|[-]()

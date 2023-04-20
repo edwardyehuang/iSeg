@@ -286,6 +286,7 @@ def ViT16L(return_endpoints=False):
         filters=1024, 
         mlp_filters=4096,
         pretrain_size=384, 
+        use_class_token=True,
         return_endpoints=return_endpoints,
         name="ViT-L_16"
     )
@@ -300,6 +301,7 @@ def ViT16B(return_endpoints=False):
         filters=768, 
         mlp_filters=3072,
         pretrain_size=384,
+        use_class_token=True,
         return_endpoints=return_endpoints,
         name="ViT-B_16"
     )
@@ -314,6 +316,22 @@ def ViT16S(return_endpoints=False):
         filters=384, 
         mlp_filters=1536,
         pretrain_size=384,
+        use_class_token=True,
         return_endpoints=return_endpoints, 
         name="ViT-S_16"
+    )
+
+
+def ViT16B_SAM(return_endpoints=False):
+
+    return VisionTransformer(
+        patch_size=16, 
+        num_layer=12, 
+        num_head=12, 
+        filters=768, 
+        mlp_filters=3072,
+        pretrain_size=1024,
+        use_class_token=False,
+        return_endpoints=return_endpoints,
+        name="ViT-B_16"
     )
