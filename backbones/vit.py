@@ -42,12 +42,16 @@ def resize_pos_embed(
         pos_embed.shape[-1]]
     )
 
+    dtype_before = pos_embed.dtype
+
     pos_embed = tf.image.resize(
         pos_embed, 
         size=target_size, 
         method=tf.image.ResizeMethod.BICUBIC,
         name="pos_embed_resize"
     )
+
+    pos_embed = tf.cast(pos_embed, dtype_before)
 
     pos_embed = tf.reshape(pos_embed, [batch_size, -1, pos_embed.shape[-1]])
 
