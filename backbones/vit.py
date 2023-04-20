@@ -252,6 +252,8 @@ class VisionTransformer(tf.keras.Model):
                 name="class_token_batch_broadcast"
             )
 
+            class_token = tf.cast(class_token, x.dtype)
+
             x = tf.concat([class_token, x], axis=1)
 
         position_embedding = resize_pos_embed(
