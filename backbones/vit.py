@@ -145,12 +145,12 @@ class TransformerBlock(tf.keras.Model):
         x = self.attention_norm(inputs)
         x = self.attention(x, x, training=training)
 
-        x = idenity = tf.add(x, inputs)
+        x = idenity = tf.add(x, tf.cast(inputs, x.dtype))
 
         x = self.mlp_norm(x)
         x = self.mlp(x, training=training)
 
-        x = tf.add(x, idenity)
+        x = tf.add(x, tf.cast(idenity, x.dtype))
 
         return x
 
@@ -256,11 +256,14 @@ class VisionTransformer(tf.keras.Model):
 
             x = tf.concat([class_token, x], axis=1)
 
+
         position_embedding = resize_pos_embed(
             pos_embed=self.position_embedding,
             target_size=(height, width),
             num_extra_tokens=self.extra_patches,
         )
+
+        position_embedding = tf.cast(position_embedding, x.dtype)
 
         x = tf.add(x, position_embedding, name="position_embedding_add")
 
