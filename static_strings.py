@@ -84,6 +84,11 @@ MOAT2 = "moat2"
 MOAT3 = "moat3"
 MOAT4 = "moat4"
 
+VIT_B = "vit_base"
+VIT_L = "vit_large"
+
+VIT_B_SAM = "vit_base_sam"
+
 IMAGE = "image"
 LABEL = "label"
 
