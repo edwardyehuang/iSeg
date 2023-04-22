@@ -74,7 +74,8 @@ class PatchEmbed(tf.keras.Model):
             self.embed_filters, 
             kernel_size=self.patch_size, 
             strides=self.patch_size, 
-            name=f"{self.name}/projection"
+            name=f"{self.name}/projection",
+            padding="SAME",
         )
         
         if self.norm_layer is not None:
@@ -86,28 +87,7 @@ class PatchEmbed(tf.keras.Model):
 
     def call(self, x):
 
-        height = tf.shape(x)[1]
-        width = tf.shape(x)[2]
-
-        pad_h = tf.where(height % self.patch_size[0] == 0, 0, self.patch_size[0] - height % self.patch_size[0])
-        pad_w = tf.where(width % self.patch_size[1] == 0, 0, self.patch_size[1] - width % self.patch_size[1])
-
-        x = tf.pad(x, [[0, 0], [0, pad_h], [0, pad_w], [0, 0]])
-
-        padded_height = tf.shape(x)[1]
-        padded_width = tf.shape(x)[2]
-
         x = self.proj(x)
-
-        x = tf.reshape(
-            x, 
-            shape=[
-                -1, 
-                (padded_height // self.patch_size[0]), 
-                (padded_width // self.patch_size[0]), 
-                self.embed_filters
-            ]
-        )
 
         if self.norm is not None:
             x = self.norm(x)
