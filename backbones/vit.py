@@ -3,7 +3,7 @@
 # Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
 # ================================================================
 
-
+import numpy as np
 import tensorflow as tf
 
 from iseg.utils.attention_utils import flatten_hw
@@ -250,7 +250,7 @@ class VisionTransformer(tf.keras.Model):
             rate=self.dropout_rate, name="position_embedding_dropout"
         )
 
-        drop_path_rates = tf.linspace(0.0, self.drop_path_rate, self.num_layer)
+        drop_path_rates = np.linspace(0.0, self.drop_path_rate, self.num_layer)
 
         self.blocks = []
 
