@@ -7,8 +7,9 @@
 import tensorflow as tf
 
 from iseg.utils.attention_utils import flatten_hw
-from iseg.layers.model_builder import get_tensor_shape
+from iseg.layers.model_builder import get_tensor_shape, get_training_value
 from iseg.layers.common_layers import PatchEmbed
+from iseg.utils.drops import drop_path
 
 
 def resize_pos_embed(
@@ -89,7 +90,7 @@ class MLPBlock(tf.keras.Model):
         )
         
         self.dense1_dropout = tf.keras.layers.Dropout(
-            self.dropout_rate,
+            self.dropout_rate, name="dense1_dropout"
         )
 
         super().build(input_shape)
@@ -107,12 +108,21 @@ class MLPBlock(tf.keras.Model):
     
 
 class TransformerBlock(tf.keras.Model):
-    def __init__(self, mlp_filters=4096, num_heads=16, dropout_rate=0.1, name=None):
+    def __init__(
+        self, 
+        mlp_filters=4096, 
+        num_heads=16, 
+        dropout_rate=0.1,
+        drop_path_rate=0.0, 
+        name=None
+    ):
         super().__init__(name=name)
 
         self.num_head = num_heads
         self.mlp_filters = mlp_filters
         self.dropout_rate = dropout_rate
+        self.drop_path_rate = drop_path_rate
+
 
     def build(self, input_shape):
 
@@ -146,16 +156,24 @@ class TransformerBlock(tf.keras.Model):
 
     def call(self, inputs, training=None):
 
+        training = get_training_value(training)
+
         x = self.attention_norm(inputs)
         x = self.attention(x, x, training=training)
+
+        if self.drop_path_rate != 0.0 and training:
+            x = drop_path(x, drop_prob=self.drop_path_rate, training=training)
 
         x = idenity = tf.add(x, tf.cast(inputs, x.dtype))
 
         x = self.mlp_norm(x)
         x = self.mlp(x, training=training)
 
-        x = tf.add(x, tf.cast(idenity, x.dtype))
+        if self.drop_path_rate != 0.0 and training:
+            x = drop_path(x, drop_prob=self.drop_path_rate, training=training)
 
+        x = tf.add(x, tf.cast(idenity, x.dtype))
+        
         return x
 
 
@@ -167,7 +185,8 @@ class VisionTransformer(tf.keras.Model):
         num_head, 
         filters=768, 
         mlp_filters=4096, 
-        dropout_rate=0.1,
+        dropout_rate=0.0,
+        drop_path_rate=0.1,
         use_class_token=True,
         pretrain_size=224,
         return_endpoints=False,
@@ -177,11 +196,15 @@ class VisionTransformer(tf.keras.Model):
         super().__init__(name=name)
 
         self.patch_size = patch_size
+
         self.num_layer = num_layer
         self.num_head = num_head
+
         self.filters = filters
         self.mlp_filters = mlp_filters
+
         self.dropout_rate = dropout_rate
+        self.drop_path_rate = drop_path_rate
 
         self.use_class_token = use_class_token
 
@@ -223,6 +246,12 @@ class VisionTransformer(tf.keras.Model):
             trainable=True,
         )
 
+        self.position_embedding_dropout = tf.keras.layers.Dropout(
+            rate=self.dropout_rate, name="position_embedding_dropout"
+        )
+
+        drop_path_rates = tf.linspace(0.0, self.drop_path_rate, self.num_layer)
+
         self.blocks = []
 
         for i in range(self.num_layer):
@@ -230,7 +259,8 @@ class VisionTransformer(tf.keras.Model):
                 TransformerBlock(
                     self.mlp_filters, 
                     num_heads=self.num_head, 
-                    dropout_rate=self.dropout_rate, 
+                    dropout_rate=self.dropout_rate,
+                    drop_path_rate=drop_path_rates[i],
                     name=f"{self.name}/layers/{i}"
                 )
             ]
@@ -270,6 +300,8 @@ class VisionTransformer(tf.keras.Model):
         position_embedding = tf.cast(position_embedding, x.dtype)
 
         x = tf.add(x, position_embedding, name="position_embedding_add")
+        x = self.position_embedding_dropout(x, training=training)
+
 
         for i in range(self.num_layer):
             x = self.blocks[i](x, training=training)
