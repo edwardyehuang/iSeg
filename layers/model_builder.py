@@ -318,3 +318,15 @@ def get_tensor_shape(x, static_dims=[-1]):
         results.append(s)
 
     return tuple(results)
+
+
+def get_tensor_shape_v2(x):
+
+    shapes = list(x.shape)
+    dynamic_shapes = tf.shape(x)
+
+    for i in range(len(shapes)):
+        if shapes[i] is None:
+            shapes[i] = dynamic_shapes[i]
+
+    return tuple(shapes)
