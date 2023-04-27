@@ -320,7 +320,7 @@ def get_tensor_shape(x, static_dims=[-1]):
     return tuple(results)
 
 
-def get_tensor_shape_v2(x):
+def get_tensor_shape_v2(x, return_list=False):
 
     shapes = list(x.shape)
     dynamic_shapes = tf.shape(x)
@@ -328,5 +328,8 @@ def get_tensor_shape_v2(x):
     for i in range(len(shapes)):
         if shapes[i] is None:
             shapes[i] = dynamic_shapes[i]
+
+    if return_list:
+        return shapes
 
     return tuple(shapes)
