@@ -79,6 +79,7 @@ class MLPBlock(tf.keras.Model):
         self.dense0 = tf.keras.layers.Dense(
             self.filters, 
             activation=self.activation,
+            kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
             name=f"{self.name}/dense0"
         )
         
@@ -86,6 +87,7 @@ class MLPBlock(tf.keras.Model):
 
         self.dense1 = tf.keras.layers.Dense(
             input_shape[-1], 
+            kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
             name=f"{self.name}/dense1"
         )
         
