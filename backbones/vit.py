@@ -330,7 +330,6 @@ def ViT16L(return_endpoints=False):
         mlp_filters=4096,
         pretrain_size=384, 
         use_class_token=True,
-        drop_path_rate=0.3,
         return_endpoints=return_endpoints,
         name="ViT-L_16"
     )
