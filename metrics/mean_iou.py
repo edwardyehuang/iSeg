@@ -67,6 +67,14 @@ class MeanIOU(tf.keras.metrics.Metric):
         return self.total_cm.assign_add(current_cm)
 
     def result(self):
+        
+        iou, num_valid_entries = self.per_class_result()
+
+        return tf.math.divide_no_nan(tf.reduce_sum(iou, name="mean_iou"), num_valid_entries)
+    
+
+    def per_class_result (self):
+
         """Compute the mean intersection-over-union via the confusion matrix."""
         sum_over_row = tf.cast(tf.reduce_sum(self.total_cm, axis=0), dtype=self._dtype)
         sum_over_col = tf.cast(tf.reduce_sum(self.total_cm, axis=1), dtype=self._dtype)
@@ -80,7 +88,8 @@ class MeanIOU(tf.keras.metrics.Metric):
 
         iou = tf.math.divide_no_nan(true_positives, denominator)
 
-        return tf.math.divide_no_nan(tf.reduce_sum(iou, name="mean_iou"), num_valid_entries)
+        return iou, num_valid_entries
+
 
     def reset_states(self):
         tf.keras.backend.set_value(self.total_cm, np.zeros((self.num_classes, self.num_classes)))
