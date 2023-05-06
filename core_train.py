@@ -13,7 +13,7 @@ from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
 from iseg.callbacks.ckpt_saver import CheckpointSaver
 from iseg.callbacks.time_callback import TimeCallback
-from iseg.model_callback import ModelCallback
+from iseg.callbacks.model_callback import ModelCallback
 from iseg.core_model import SegFoundation
 
 from iseg.optimizers.multi_optimizer import MultiOptimizer
@@ -23,14 +23,14 @@ from iseg.utils.keras_ops import capture_func, get_all_layers_v2
 
 class CoreTrain(object):
     def __init__(
-            self, 
-            model_helper, 
-            train_dataset, 
-            val_dataset=None, 
-            val_image_count=0, 
-            use_tpu=False,
-            use_tpu_pod=False,
-        ):
+        self, 
+        model_helper, 
+        train_dataset, 
+        val_dataset=None, 
+        val_image_count=0, 
+        use_tpu=False,
+        use_tpu_pod=False,
+    ):
 
         self.model_helper = model_helper
         self.training_dataset = train_dataset

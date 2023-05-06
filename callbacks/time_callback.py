@@ -21,3 +21,5 @@ class TimeCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         
         print(f"System time : {datetime.now()}")
+
+        print()
