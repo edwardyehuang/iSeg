@@ -6,8 +6,6 @@
 import tensorflow as tf
 import iseg.static_strings as ss
 
-from iseg.utils.keras_ops import load_h5_weight, HookLayer
-
 from iseg.backbones.resnet_common import *
 from iseg.backbones.xception_common import Xception, xception65, build_atrous_xception
 from iseg.backbones.mobilenetv2_common import MobileNetV2, build_atrous_mobilenetv2
@@ -101,7 +99,7 @@ def get_backbone(
     }
 
     if not name in backbone_dicts:
-        raise ValueError("Backbone {} currently not supported".format(name))
+        raise ValueError(f"Backbone {name} currently not supported")
 
     backbone = backbone_dicts[name](**general_kwargs)
 
@@ -132,14 +130,11 @@ def get_backbone(
         if ".h5" in weights_path[-3:]:
             print(f"Load backbone weights {weights_path} as H5 format")
             backbone.load_weights(weights_path, by_name=True) 
-            # load_h5_weight(backbone, weights_path)
         elif ".ckpt" in weights_path[-5:]:
             print(f"Load backbone weights {weights_path} as ckpt format")
             backbone.load_weights(weights_path)
         else:
             raise ValueError(f"Weights {weights_path} not supported")
-
-        # load_h5_weight(backbone, weights_path)
 
     return backbone
 
@@ -154,16 +149,3 @@ def is_slim_structure(resnet):
         return True
 
     raise ValueError("Unknown stack")
-
-
-def hook_aux_loss_layer(resnet):
-
-    if is_slim_structure(resnet):
-        target_block = resnet.stacks[-2].blocks[-1]
-    else:
-        target_block = resnet.stacks[-1].blocks[0]
-
-    target_block.conv1_conv = HookLayer(target_block.conv1_conv)
-    result = lambda: target_block.conv1_conv.input_features
-
-    return result
