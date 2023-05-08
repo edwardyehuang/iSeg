@@ -10,6 +10,7 @@ import iseg.static_strings as ss
 from iseg.core_model import SegFoundation
 from iseg.backbones.feature_extractor import get_backbone
 from iseg.utils.common import resize_image
+from iseg.utils.keras_ops import capture_func
 
 
 class SegManaged(SegFoundation):
@@ -193,3 +194,11 @@ class SegManaged(SegFoundation):
         return self.layers_for_multi_optimizers
 
         #return super().multi_optimizers_layers()
+
+
+    def on_epoch_end(self, epoch, logs={}):
+
+        head_on_epoch_end_func = capture_func(self.head, "on_epoch_end")
+
+        if head_on_epoch_end_func is not None:
+            head_on_epoch_end_func(epoch, logs)
