@@ -202,3 +202,8 @@ class SegManaged(SegFoundation):
 
         if head_on_epoch_end_func is not None:
             head_on_epoch_end_func(epoch, logs)
+
+        backbone_on_epoch_end_func = capture_func(self.backbone, "on_epoch_end")
+
+        if backbone_on_epoch_end_func is not None:
+            backbone_on_epoch_end_func(epoch, logs)
