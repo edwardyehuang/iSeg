@@ -131,7 +131,20 @@ def __get_optimizer(
 
     elif decay_strategy == "cosine":
 
-        learning_rate = CosineDecay(learning_rate, steps)
+        _initial_lr = learning_rate
+        warmup_target = None
+
+        if warmup_steps > 0:
+            _initial_lr = warmup_lr
+            warmup_target = learning_rate
+
+        learning_rate = CosineDecay(
+            _initial_lr, 
+            steps,
+            warmup_target=warmup_target,
+            warmup_steps=warmup_steps,
+        )
+
 
     with distribute_strategy.scope():
         if LooseVersion(tf.version.VERSION) < LooseVersion("2.10.0"):
