@@ -59,9 +59,6 @@ def simple_process_image (image_tensor, label_tensor=None, ignore_label=255):
     pad_height = tf.cast(tf.math.ceil(image_size[0] / 32) * 32, tf.int32)
     pad_width = tf.cast(tf.math.ceil(image_size[1] / 32) * 32, tf.int32)
 
-    # pad_height = pad_height if pad_height % 2 != 0 else pad_height + 1
-    # pad_width = pad_height if pad_width % 2 != 0 else pad_width + 1
-
     zero = tf.constant(0, pad_height.dtype)
 
     r_height = tf.math.floormod(pad_height, 2, name="height_mod")
@@ -69,9 +66,6 @@ def simple_process_image (image_tensor, label_tensor=None, ignore_label=255):
 
     cond_height= tf.math.equal(r_height, zero, name="cond_height")
     cond_width = tf.math.equal(r_width, zero, name="cond_width")
-
-    # pad_height = tf.cond(cond_height, lambda:pad_height, lambda:pad_height + 1, name="odd_pad_height")
-    # pad_width = tf.cond(cond_width, lambda:pad_width, lambda:pad_width + 1, name="odd_pad_width")
 
     pad_height += tf.cast(cond_height, tf.int32) 
     pad_width += tf.cast(cond_width, tf.int32)

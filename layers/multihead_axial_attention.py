@@ -56,7 +56,8 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
 
         if self.apply_linear:
             self.query_conv = self.linear_func(
-                qk_filters, 
+                qk_filters,
+                (1, 1), 
                 kernel_initializer=q_kernel_initializer,
                 trainable=self.trainable,
                 name="query_conv"
@@ -65,6 +66,7 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
             if not self.shared_qk:  
                 self.key_conv = self.linear_func(
                     qk_filters, 
+                    (1, 1), 
                     kernel_initializer=k_kernel_initializer,
                     trainable=self.trainable,
                     name="key_conv"
@@ -72,6 +74,7 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
 
             self.value_conv = self.linear_func(
                 channels, 
+                (1, 1), 
                 trainable=self.trainable,
                 name="value_conv"
             )
