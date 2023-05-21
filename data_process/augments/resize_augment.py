@@ -14,7 +14,7 @@ class ResizeAugment(DataAugmentationBase):
         super().__init__(name=name)
 
         self.min_resize_value = min_resize_value
-        self.min_resize_value = max_resize_value
+        self.max_resize_value = max_resize_value
 
     def call(self, image, label):
 
