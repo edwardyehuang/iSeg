@@ -47,7 +47,9 @@ class CoreTrain(object):
         class_weights=None, 
         batch_size=1, 
         epoch_steps=1000, 
-        initial_epoch=0):
+        initial_epoch=0,
+        use_jit_compile=None,
+    ):
 
         model = self.model_helper.model
 
@@ -103,7 +105,13 @@ class CoreTrain(object):
 
         # Compile
 
-        model.compile(optimizer=optimizer, metrics=metrics, loss=losses, loss_weights=losses_weights)
+        model.compile(
+            optimizer=optimizer, 
+            metrics=metrics, 
+            loss=losses, 
+            loss_weights=losses_weights,
+            jit_compile=use_jit_compile,
+        )
 
         if initial_epoch != -1:
             model.optimizer.iterations.assign(epoch_steps * initial_epoch)
@@ -124,6 +132,7 @@ class CoreTrain(object):
         train_epoches=30,
         tensorboard_dir="tensorboard",
         verbose=1,
+        use_jit_compile=None,
     ):
 
         if eval_batch_size is None:
@@ -137,6 +146,7 @@ class CoreTrain(object):
                 batch_size=batch_size,
                 epoch_steps=epoch_steps,
                 initial_epoch=initial_epoch,
+                use_jit_compile=use_jit_compile,
             )
 
         if initial_epoch == -1:
