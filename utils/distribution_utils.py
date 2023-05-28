@@ -25,7 +25,7 @@ def get_tpu_strategy(name=None):
 
 def shutdown_tpu_system (strategy):
 
-    cluster_resolver = strategy.cluster_resolver()
+    cluster_resolver = strategy.cluster_resolver
     tf.tpu.experimental.shutdown_tpu_system(cluster_resolver)
 
 
