@@ -9,7 +9,7 @@ import tensorflow as tf
 from distutils.version import LooseVersion
 
 from iseg.utils.common import set_random_seed, enable_mixed_precision
-from iseg.utils.distribution_utils import get_distribution_strategy
+from iseg.utils.distribution_utils import get_distribution_strategy, shutdown_tpu_system
 
 
 def common_env_setup(
@@ -56,3 +56,9 @@ def common_env_setup(
         print("Enable experimental numpy behavior")
 
     return strategy
+
+
+def common_env_clean (strategy):
+
+    if isinstance(strategy, tf.distribute.TPUStrategy):
+        shutdown_tpu_system(strategy)

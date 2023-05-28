@@ -23,6 +23,12 @@ def get_tpu_strategy(name=None):
     return strategy
 
 
+def shutdown_tpu_system (strategy):
+
+    cluster_resolver = strategy.cluster_resolver()
+    tf.tpu.experimental.shutdown_tpu_system(cluster_resolver)
+
+
 def get_cpu_strategy():
     return tf.distribute.OneDeviceStrategy("/cpu:0")
 
