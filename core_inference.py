@@ -25,7 +25,7 @@ def inference_fn(inputs, model, num_class=21, training=False, sliding_window_cro
 
 def get_sliding_start_indexs_v2(length, crop_length):
 
-    stride_rate = 2.0 / 3.0
+    stride_rate = 1.0 / 3.0
 
     stride = tf.cast(stride_rate * tf.cast(crop_length, tf.float32), tf.int32)
 
