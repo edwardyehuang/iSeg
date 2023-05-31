@@ -94,6 +94,11 @@ def predict_with_dir(
         ds = ds.repeat()
         ds = ds.take(image_count + 1)
         ds = ds.batch(batch_size, drop_remainder=True)
+
+        options = tf.data.Options()
+        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+        ds = ds.with_options(options)
+
         ds = ds.map(__load_batch_image_mapfn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         ds = distribute_strategy.experimental_distribute_dataset(ds)
