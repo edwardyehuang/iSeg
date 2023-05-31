@@ -60,6 +60,7 @@ def __load_batch_image_mapfn(input_path, output_path):
     return result_batched_images, result_orginal_sizes, output_path
 
 
+
 @tf.function
 def predict_with_dir(
     distribute_strategy,
@@ -95,7 +96,7 @@ def predict_with_dir(
         ds = ds.batch(batch_size, drop_remainder=True)
         ds = ds.map(__load_batch_image_mapfn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-        ds = distribute_strategy.experimental_distribute_dataset(ds, tf.distribute.InputOptions())
+        ds = distribute_strategy.experimental_distribute_dataset(ds)
         # ds = ds.prefetch(buffer_size = tf.data.experimental.AUTOTUNE)
 
         @tf.function
