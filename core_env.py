@@ -22,6 +22,8 @@ def common_env_setup(
     use_deterministic=True,
     numpy_behavior=False,
 ):
+    
+    set_random_seed(random_seed)
 
     if use_deterministic:
         if LooseVersion(tf.version.VERSION) < LooseVersion("2.8.0"):
@@ -37,9 +39,6 @@ def common_env_setup(
         if tpu_name is not None:
             tf.config.threading.set_intra_op_parallelism_threads(1)
             tf.config.threading.set_inter_op_parallelism_threads(1)
-        
-
-    set_random_seed(random_seed)
 
     tf.config.run_functions_eagerly(run_eagerly)
 
