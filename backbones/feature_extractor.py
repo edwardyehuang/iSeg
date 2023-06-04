@@ -11,6 +11,8 @@ from iseg.backbones.xception_common import Xception, xception65, build_atrous_xc
 from iseg.backbones.mobilenetv2_common import MobileNetV2, build_atrous_mobilenetv2
 from iseg.backbones.swin import swin_tiny_224, swin_base_384, swin_large_384
 
+from iseg.backbones.backbone_registry import backbone_registry_dict
+
 from iseg.backbones.efficientnet import *
 from iseg.backbones.hrnet import HRNetW48, HRNetW32
 from iseg.backbones.placeholder import PlaceHolder
@@ -97,6 +99,8 @@ def get_backbone(
         ss.VIT_B_SAM: ViT16B_SAM,
         ss.PLACEHOLDER: PlaceHolder,
     }
+
+    backbone_dicts.update(backbone_registry_dict)
 
     if not name in backbone_dicts:
         raise ValueError(f"Backbone {name} currently not supported")

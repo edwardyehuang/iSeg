@@ -35,11 +35,6 @@ def common_env_setup(
         if LooseVersion(tf.version.VERSION) >= LooseVersion("2.5.0"):
             os.environ["TF_CUDNN_USE_FRONTEND"] = "1"
 
-        
-        if tpu_name is not None:
-            tf.config.threading.set_intra_op_parallelism_threads(1)
-            tf.config.threading.set_inter_op_parallelism_threads(1)
-
     tf.config.run_functions_eagerly(run_eagerly)
 
     if run_eagerly and LooseVersion(tf.version.VERSION) >= LooseVersion("2.8.0"):
