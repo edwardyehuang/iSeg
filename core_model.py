@@ -298,7 +298,9 @@ class SegFoundation(SegBase):
         metrics = SegMetricBuilder(num_class, ignore_label)
         metrics.add()
 
-        # IOU masks
+        # Rest of the code is for aux metrics
+
+        # IOU masks for aux metrics
         aux_metric_iou_masks = self.aux_metric_iou_masks
 
         if aux_metric_iou_masks is None or len(aux_metric_iou_masks) == 0:
@@ -306,7 +308,7 @@ class SegFoundation(SegBase):
 
         assert len(aux_metric_iou_masks) == self.num_aux_loss
 
-        # Pre_compute_fns
+        # Pre_compute_fns for aux metrics
         aux_metric_pre_fns = self.aux_metric_pre_fns
 
         if aux_metric_pre_fns is None or len(aux_metric_pre_fns) == 0:
