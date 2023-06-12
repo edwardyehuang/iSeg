@@ -16,9 +16,21 @@ from iseg.backbones.resnet_blocks_small import BlockType2Small
 
 BN_EPSILON = 1.001e-5
 
+DEFAULT_CONV_FUNC = tf.keras.layers.Conv2D
+
 
 class Stack(tf.keras.Model):
-    def __init__(self, filters, blocks_count, stride1=2, use_bias=True, norm_method=None, custom_block=None, name=None):
+    def __init__(
+        self, 
+        filters, 
+        blocks_count, 
+        stride1=2, 
+        use_bias=True, 
+        norm_method=None, 
+        custom_block=None, 
+        conv_func=DEFAULT_CONV_FUNC,
+        name=None
+    ):
 
         super(Stack, self).__init__(name=name)
 
@@ -60,7 +72,17 @@ class Stack(tf.keras.Model):
 
 
 class Stack2(tf.keras.Model):
-    def __init__(self, filters, blocks_count, stride1=2, use_bias=True, norm_method=None, custom_block=None, name=None):
+    def __init__(
+        self, 
+        filters, 
+        blocks_count, 
+        stride1=2, 
+        use_bias=True, 
+        norm_method=None, 
+        custom_block=None, 
+        conv_func=DEFAULT_CONV_FUNC,
+        name=None
+    ):
 
         super(Stack2, self).__init__(name=name)
 
@@ -131,12 +153,14 @@ class ResNet(tf.keras.Model):
         conv1_depth_multiplier=1,
         replace_7x7_conv=False, 
         return_endpoints=False, 
+        conv_func=DEFAULT_CONV_FUNC,
         name="resnet"
     ):
 
         super(ResNet, self).__init__(name=name)
 
         self.replace_7x7_conv = replace_7x7_conv
+        self.conv_func = conv_func
 
         conv1_fn = self.build_3x3_resnet if self.replace_7x7_conv else self.build_7x7_resnet
         conv1_fn(
@@ -161,7 +185,7 @@ class ResNet(tf.keras.Model):
     def build_7x7_resnet(self, depth_multiplier=1, use_bias=True, norm_method=None):
 
         self.conv1_pad = tf.keras.layers.ZeroPadding2D(padding=(3, 3), name="conv1_pad")
-        self.conv1_conv = tf.keras.layers.Conv2D(
+        self.conv1_conv = self.conv_func(
             int(64 * depth_multiplier), 7, strides=2, use_bias=use_bias, name="conv1_conv"
             )
         self.conv1_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_bn")
@@ -186,17 +210,17 @@ class ResNet(tf.keras.Model):
         if not isinstance(depth_multiplier, list):
             depth_multiplier = [depth_multiplier] * 3
 
-        self.conv1_1_conv = tf.keras.layers.Conv2D(
+        self.conv1_1_conv = self.conv_func(
             int(64 * depth_multiplier[0]), 3, strides=2, padding="SAME", use_bias=use_bias, name="conv1_1_conv"
         )
         self.conv1_1_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_1_bn")
 
-        self.conv1_2_conv = tf.keras.layers.Conv2D(
+        self.conv1_2_conv = self.conv_func(
             int(64 * depth_multiplier[1]), 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_2_conv"
         )
         self.conv1_2_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_2_bn")
 
-        self.conv1_3_conv = tf.keras.layers.Conv2D(
+        self.conv1_3_conv = self.conv_func(
             int(128 * depth_multiplier[2]), 3, strides=1, padding="SAME", use_bias=use_bias, name="conv1_3_conv"
         )
         self.conv1_3_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name="conv1_3_bn")
@@ -258,6 +282,7 @@ def resnet9(
     slim_behaviour=False,
     custom_block=None,
     return_endpoints=False,
+    conv_func=DEFAULT_CONV_FUNC,
 ):
 
     return get_resnet(
@@ -270,6 +295,7 @@ def resnet9(
         slim_behaviour=slim_behaviour,
         custom_block=BlockType2Small if custom_block is None else custom_block,
         return_endpoints=return_endpoints,
+        conv_func=conv_func,
     )
 
 
@@ -280,6 +306,7 @@ def resnet10(
     slim_behaviour=False,
     custom_block=None,
     return_endpoints=False,
+    conv_func=DEFAULT_CONV_FUNC,
 ):
 
     return get_resnet(
@@ -292,6 +319,7 @@ def resnet10(
         slim_behaviour=slim_behaviour,
         custom_block=BlockType2Small if custom_block is None else custom_block,
         return_endpoints=return_endpoints,
+        conv_func=conv_func,
     )
 
 
@@ -303,6 +331,7 @@ def resnet18(
     slim_behaviour=False,
     custom_block=None,
     return_endpoints=False,
+    conv_func=DEFAULT_CONV_FUNC,
 ):
 
     return get_resnet(
@@ -315,6 +344,7 @@ def resnet18(
         slim_behaviour=slim_behaviour,
         custom_block=BlockType2Small if custom_block is None else custom_block,
         return_endpoints=return_endpoints,
+        conv_func=conv_func,
     )
 
 
@@ -325,6 +355,7 @@ def resnet50(
     slim_behaviour=False,
     custom_block=None,
     return_endpoints=False,
+    conv_func=DEFAULT_CONV_FUNC,
 ):
 
     return get_resnet(
@@ -336,6 +367,7 @@ def resnet50(
         slim_behaviour=slim_behaviour,
         custom_block=custom_block,
         return_endpoints=return_endpoints,
+        conv_func=conv_func,
     )
 
 
@@ -346,6 +378,7 @@ def resnet101(
     slim_behaviour=False,
     custom_block=None,
     return_endpoints=False,
+    conv_func=DEFAULT_CONV_FUNC,
 ):
 
     return get_resnet(
@@ -357,6 +390,7 @@ def resnet101(
         slim_behaviour=slim_behaviour,
         custom_block=custom_block,
         return_endpoints=return_endpoints,
+        conv_func=conv_func,
     )
 
 
@@ -367,6 +401,7 @@ def resnet152(
     slim_behaviour=False,
     custom_block=None,
     return_endpoints=False,
+    conv_func=DEFAULT_CONV_FUNC,
 ):
 
     return get_resnet(
@@ -378,6 +413,7 @@ def resnet152(
         slim_behaviour=slim_behaviour,
         custom_block=custom_block,
         return_endpoints=return_endpoints,
+        conv_func=conv_func,
     )
 
 
@@ -390,6 +426,7 @@ def get_resnet(
     slim_behaviour=False,
     conv1_depth_multiplier=1,
     custom_block=None,
+    conv_func=DEFAULT_CONV_FUNC,
     return_endpoints=False,
 ):
 
@@ -399,6 +436,7 @@ def get_resnet(
         norm_method=norm_method,
         slim_behaviour=slim_behaviour,
         custom_block=custom_block,
+        conv_func=conv_func,
     )
 
     return ResNet(
@@ -408,11 +446,19 @@ def get_resnet(
         replace_7x7_conv=replace_7x7_conv,
         conv1_depth_multiplier=conv1_depth_multiplier,
         return_endpoints=return_endpoints,
+        conv_func=conv_func,
         name=resnet_name,
     )
 
 
-def build_stacks(num_of_blocks=[3, 4, 23, 3], use_bias=True, norm_method=None, slim_behaviour=False, custom_block=None):
+def build_stacks(
+    num_of_blocks=[3, 4, 23, 3], 
+    use_bias=True, 
+    norm_method=None, 
+    slim_behaviour=False, 
+    custom_block=None,
+    conv_func=DEFAULT_CONV_FUNC,
+):
 
     if not slim_behaviour:
         strides = [1, 2, 2, 2]
@@ -433,6 +479,7 @@ def build_stacks(num_of_blocks=[3, 4, 23, 3], use_bias=True, norm_method=None, s
             use_bias=use_bias,
             norm_method=norm_method,
             custom_block=custom_block,
+            conv_func=conv_func,
             name="conv{}".format(i + 2),
         )
 

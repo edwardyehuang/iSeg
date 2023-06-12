@@ -4,6 +4,8 @@ from iseg.layers.normalizations import normalization
 
 BN_EPSILON = 1.001e-5
 
+DEFAULT_CONV_FUNC = tf.keras.layers.Conv2D
+
 class BlockType2Small(tf.keras.Model):
     def __init__(
         self,
@@ -14,6 +16,7 @@ class BlockType2Small(tf.keras.Model):
         use_bias=False,
         norm_method=None,
         downsample_method="avg",
+        conv_func=DEFAULT_CONV_FUNC,
         name=None,
     ):
 
@@ -24,13 +27,14 @@ class BlockType2Small(tf.keras.Model):
         self.downsample_method = downsample_method
         self.use_bias = use_bias
         self.norm_method = norm_method
+        self.conv_func = conv_func
 
-        self.conv1_conv = tf.keras.layers.Conv2D(
+        self.conv1_conv = self.conv_func(
             filters, kernel_size, strides=stride, padding="SAME", use_bias=use_bias, name=name + "_1_conv"
         )
         self.conv1_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_1_bn")
 
-        self.conv2_conv = tf.keras.layers.Conv2D(
+        self.conv2_conv = self.conv_func(
             filters, kernel_size, padding="SAME", use_bias=use_bias, name=name + "_2_conv"
         )
         self.conv2_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_2_bn")
@@ -42,7 +46,7 @@ class BlockType2Small(tf.keras.Model):
             self.conv_shortcut = False
 
         if self.conv_shortcut:
-            self.shortcut_conv = tf.keras.layers.Conv2D(
+            self.shortcut_conv = self.conv_func(
                 self.filters, 
                 kernel_size=1, 
                 use_bias=self.use_bias, 

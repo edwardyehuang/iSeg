@@ -14,36 +14,42 @@ from tensorflow.python.keras.utils import conv_utils
 
 BN_EPSILON = 1.001e-5
 
-
-def conv2d_same_fn(*args, **kwargs):
-
-    return tf.keras.layers.Conv2D(*args, **kwargs)
+DEFAULT_CONV_FUNC = tf.keras.layers.Conv2D
 
 
 class BlockType1(tf.keras.Model):
     def __init__(
-        self, filters, kernel_size=3, stride=1, conv_shortcut=True, use_bias=True, norm_method=None, name=None
+        self, 
+        filters, 
+        kernel_size=3, 
+        stride=1, 
+        conv_shortcut=True, 
+        use_bias=True, 
+        norm_method=None, 
+        conv_func=DEFAULT_CONV_FUNC,
+        name=None
     ):
 
-        super(BlockType1, self).__init__(name=name)
-
+        super().__init__(name=name)
+        
+        self.conv_func = conv_func
         self.conv_shortcut = conv_shortcut
 
         if self.conv_shortcut:
-            self.shortcut_conv = tf.keras.layers.Conv2D(
+            self.shortcut_conv = self.conv_func(
                 4 * filters, kernel_size=1, strides=stride, use_bias=use_bias, name=name + "_0_conv"
             )
             self.shortcut_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_0_bn")
 
-        self.conv1_conv = tf.keras.layers.Conv2D(
+        self.conv1_conv = self.conv_func(
             filters, kernel_size=1, strides=stride, use_bias=use_bias, name=name + "_1_conv"
         )
         self.conv1_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_1_bn")
 
-        self.conv2_conv = conv2d_same_fn(filters, kernel_size, padding="SAME", use_bias=use_bias, name=name + "_2_conv")
+        self.conv2_conv = self.conv_func(filters, kernel_size, padding="SAME", use_bias=use_bias, name=name + "_2_conv")
         self.conv2_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_2_bn")
 
-        self.conv3_conv = tf.keras.layers.Conv2D(4 * filters, kernel_size=1, use_bias=use_bias, name=name + "_3_conv")
+        self.conv3_conv = self.conv_func(4 * filters, kernel_size=1, use_bias=use_bias, name=name + "_3_conv")
         self.conv3_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_3_bn")
 
     @property
@@ -111,6 +117,7 @@ class BlockType2(tf.keras.Model):
         use_bias=False,
         norm_method=None,
         downsample_method="avg",
+        conv_func=DEFAULT_CONV_FUNC,
         name=None,
     ):
 
@@ -118,22 +125,23 @@ class BlockType2(tf.keras.Model):
 
         self.conv_shortcut = conv_shortcut
         self.downsample_method = downsample_method
+        self.conv_func = conv_func
 
         if self.conv_shortcut:
-            self.shortcut_conv = tf.keras.layers.Conv2D(
+            self.shortcut_conv = self.conv_func(
                 4 * filters, kernel_size=1, strides=stride, use_bias=use_bias, name=name + "_0_conv"
             )
             self.shortcut_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_0_bn")
 
-        self.conv1_conv = tf.keras.layers.Conv2D(filters, kernel_size=1, use_bias=use_bias, name=name + "_1_conv")
+        self.conv1_conv = self.conv_func(filters, kernel_size=1, use_bias=use_bias, name=name + "_1_conv")
         self.conv1_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_1_bn")
 
-        self.conv2_conv = conv2d_same_fn(
+        self.conv2_conv = self.conv_func(
             filters, kernel_size, strides=stride, padding="SAME", use_bias=use_bias, name=name + "_2_conv"
         )
         self.conv2_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_2_bn")
 
-        self.conv3_conv = tf.keras.layers.Conv2D(4 * filters, kernel_size=1, use_bias=use_bias, name=name + "_3_conv")
+        self.conv3_conv = self.conv_func(4 * filters, kernel_size=1, use_bias=use_bias, name=name + "_3_conv")
         self.conv3_bn = normalization(epsilon=BN_EPSILON, method=norm_method, name=name + "_3_bn")
 
     @property
