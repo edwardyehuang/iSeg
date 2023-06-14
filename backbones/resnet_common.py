@@ -39,12 +39,24 @@ class Stack(tf.keras.Model):
         self.blocks = []
 
         self.blocks.append(
-            block_func(filters, stride=stride1, use_bias=use_bias, norm_method=norm_method, name=name + "_block1")
+            block_func(
+                filters, 
+                stride=stride1, 
+                use_bias=use_bias, 
+                norm_method=norm_method, 
+                conv_func=conv_func, 
+                name=name + "_block1"
+            )
         )
 
         for i in range(2, blocks_count + 1):
             block = block_func(
-                filters, conv_shortcut=False, use_bias=use_bias, norm_method=norm_method, name=name + "_block" + str(i)
+                filters, 
+                conv_shortcut=False, 
+                use_bias=use_bias, 
+                norm_method=norm_method, 
+                conv_func=conv_func, 
+                name=name + "_block" + str(i)
             )
             self.blocks.append(block)
 
@@ -93,14 +105,25 @@ class Stack2(tf.keras.Model):
         if blocks_count > 1:
             self.blocks.append(
                 block_func(
-                    filters, stride=1, conv_shortcut=True, use_bias=use_bias, norm_method=norm_method, name=name + "_block1"
+                    filters, 
+                    stride=1, 
+                    conv_shortcut=True, 
+                    use_bias=use_bias, 
+                    norm_method=norm_method, 
+                    conv_func=conv_func, 
+                    name=name + "_block1"
                 )
             )
 
             # 2022-08-15 This is correct. But it scared me when I checked it.
             for i in range(2, blocks_count):
                 block = block_func(
-                    filters, conv_shortcut=False, use_bias=use_bias, norm_method=norm_method, name=name + "_block" + str(i)
+                    filters, 
+                    conv_shortcut=False, 
+                    use_bias=use_bias, 
+                    norm_method=norm_method, 
+                    conv_func=conv_func, 
+                    name=name + "_block" + str(i)
                 )
                 self.blocks.append(block)
 
@@ -111,12 +134,18 @@ class Stack2(tf.keras.Model):
                     conv_shortcut=False,
                     use_bias=use_bias,
                     norm_method=norm_method,
+                    conv_func=conv_func,
                     name=name + "_block" + str(blocks_count),
                 )
             )
         else:
             self.blocks = [block_func(
-                    filters, stride=stride1, conv_shortcut=True, use_bias=use_bias, norm_method=norm_method, name=name + "_block1"
+                    filters, stride=stride1, 
+                    conv_shortcut=True, 
+                    use_bias=use_bias, 
+                    norm_method=norm_method, 
+                    conv_func=conv_func, 
+                    name=name + "_block1"
                 )]
 
         assert len(self.blocks) == blocks_count
