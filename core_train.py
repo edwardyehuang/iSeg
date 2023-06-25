@@ -30,6 +30,8 @@ class CoreTrain(object):
         val_image_count=0, 
         use_tpu=False,
         use_tpu_pod=False,
+        use_data_shared_policy_for_train=True,
+        use_data_shared_policy_for_val=True,
     ):
 
         self.model_helper = model_helper
@@ -39,6 +41,10 @@ class CoreTrain(object):
 
         self.use_tpu = use_tpu
         self.use_tpu_pod = use_tpu_pod
+
+        self.use_data_shared_policy_for_train = use_data_shared_policy_for_train
+        self.use_data_shared_policy_for_val = use_data_shared_policy_for_val
+
 
     def create_trainable_model(
         self, 
@@ -193,7 +199,7 @@ class CoreTrain(object):
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
 
-        ds = self.data_based_shard_policy(ds)
+        ds = self.data_based_shard_policy(ds, self.use_data_shared_policy_for_train)
 
         ds = ds.prefetch(buffer_size=AUTOTUNE)
 
@@ -209,16 +215,16 @@ class CoreTrain(object):
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
 
-        ds = self.data_based_shard_policy(ds)
+        ds = self.data_based_shard_policy(ds, self.use_data_shared_policy_for_val)
 
         ds = ds.prefetch(buffer_size=AUTOTUNE)
 
         return ds
     
 
-    def data_based_shard_policy(self, ds):
+    def data_based_shard_policy(self, ds, use_data_shared_policy=True):
         
-        if self.use_tpu and self.use_tpu_pod:
+        if self.use_tpu and self.use_tpu_pod and use_data_shared_policy:
             print("Use TPU pod! Set AutoShardPolicy to DATA")
 
             options = tf.data.Options()
