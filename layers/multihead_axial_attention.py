@@ -112,7 +112,7 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
         v_attention_map = check_numerics(v_attention_map, "softmax v_attention_map contains NaN/Inf", level=1)
         u_attention_map = check_numerics(u_attention_map, "softmax u_attention_map contains NaN/Inf", level=1)
 
-        x = tf.reshape(x, [batch_size, height, width, self.num_heads, x.shape[-1] // self.num_heads])
+        x = tf.reshape(value, [batch_size, height, width, self.num_heads, value.shape[-1] // self.num_heads])
         x = tf.transpose(x,(0, 3, 2, 1, 4)) # [N, heads, W, H, C]
         x = tf.matmul(v_attention_map, x)  # [N, heads, W, H, C]
 
