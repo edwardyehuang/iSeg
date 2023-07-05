@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from iseg.initializers.shared_initializers import SharedInitializer
-from iseg.layers.model_builder import get_tensor_shape
+from iseg.layers.model_builder import get_tensor_shape_v2
 from iseg.layers.normalizations import normalization
 from iseg import check_numerics
 
@@ -80,26 +80,9 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
             )
 
 
-    def call (self, inputs, training=None):
+    def compute_attetnion (self, query, key, value, training=None):
 
-        x = inputs # [N, H, W, C]
-
-        batch_size, height, width, channels = get_tensor_shape(x)
-
-        if self.apply_linear:
-            query = self.query_conv(x) # [N, H, W, C]
-
-            if not self.shared_qk:
-                key = self.key_conv(x)
-            else:
-                key = tf.identity(query, name="shared_key")
-
-            x = self.value_conv(x) # [N, H, W, C]
-            
-        else:
-            query = x
-            key = x
-
+        batch_size, height, width, _ = get_tensor_shape_v2(value)
 
         query = check_numerics(query, "query contains NaN/Inf", level=1)
         key = check_numerics(key, "keys contains NaN/Inf", level=1)
@@ -142,5 +125,29 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
         x = tf.transpose(x, [0, 2, 3, 4, 1]) # [N, H, W, C, heads]
 
         x = tf.reshape(x, [batch_size, height, width, x.shape[-2] * self.num_heads])
+
+        return x
+
+
+    def call (self, inputs, training=None):
+
+        x = inputs # [N, H, W, C]
+
+        if self.apply_linear:
+            query = self.query_conv(x) # [N, H, W, C]
+
+            if not self.shared_qk:
+                key = self.key_conv(x)
+            else:
+                key = tf.identity(query, name="shared_key")
+
+            x = self.value_conv(x) # [N, H, W, C]
+            
+        else:
+            query = x
+            key = x
+
+
+        x = self.compute_attetnion(query, key, x, training=training)
 
         return x
