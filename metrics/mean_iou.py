@@ -11,6 +11,46 @@ import numpy as np
 from iseg.metrics.confusion_matrix import confusion_matrix
 
 
+def get_class_confusion_matrix (y_true, y_pred, num_class=21, sample_weight=None, dtype=tf.float32):
+
+    y_true = tf.cast(y_true, dtype)
+    y_pred = tf.cast(y_pred, dtype)
+
+    # Flatten the input if its rank > 1.
+    if y_pred.shape.ndims > 1:
+        y_pred = tf.reshape(y_pred, [-1])
+
+    if y_true.shape.ndims > 1:
+        y_true = tf.reshape(y_true, [-1])
+
+    if sample_weight is not None:
+        sample_weight = tf.cast(sample_weight, dtype)
+        if sample_weight.shape.ndims > 1:
+            sample_weight = tf.reshape(sample_weight, [-1])
+
+    # Accumulate the prediction to current confusion matrix.
+    return confusion_matrix(y_true, y_pred, num_class, weights=sample_weight, dtype=dtype)
+
+
+
+def get_per_class_miou (cm, dtype=tf.float32):
+
+    """Compute the mean intersection-over-union via the confusion matrix."""
+    sum_over_row = tf.cast(tf.reduce_sum(cm, axis=0), dtype=dtype)
+    sum_over_col = tf.cast(tf.reduce_sum(cm, axis=1), dtype=dtype)
+    true_positives = tf.cast(tf.linalg.tensor_diag_part(cm), dtype=dtype)
+
+    # sum_over_row + sum_over_col =
+    #     2 * true_positives + false_positives + false_negatives.
+    denominator = sum_over_row + sum_over_col - true_positives
+
+    num_valid_entries = tf.reduce_sum(tf.cast(tf.not_equal(denominator, 0), dtype=dtype))
+
+    iou = tf.math.divide_no_nan(true_positives, denominator)
+
+    return iou, num_valid_entries
+
+
 class MeanIOU(tf.keras.metrics.Metric):
     def __init__(self, num_classes, name=None, dtype=None):
         """Initializes `PerClassIoU`.
@@ -46,23 +86,9 @@ class MeanIOU(tf.keras.metrics.Metric):
         IOU per class.
         """
 
-        y_true = tf.cast(y_true, self._dtype)
-        y_pred = tf.cast(y_pred, self._dtype)
-
-        # Flatten the input if its rank > 1.
-        if y_pred.shape.ndims > 1:
-            y_pred = tf.reshape(y_pred, [-1])
-
-        if y_true.shape.ndims > 1:
-            y_true = tf.reshape(y_true, [-1])
-
-        if sample_weight is not None:
-            sample_weight = tf.cast(sample_weight, self._dtype)
-            if sample_weight.shape.ndims > 1:
-                sample_weight = tf.reshape(sample_weight, [-1])
-
-        # Accumulate the prediction to current confusion matrix.
-        current_cm = confusion_matrix(y_true, y_pred, self.num_classes, weights=sample_weight, dtype=self._dtype)
+        current_cm = get_class_confusion_matrix(
+            y_true, y_pred, self.num_classes, sample_weight, dtype=self._dtype
+        )
 
         return self.total_cm.assign_add(current_cm)
 
@@ -75,20 +101,7 @@ class MeanIOU(tf.keras.metrics.Metric):
 
     def per_class_result (self):
 
-        """Compute the mean intersection-over-union via the confusion matrix."""
-        sum_over_row = tf.cast(tf.reduce_sum(self.total_cm, axis=0), dtype=self._dtype)
-        sum_over_col = tf.cast(tf.reduce_sum(self.total_cm, axis=1), dtype=self._dtype)
-        true_positives = tf.cast(tf.linalg.tensor_diag_part(self.total_cm), dtype=self._dtype)
-
-        # sum_over_row + sum_over_col =
-        #     2 * true_positives + false_positives + false_negatives.
-        denominator = sum_over_row + sum_over_col - true_positives
-
-        num_valid_entries = tf.reduce_sum(tf.cast(tf.not_equal(denominator, 0), dtype=self._dtype))
-
-        iou = tf.math.divide_no_nan(true_positives, denominator)
-
-        return iou, num_valid_entries
+        return get_per_class_miou(self.total_cm, dtype=self._dtype)
 
 
     def reset_states(self):
