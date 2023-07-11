@@ -29,6 +29,7 @@ class SegManaged(SegFoundation):
         label_as_inputs=False,
         label_as_backbone_inputs=False,
         label_as_head_inputs=False,
+        image_as_head_inputs=False,
         use_custom_logits=False,
         logits_upsample_masks=None,
         resnet_multi_grids=[1, 2, 4],
@@ -53,6 +54,8 @@ class SegManaged(SegFoundation):
 
         self.label_as_backbone_inputs = label_as_backbone_inputs
         self.label_as_head_inputs = label_as_head_inputs
+
+        self.image_as_head_inputs = image_as_head_inputs
 
         self.use_custom_logits = use_custom_logits
         self.logits_upsample_masks = logits_upsample_masks
@@ -163,9 +166,11 @@ class SegManaged(SegFoundation):
         if self.label_as_inputs:
             x, label = x
 
-        inputs_size = tf.shape(x)[1:3]
+        image_tensor = tf.identity(x, name="image_tensor")
 
-        backbone_inputs = x
+        inputs_size = tf.shape(image_tensor)[1:3]
+
+        backbone_inputs = image_tensor
 
         if self.label_as_inputs and self.label_as_backbone_inputs:
             backbone_inputs = [backbone_inputs, label]
@@ -174,10 +179,16 @@ class SegManaged(SegFoundation):
 
         # Compute head results
 
-        head_inputs = endpoints
+        head_inputs = [endpoints]
+
+        if self.image_as_head_inputs:
+            head_inputs += [image_tensor]
 
         if self.label_as_inputs and self.label_as_head_inputs:
-            head_inputs = [head_inputs, label]
+            head_inputs += [label]
+
+        if len(head_inputs) == 1:
+            head_inputs = head_inputs[0]
 
         head_results = self.compute_head_results(head_inputs, training=training)
 
