@@ -3,6 +3,8 @@
 
 import tensorflow as tf
 
+from iseg.layers.model_builder import get_tensor_shape_v2
+
 class DCNv2(tf.keras.layers.Layer):
     def __init__(
         self, filters, 
@@ -16,8 +18,10 @@ class DCNv2(tf.keras.layers.Layer):
         **kwargs
     ):
         
+        super().__init__(**kwargs)
+        
         self.filters = filters
-        self.kernel_size = (kernel_size, kernel_size)
+        self.kernel_size = kernel_size
         self.stride = (1, 1, 1, 1)
         self.dilation = (1, 1)
         self.deformable_groups = 1
@@ -29,13 +33,16 @@ class DCNv2(tf.keras.layers.Layer):
 
         self.use_custom_offset = use_custom_offset
 
-        super().__init__(**kwargs)
-    
     def build(self, input_shape):
+        
+        if self.use_custom_offset:
+            input_channels = input_shape[0][-1]
+        else:
+            input_channels = input_shape[-1]
 
         self.kernel = self.add_weight(
             name = 'kernel',
-            shape = self.kernel_size + (int(input_shape[-1]), self.filters),
+            shape = self.kernel_size + (input_channels, self.filters),
             initializer = self.kernel_initializer,
             regularizer = self.kernel_regularizer,
             trainable = True,
@@ -55,7 +62,7 @@ class DCNv2(tf.keras.layers.Layer):
         #[kh, kw, ic, 3 * groups * kh, kw]--->3 * groups * kh * kw = oc [output channels]
         self.offset_kernel = self.add_weight(
             name = 'offset_kernel',
-            shape = self.kernel_size + (input_shape[-1], 3 * self.deformable_groups * self.kernel_size[0] * self.kernel_size[1]), 
+            shape = self.kernel_size + (input_channels, 3 * self.deformable_groups * self.kernel_size[0] * self.kernel_size[1]), 
             initializer = 'zeros',
             trainable = True,
             dtype = 'float32'
@@ -89,9 +96,7 @@ class DCNv2(tf.keras.layers.Layer):
         #offset: [B, H, W, ic] convx [kh, kw, ic, 3 * groups * kh * kw] ---> [B, H, W, 3 * groups * kh * kw]
         offset = tf.nn.conv2d(offset, self.offset_kernel, strides = self.stride, padding = 'SAME')
         offset += self.offset_bias
-        bs, ih, iw, ic = [v.value for v in x.shape]
-        bs = tf.shape(x)[0]
-
+        bs, ih, iw, ic = get_tensor_shape_v2(x)
 
         #[B, H, W, 18], [B, H, W, 9]
         oyox, mask = offset[..., :2*self.ks], offset[..., 2*self.ks:]
