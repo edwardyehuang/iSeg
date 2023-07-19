@@ -4,18 +4,26 @@ from iseg.layers.normalizations import normalization
 
 
 class SqueezeAndExcitationModule(tf.keras.Model):
-    def __init__(self, ratio=16, activation=tf.nn.relu, name=None):
+    def __init__(
+            self, 
+            ratio=16, 
+            activation=tf.nn.relu, 
+            use_bias=True,
+            name=None
+        ):
         super().__init__(name=name)
 
         self.ratio = ratio
         self.activation = activation
 
+        self.use_bias = use_bias
+
     def build(self, input_shape):
 
         filters = input_shape[-1]
 
-        self.down_conv = tf.keras.layers.Conv2D(int(filters / self.ratio), (1, 1), use_bias=True, name="down_conv")
-        self.expand_conv = tf.keras.layers.Conv2D(filters, (1, 1), use_bias=True, name="expand_conv")
+        self.down_conv = tf.keras.layers.Conv2D(int(filters / self.ratio), (1, 1), use_bias=self.use_bias, name="down_conv")
+        self.expand_conv = tf.keras.layers.Conv2D(filters, (1, 1), use_bias=self.use_bias, name="expand_conv")
         
 
     def call(self, inputs, training=None):
