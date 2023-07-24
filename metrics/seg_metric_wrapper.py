@@ -14,18 +14,18 @@ class SegMetricWrapper(tf.keras.metrics.Metric):
         self.num_class = num_class
         self.ignore_label = ignore_label
 
-        self.__pre_compute_fn_list = []
+        self._pre_compute_fn_list = []
 
     def add_pre_compute_fn(self, fn):
 
         if fn is None:
             return
 
-        self.__pre_compute_fn_list.append(fn)
+        self._pre_compute_fn_list.append(fn)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
 
-        for pre_compute_fn in self.__pre_compute_fn_list:
+        for pre_compute_fn in self._pre_compute_fn_list:
             y_true, y_pred = pre_compute_fn(y_true, y_pred)
 
         y_true = tf.cast(y_true, tf.dtypes.int32)
