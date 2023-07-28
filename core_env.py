@@ -40,7 +40,12 @@ def common_env_setup(
     if run_eagerly and LooseVersion(tf.version.VERSION) >= LooseVersion("2.8.0"):
         tf.data.experimental.enable_debug_mode()
 
-    strategy = get_distribution_strategy(gpu_memory_growth, cuda_visible_devices, tpu_name is not None, tpu_name)
+    strategy = get_distribution_strategy(
+        gpu_memory_growth, 
+        cuda_visible_devices, 
+        tpu_name is not None, 
+        tpu_name
+    )
 
     if mixed_precision:
         enable_mixed_precision(use_tpu=tpu_name is not None)
