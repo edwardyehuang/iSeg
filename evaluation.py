@@ -27,6 +27,7 @@ def evaluate(
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
     flip=True,
     val_image_count=0,
+    pre_compute_fns=[],
 ):
 
     if not isinstance(model, SegBase):
@@ -49,6 +50,10 @@ def evaluate(
         iou_metrics = MeanIOU(num_class)
 
         iou_metrics = SegMetricWrapper(iou_metrics, num_class=num_class, ignore_label=ignore_label, name="IOU")
+
+        if pre_compute_fns is not None and isinstance(pre_compute_fns, list):
+            for fn in pre_compute_fns:
+                iou_metrics.add_pre_compute_fn(fn)
 
         print("Current image format = {}".format(tf.keras.backend.image_data_format()))
 
