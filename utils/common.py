@@ -67,17 +67,39 @@ def resize_image(images, size, method=None, name=None):
     return x
 
 
+def get_scaled_size_v2 (size, scale_rate=1.0):
+
+    size_h = size[0]
+    size_w = size[1]
+
+    pad_h = tf.math.floormod(size_h, 2)
+    pad_w = tf.math.floormod(size_w, 2)
+
+    size_h -= pad_h
+    size_w -= pad_w
+
+    target_size_h = tf.cast(scale_rate * tf.cast(size_h, tf.float32), tf.int32)
+    target_size_w = tf.cast(scale_rate * tf.cast(size_w, tf.float32), tf.int32)
+
+    target_size_h += pad_h
+    target_size_w += pad_w
+
+    sizes = [target_size_h, target_size_w]
+
+    return sizes
+
+
 def get_scaled_size(inputs, scale_rate, pad_mode=0):
 
+    inputs_size = tf.shape(inputs)[1:3]
+
     if pad_mode == 0:
-        pad_size = -1
+        return get_scaled_size_v2(inputs_size, scale_rate)
     elif pad_mode == 1:
         pad_size = 1
     else:
         raise ValueError(f"Not supported pad_mode = {pad_mode}")
-
-    inputs_size = tf.shape(inputs)[1:3]
-
+    
     inputs_size_h = inputs_size[0]
     inputs_size_w = inputs_size[1]
 
