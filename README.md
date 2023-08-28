@@ -51,6 +51,10 @@ Weights can be downloaded in [here](backbones/README.md)
 - [x] Support for Windows WSL2
 - [x] Support for Apple M1 chip macOS
 
+### Future plan (Comming soon)
+- Support Keras core, seamlessly use Pytorch and JAX backend.
+- Added support for Panoptic segmentation and multimodality.
+
 ## Requirements
 
 * TensorFlow >= 2.10 (For iseg <= 0.04, we support TensorFlow >= 2.4)
@@ -59,5 +63,5 @@ Weights can be downloaded in [here](backbones/README.md)
 ## Installation (Conda)
 
 ```
-conda create -n tf211 python=3.8 tensorflow-gpu=2.11 pillow tqdm -c conda-forge
+conda create -n tf211 python=3.9 tensorflow-gpu=2.11 pillow tqdm -c conda-forge
 ```
