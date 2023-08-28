@@ -51,7 +51,7 @@ Weights can be downloaded in [here](backbones/README.md)
 - [x] Support for Windows WSL2
 - [x] Support for Apple M1 chip macOS
 
-### Future plan (Comming soon)
+### Future plan (Coming soon)
 - Support Keras core, seamlessly use Pytorch and JAX backend.
 - Added support for Panoptic segmentation and multimodality.
 
