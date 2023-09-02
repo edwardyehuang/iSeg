@@ -7,7 +7,8 @@ class AtrousSpatialPyramidPooling(tf.keras.Model):
     def __init__(
         self, 
         filters=256, 
-        receptive_fields=[6, 12, 18], 
+        dilation_rates=[3, 6, 9], 
+        dilation_rates_multiplier=1,
         use_pixel_level=True, 
         use_image_level=True, 
         name=None
@@ -18,7 +19,8 @@ class AtrousSpatialPyramidPooling(tf.keras.Model):
         self.filters = filters
         self.use_pixel_level = use_pixel_level
         self.use_image_level = use_image_level
-        self.receptive_fields = receptive_fields
+        self.dilation_rates = dilation_rates
+        self.dilation_rates_multiplier = dilation_rates_multiplier
 
     
     def build(self, input_shape):
@@ -33,15 +35,18 @@ class AtrousSpatialPyramidPooling(tf.keras.Model):
                 self.filters, (1, 1), name="pixel_level_block"
             )
 
-        self.middle_convs = []
+        self.asp_convs = []
 
-        for rate in self.receptive_fields:
-            self.middle_convs.append(
+        for rate in self.dilation_rates:
+            
+            rate = rate * self.dilation_rates_multiplier
+
+            self.asp_convs.append(
                 ConvBnRelu(
                     self.filters, 
                     (3, 3), 
                     dilation_rate=rate, 
-                    name=f"rate_{rate}_conv"
+                    name=f"asp_convs_{rate}"
                 )
             )
         
@@ -58,8 +63,8 @@ class AtrousSpatialPyramidPooling(tf.keras.Model):
         if self.use_pixel_level:
             results.append(self.pixel_level_block(inputs, training=training))
 
-        for i in range(len(self.middle_convs)):
-            results.append(self.middle_convs[i](inputs, training=training))
+        for i in range(len(self.asp_convs)):
+            results.append(self.asp_convs[i](inputs, training=training))
 
         results = tf.concat(results, axis=-1)
 
