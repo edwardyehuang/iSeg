@@ -19,6 +19,7 @@ from iseg.core_model import SegFoundation
 from iseg.optimizers.multi_optimizer import MultiOptimizer
 
 from iseg.utils.keras_ops import capture_func, get_all_layers_v2
+from iseg.utils.train_utils import exclude_no_weight_decay_layers_in_optimizer
 
 
 class CoreTrain(object):
@@ -98,7 +99,7 @@ class CoreTrain(object):
         optimizer = self.model_helper.optimizer
 
         # Handle no weight decay layers
-        self.exclude_no_weight_decay_layers_in_optimizer(
+        exclude_no_weight_decay_layers_in_optimizer(
             optimizer=optimizer,
             model=model
         )
@@ -272,61 +273,3 @@ class CoreTrain(object):
             optimizer_layer_pair_list += [(optimizers[i], layers_for_multi_optimizers[i])]
 
         return MultiOptimizer(optimizer_layer_pair_list)
-
-    
-    def get_no_weight_decay_layers_names_from_model (self, model):
-
-        layers = get_all_layers_v2(model)
-
-        excluded_name_list = [
-            "bias", 
-            "relative_position_bias_table", 
-            "pos", 
-            "patch_embed",
-            "class_token"
-        ]
-
-        for layer in layers:
-            
-            if (isinstance(layer, tf.keras.layers.LayerNormalization) or
-                isinstance(layer, tf.keras.layers.BatchNormalization)):
-
-                excluded_name_list.append(layer.name)
-            
-        return excluded_name_list
-
-
-    def exclude_no_weight_decay_layers_in_optimizer (
-        self, 
-        optimizer, 
-        model,
-        excluded_name_list=None, 
-        print_excluded_list=True
-        ):
-
-        if excluded_name_list is None:
-            excluded_name_list = self.get_no_weight_decay_layers_names_from_model(
-                model=model
-            )
-
-        if isinstance(optimizer, list):
-            for opt in optimizer:
-                self.exclude_no_weight_decay_layers_in_optimizer(
-                    opt, model, excluded_name_list, print_excluded_list
-                )
-        else:
-            
-            exclude_from_weight_decay_func = getattr(optimizer, "exclude_from_weight_decay", None)
-
-            if exclude_from_weight_decay_func is None or not callable(exclude_from_weight_decay_func):
-                return
-
-            if print_excluded_list:
-                print("Excluded vars for weight decay")
-
-                for excluded_name in excluded_name_list:
-                    print(excluded_name)
-
-            exclude_from_weight_decay_func(
-                var_names=excluded_name_list
-            )
