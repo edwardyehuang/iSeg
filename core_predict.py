@@ -73,7 +73,11 @@ def predict_with_dir(
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
     flip=True,
     output_dir=None,
+    image_predict_func=None
 ):
+    
+    if image_predict_func is None:
+        image_predict_func = default_image_predict
 
     if not tf.io.gfile.exists(output_dir):
         tf.io.gfile.makedirs(output_dir)
@@ -106,7 +110,7 @@ def predict_with_dir(
 
         @tf.function
         def step_fn(image_tensor, output_size, output_path):
-            preidct_with_image(
+            default_image_predict(
                 model,
                 image_tensor=image_tensor,
                 output_size=output_size,
@@ -146,7 +150,7 @@ def dir_data_generator_with_imagesets(input_dir, output_dir, image_sets=None):
             yield file_path, output_path
 
 
-def preidct_with_image(
+def default_image_predict(
     model: SegBase,
     image_tensor,
     output_size,
