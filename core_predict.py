@@ -16,7 +16,7 @@ from iseg.core_inference import *
 from iseg.core_model import SegBase
 from iseg.utils.data_loader import load_image_tensor_from_path
 
-def __load_batch_image_mapfn(input_path, output_path):
+def __load_batch_image_mapfn(input_path, output_name):
 
     batch_size = tf.shape(input_path)[0]
     max_height = tf.constant(1, tf.int32)
@@ -57,7 +57,7 @@ def __load_batch_image_mapfn(input_path, output_path):
     tf.debugging.assert_equal(tf.shape(result_batched_images)[0], batch_size)
     tf.debugging.assert_equal(tf.shape(result_orginal_sizes)[0], batch_size)
 
-    return result_batched_images, result_orginal_sizes, output_path
+    return result_batched_images, result_orginal_sizes, output_name
 
 
 
@@ -86,13 +86,15 @@ def predict_with_dir(
 
         if image_sets is None:
             ds = tf.data.Dataset.from_generator(
-                dir_data_generator, output_types=(tf.string, tf.string), args=(input_dir, output_dir)
+                dir_data_generator, 
+                output_types=(tf.string, tf.string), 
+                args=(input_dir)
             )
         else:
             ds = tf.data.Dataset.from_generator(
                 dir_data_generator_with_imagesets,
                 output_types=(tf.string, tf.string),
-                args=(input_dir, output_dir, image_sets),
+                args=(input_dir, image_sets),
             )
 
         ds = ds.repeat()
@@ -109,56 +111,60 @@ def predict_with_dir(
         # ds = ds.prefetch(buffer_size = tf.data.experimental.AUTOTUNE)
 
         @tf.function
-        def step_fn(image_tensor, output_size, output_path):
+        def step_fn(image_tensor, output_size, output_name):
             default_image_predict(
                 model,
                 image_tensor=image_tensor,
                 output_size=output_size,
-                output_path=output_path,
+                output_dir=output_dir,
+                output_name=output_name,
                 scale_rates=scale_rates,
                 flip=flip,
             )
 
         counter = 0
 
-        for image_tensor, output_size, output_path in ds:
-            distribute_strategy.run(step_fn, args=(image_tensor, output_size, output_path))
+        for image_tensor, output_size, output_name in ds:
+            distribute_strategy.run(step_fn, args=(image_tensor, output_size, output_name))
 
             counter += batch_size
 
             tf.print("processed : ", counter)
 
 
-def dir_data_generator(input_dir, output_dir):
+def dir_data_generator(input_dir):
 
-    return dir_data_generator_with_imagesets(input_dir, output_dir)
+    return dir_data_generator_with_imagesets(input_dir)
 
 
-def dir_data_generator_with_imagesets(input_dir, output_dir, image_sets=None):
+def dir_data_generator_with_imagesets(input_dir, image_sets=None):
 
     for root, dirs, files in tf.io.gfile.walk(input_dir):
         for filename in files:
             file_path = root + os.sep + filename
 
-            output_path = None
             filename_wo_ext = os.path.splitext(filename)[0]
 
             if image_sets is not None and str.encode(filename_wo_ext) not in image_sets:
                 continue
 
-            output_path = tf.strings.join([output_dir, filename_wo_ext], separator=os.sep)
-            yield file_path, output_path
+            yield file_path, filename_wo_ext
+
+            # output_path = tf.strings.join([output_dir, filename_wo_ext], separator=os.sep)
+            # yield file_path, output_path
 
 
 def default_image_predict(
     model: SegBase,
     image_tensor,
     output_size,
-    output_path,
+    output_dir,
+    output_name,
     output_ext=".png",
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
     flip=True,
 ):
+    output_path = tf.strings.join([output_dir, output_name], separator=os.sep)
 
     image_tensor = tf.cast(image_tensor, tf.float32)
 
