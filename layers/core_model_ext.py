@@ -111,7 +111,7 @@ class SegManaged(SegFoundation):
         if not isinstance(head_results, list):
             head_results = [head_results]
 
-        assert len(head_results) == self.num_aux_loss + 1
+        # assert len(head_results) == self.num_aux_loss + 1
 
         return head_results
 

@@ -112,7 +112,7 @@ def predict_with_dir(
 
         @tf.function
         def step_fn(image_tensor, output_size, output_name):
-            default_image_predict(
+            image_predict_func(
                 model,
                 image_tensor=image_tensor,
                 output_size=output_size,
