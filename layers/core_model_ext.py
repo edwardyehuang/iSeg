@@ -133,19 +133,32 @@ class SegManaged(SegFoundation):
     def compute_logits_upsample(self, logits_list, inputs_size):
 
         if self.logits_upsample_masks is None:
-            y = [resize_image(logits, inputs_size) for logits in logits_list]
+            y = [self.upsample_single_logits(logits, inputs_size) for logits in logits_list]
         else:
             assert len(self.logits_upsample_masks) == len(logits_list)
             y = []
 
             for i in range(len(logits_list)):
                 logits = logits_list[i]
-                if self.logits_upsample_masks[i]:
-                    logits = resize_image(logits, inputs_size)
+                if self.logits_upsample_masks[i]:                 
+                    logits = self.upsample_single_logits(logits, inputs_size)
 
                 y += [logits]
 
         return y
+    
+
+    def upsample_single_logits (self, logits, target_size):
+
+        resize_method = "bilinear"
+                    
+        if logits.dtype is tf.int32:
+            resize_method = "nearest"
+
+        logits = resize_image(logits, target_size, method=resize_method)
+
+        return logits
+
 
 
     def compute_final_results (self, logits_list):
