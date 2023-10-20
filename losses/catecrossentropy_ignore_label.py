@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 
-from iseg.losses.categorical_focal_crossentropy_loss import categorical_focal_crossentropy
+from iseg.losses.categorical_focal_crossentropy_loss import CategoricalFocalCrossentropy
 
 def catecrossentropy_ignore_label_loss(
     num_class=21,
@@ -25,7 +25,7 @@ def catecrossentropy_ignore_label_loss(
 
         print(f"Use focal loss, alpha={focal_loss_alpha}, gamma={focal_loss_gamma}")
 
-        loss_func = categorical_focal_crossentropy(
+        loss_func = CategoricalFocalCrossentropy(
             alpha=focal_loss_alpha,
             gamma=focal_loss_gamma,
             from_logits=from_logits,
