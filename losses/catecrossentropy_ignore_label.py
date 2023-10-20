@@ -5,6 +5,7 @@
 
 import tensorflow as tf
 
+from iseg.losses.categorical_focal_crossentropy_loss import categorical_focal_crossentropy
 
 def catecrossentropy_ignore_label_loss(
     num_class=21,
@@ -15,11 +16,26 @@ def catecrossentropy_ignore_label_loss(
     pre_compute_fn=None,
     post_compute_fn=None,
     from_logits=True,
+    use_focal_loss=False,
+    focal_loss_gamma=2.0,
+    focal_loss_alpha=0.25,
 ):
+    
+    if use_focal_loss:
 
-    loss_func = tf.keras.losses.CategoricalCrossentropy(
-        from_logits=from_logits, reduction=tf.keras.losses.Reduction.NONE
-    )
+        print(f"Use focal loss, alpha={focal_loss_alpha}, gamma={focal_loss_gamma}")
+
+        loss_func = categorical_focal_crossentropy(
+            alpha=focal_loss_alpha,
+            gamma=focal_loss_gamma,
+            from_logits=from_logits,
+            reduction=tf.keras.losses.Reduction.NONE,
+        )
+    else:
+        loss_func = tf.keras.losses.CategoricalCrossentropy(
+            from_logits=from_logits, 
+            reduction=tf.keras.losses.Reduction.NONE
+        )
 
     def weighted_loss(y_true, y_pred):
 

@@ -186,6 +186,9 @@ class SegFoundation(SegBase):
         ohem_thresh=0.7,
         label_as_inputs=False,
         custom_aux_loss_fns=[],
+        use_focal_loss=False,
+        focal_loss_gamma=2.0,
+        focal_loss_alpha=0.25,
         **kwargs,
     ):
 
@@ -222,6 +225,10 @@ class SegFoundation(SegBase):
         self.label_as_inputs = label_as_inputs
 
         self.custom_aux_loss_fns = custom_aux_loss_fns
+
+        self.use_focal_loss = use_focal_loss
+        self.focal_loss_gamma = focal_loss_gamma
+        self.focal_loss_alpha = focal_loss_alpha
 
     def inputs_process(self, image, label):
 
@@ -261,6 +268,9 @@ class SegFoundation(SegBase):
 
         loss = lambda post_func: catecrossentropy_ignore_label_loss(
             post_compute_fn=post_func, 
+            use_focal_loss=self.use_focal_loss,
+            focal_loss_gamma=self.focal_loss_gamma,
+            focal_loss_alpha=self.focal_loss_alpha,
             **common_kwargs, 
             **kwargs,
         )
