@@ -109,6 +109,9 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
         v_attention_map = safed_softmax(v_attention_map) # [N, heads, W, H, H]
         u_attention_map = safed_softmax(u_attention_map) # [N, heads, H, W, W]
 
+        v_attention_map = tf.clip_by_value(v_attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
+        u_attention_map = tf.clip_by_value(u_attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
+
         v_attention_map = check_numerics(v_attention_map, "softmax v_attention_map contains NaN/Inf", level=1)
         u_attention_map = check_numerics(u_attention_map, "softmax u_attention_map contains NaN/Inf", level=1)
 
