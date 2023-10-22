@@ -66,6 +66,7 @@ def catecrossentropy_ignore_label_loss(
             sample_weights = tf.cast(sample_weights, tf.float32)
 
             _class_weights = tf.expand_dims(class_weights, axis=0) # [1, class]
+            _class_weights = tf.cast(_class_weights, one_hot_label.dtype)
             _class_weights *= one_hot_label # [NHW, class]
             _class_weights = tf.reduce_sum(_class_weights, axis=-1) # [NHW]
 
