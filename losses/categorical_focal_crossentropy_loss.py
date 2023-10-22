@@ -1,9 +1,21 @@
+# ===================================================================
+# MIT License
+# Copyright (c) 2023 edwardyehuang (https://github.com/edwardyehuang)
+# ===================================================================
+
+
+from distutils.version import LooseVersion
+
 import tensorflow as tf
 
 import warnings
 
-from keras.backend import _get_logits
-from keras.losses import LossFunctionWrapper
+if LooseVersion(tf.version.VERSION) < LooseVersion("2.14.0"):
+    from keras.backend import _get_logits
+    from keras.losses import LossFunctionWrapper
+else:
+    from keras.src.backend import _get_logits
+    from keras.src.losses import LossFunctionWrapper
 
 
 def _categorical_focal_crossentropy(

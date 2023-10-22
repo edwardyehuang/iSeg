@@ -1,7 +1,13 @@
+from distutils.version import LooseVersion
+
 import tensorflow as tf
 
 from tensorflow.python.util.tf_export import keras_export
-from keras.utils import tf_utils
+
+if LooseVersion(tf.version.VERSION) < LooseVersion("2.14.0"):
+    from keras.utils import tf_utils
+else:
+    from keras.src.utils import tf_utils
 
 # Copied from TensorFlow : Addon
 
