@@ -4,6 +4,7 @@
 # ================================================================
 
 import tensorflow as tf
+import numpy as np
 
 from tensorflow.python.keras.engine import data_adapter
 
@@ -188,7 +189,8 @@ class SegFoundation(SegBase):
         custom_aux_loss_fns=[],
         use_focal_loss=False,
         focal_loss_gamma=2.0,
-        focal_loss_alpha=0.25,
+        focal_loss_alpha=1.0,
+        class_weights=None,
         **kwargs,
     ):
 
@@ -230,6 +232,9 @@ class SegFoundation(SegBase):
         self.focal_loss_gamma = focal_loss_gamma
         self.focal_loss_alpha = focal_loss_alpha
 
+        self.model_class_weights = class_weights
+
+
     def inputs_process(self, image, label):
 
         if self.label_as_inputs:
@@ -246,6 +251,25 @@ class SegFoundation(SegBase):
         key = f"output_{key}"
 
         return key
+    
+
+    def add_class_weights (
+        self,
+        class_weights=None,
+        new_class_weights=None,
+    ):
+
+        if new_class_weights is not None:
+            new_class_weights = np.array(new_class_weights)
+
+            if class_weights is not None:
+                class_weights *= new_class_weights
+            else:
+                class_weights = new_class_weights
+
+        return class_weights
+
+
 
     def custom_losses(
         self, 
@@ -257,6 +281,14 @@ class SegFoundation(SegBase):
         **kwargs):
 
         ohem_func = get_ohem_fn(thresh=self.ohem_thresh) if self.use_ohem else None
+
+        class_weights = self.add_class_weights(
+            new_class_weights=class_weights
+        )
+        class_weights = self.add_class_weights(
+            class_weights=class_weights, 
+            new_class_weights=self.model_class_weights
+        )
 
         common_kwargs = {
             "num_class": num_class,
