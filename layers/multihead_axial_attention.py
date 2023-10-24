@@ -119,8 +119,12 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
         x = tf.transpose(x,(0, 3, 2, 1, 4)) # [N, heads, W, H, C]
         x = tf.matmul(v_attention_map, x)  # [N, heads, W, H, C]
 
+        x = tf.clip_by_value(x, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
+
         x = tf.transpose(x, [0, 1, 3, 2, 4])  # [N, heads, H, W, C]
         x = tf.matmul(u_attention_map, x) # [N, heads, H, W, C]
+
+        x = tf.clip_by_value(x, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
 
         # if self.apply_norm:
             # x = self.final_bn(x, training=training)
