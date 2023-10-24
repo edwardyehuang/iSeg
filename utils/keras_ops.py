@@ -4,6 +4,7 @@
 # ================================================================
 
 from distutils.version import LooseVersion
+from functools import partial
 
 import tensorflow as tf
 import h5py
@@ -73,14 +74,21 @@ def set_kernel_initializer(model, initializer):
             layer.kernel_initializer = initializer
 
 
+def check_is_class_instance(obj, cls):
+
+    cls = cls.func if isinstance(cls, partial) else cls
+
+    return isinstance(obj, cls)
+
+
 def set_bn_momentum(model, momentum=0.99):
 
     layers = get_all_layers(model)
 
     for layer in layers:
-        if isinstance(layer, tf.keras.layers.BatchNormalization):
+        if check_is_class_instance(layer, tf.keras.layers.BatchNormalization):
             layer.momentum = momentum
-        elif isinstance(layer, SyncBatchNormalization):
+        elif check_is_class_instance(layer, SyncBatchNormalization):
             layer.momentum = momentum
 
 
@@ -89,9 +97,9 @@ def set_bn_epsilon(model, epsilon=1e-3):
     layers = get_all_layers(model)
 
     for layer in layers:
-        if isinstance(layer, tf.keras.layers.BatchNormalization):
+        if check_is_class_instance(layer, tf.keras.layers.BatchNormalization):
             layer.epsilon = epsilon
-        elif isinstance(layer, SyncBatchNormalization):
+        elif check_is_class_instance(layer, SyncBatchNormalization):
             layer.epsilon = epsilon
 
 
