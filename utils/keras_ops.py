@@ -203,6 +203,11 @@ def capture_func(model, func_name):
     return None
 
 
+def replace_nan(x, value=0.0):
+
+    return tf.where(tf.math.is_nan(x), tf.ones_like(x) * value, x)
+
+
 class HookLayer(tf.keras.Model):
     def __init__(self, target):
         super(HookLayer, self).__init__()
