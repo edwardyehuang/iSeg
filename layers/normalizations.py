@@ -10,7 +10,7 @@ import tensorflow as tf
 
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.11.0"):
     from iseg.layers.syncbn import SyncBatchNormalization
-elif LooseVersion(tf.version.VERSION) < LooseVersion("2.14.0"):
+elif LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
     SyncBatchNormalization = tf.keras.layers.experimental.SyncBatchNormalization
 else:
     SyncBatchNormalization = functools.partial(

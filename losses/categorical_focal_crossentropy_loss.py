@@ -10,7 +10,7 @@ import tensorflow as tf
 
 import warnings
 
-if LooseVersion(tf.version.VERSION) < LooseVersion("2.14.0"):
+if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
     from keras.backend import _get_logits
     from keras.losses import LossFunctionWrapper
 else:
