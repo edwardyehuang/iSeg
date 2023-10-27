@@ -58,14 +58,13 @@ def get_distribution_strategy(gpu_memory_growth=True, cuda_visible_devices=None,
     if os.name == "nt" or "microsoft-standard" in uname().release:
         cross_device_ops = tf.distribute.HierarchicalCopyAllReduce()
     
-    '''
-    if "microsoft-standard" in uname().release:
+    if LooseVersion(tf.version.VERSION) >= LooseVersion("2.14.0"):
         strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
     else:
-    '''
-    strategy = tf.distribute.MirroredStrategy(devices = dist_devices, cross_device_ops=cross_device_ops)
+        strategy = tf.distribute.MirroredStrategy(devices = dist_devices, cross_device_ops=cross_device_ops)
     # issue 41539 may be fixed: https://github.com/tensorflow/tensorflow/issues/41539
     # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
+    # New issue 62234 : https://github.com/tensorflow/tensorflow/issues/62234
 
     return strategy
 
