@@ -58,7 +58,7 @@ def get_distribution_strategy(gpu_memory_growth=True, cuda_visible_devices=None,
     if os.name == "nt" or "microsoft-standard" in uname().release:
         cross_device_ops = tf.distribute.HierarchicalCopyAllReduce()
     
-    if LooseVersion(tf.version.VERSION) >= LooseVersion("2.14.0"):
+    if LooseVersion(tf.version.VERSION) >= LooseVersion("2.13.0"):
         strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
     else:
         strategy = tf.distribute.MirroredStrategy(devices = dist_devices, cross_device_ops=cross_device_ops)
