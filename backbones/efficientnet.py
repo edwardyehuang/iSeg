@@ -11,8 +11,10 @@ from distutils.version import LooseVersion
 
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.7.0"):
     from tensorflow.python.keras.applications import imagenet_utils
-else:
+elif LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
     from keras.applications import imagenet_utils
+else:
+    from keras.src.applications import imagenet_utils
 
 from iseg.layers.normalizations import normalization
 
