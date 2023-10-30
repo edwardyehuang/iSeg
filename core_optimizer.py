@@ -6,7 +6,10 @@
 from distutils.version import LooseVersion
 import tensorflow as tf
 
-from iseg.optimizers.adamw import AdamW
+import iseg.optimizers.legacy as legacy_optimizers
+import iseg.optimizers.modern as modern_optimizers
+
+from iseg.optimizers.legacy.adamw import AdamW
 from iseg.optimizers.polydecay import WarmUpPolyDecay
 from iseg.optimizers.cosinedecay import CosineDecay
 
@@ -157,19 +160,18 @@ def __get_optimizer(
             elif optimizer == "amsgrad":
                 _optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=True)
             elif optimizer == "adamw":
-                _optimizer = AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
+                _optimizer = legacy_optimizers.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
             else:
                 raise ValueError(f"Unsupported optimizer {optimizer}")
         else:
             if optimizer == "sgd":
-                _optimizer = tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate, clipnorm=clipnorm)
+                _optimizer = modern_optimizers.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate, clipnorm=clipnorm)
             elif optimizer == "adam":
-                _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=False, clipnorm=clipnorm)
+                _optimizer = modern_optimizers.AdamW(weight_decay=0., learning_rate=learning_rate, amsgrad=False, clipnorm=clipnorm)
             elif optimizer == "amsgrad":
-                _optimizer = tf.keras.optimizers.experimental.Adam(learning_rate=learning_rate, amsgrad=True, clipnorm=clipnorm)
+                _optimizer = modern_optimizers.AdamW(weight_decay=0., learning_rate=learning_rate, amsgrad=True, clipnorm=clipnorm)
             elif optimizer == "adamw":
-                _optimizer = tf.keras.optimizers.experimental.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate, clipnorm=clipnorm)
+                _optimizer = modern_optimizers.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate, clipnorm=clipnorm)
             else:
                 raise ValueError(f"Unsupported optimizer {optimizer}")
-
         return _optimizer
