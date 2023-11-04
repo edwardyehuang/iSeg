@@ -71,6 +71,7 @@ CONVNEXT = "convnext"
 CONVNEXT_TINY = "convnext_tiny"
 CONVNEXT_LARGE = "convnext_large"
 CONVNEXT_XLARGE = "convnext_xlarge"
+CONVNEXT_XXLARGE = "convnext_xxlarge"
 
 CONVNEXT_V2 = "convnext"
 CONVNEXT_V2_NANO = "convnext_v2_nano"

@@ -16,7 +16,7 @@ from iseg.backbones.backbone_registry import backbone_registry_dict
 from iseg.backbones.efficientnet import *
 from iseg.backbones.hrnet import HRNetW48, HRNetW32
 from iseg.backbones.placeholder import PlaceHolder
-from iseg.backbones.convnext import convnext_tiny, convnext_large, convnext_xlarge, build_dilated_convnext
+from iseg.backbones.convnext import convnext_tiny, convnext_large, convnext_xlarge, build_dilated_convnext, convnext_xxlarge
 from iseg.backbones.moat.moat import moat0, moat1, moat2, moat3, moat4
 from iseg.backbones.convnext_v2 import convnext_v2_nano, convnext_v2_tiny, convnext_v2_large, convnext_v2_huge
 from iseg.backbones.vit import ViT16B, ViT16L, ViT16B_SAM
@@ -85,6 +85,7 @@ def get_backbone(
         ss.CONVNEXT_TINY: convnext_tiny,
         ss.CONVNEXT_LARGE: convnext_large,
         ss.CONVNEXT_XLARGE: convnext_xlarge,
+        ss.CONVNEXT_XXLARGE: convnext_xxlarge,
         ss.MOAT0: moat0,
         ss.MOAT1: moat1,
         ss.MOAT2: moat2,
