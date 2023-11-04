@@ -187,17 +187,42 @@ class ConvNeXt(tf.keras.Model):
 
 def convnext_tiny(return_endpoints=False):
 
-    return ConvNeXt(depths=[3, 3, 9, 3], filters_list=[96, 192, 384, 768], return_endpoints=return_endpoints, drop_path_rate=0.1)
+    return ConvNeXt(
+        depths=[3, 3, 9, 3], 
+        filters_list=[96, 192, 384, 768], 
+        return_endpoints=return_endpoints, 
+        drop_path_rate=0.1
+    )
 
 
 def convnext_large(return_endpoints=False):
 
-    return ConvNeXt(depths=[3, 3, 27, 3], filters_list=[192, 384, 768, 1536], return_endpoints=return_endpoints, drop_path_rate=0.3)
+    return ConvNeXt(
+        depths=[3, 3, 27, 3], 
+        filters_list=[192, 384, 768, 1536], 
+        return_endpoints=return_endpoints, 
+        drop_path_rate=0.3
+    )
 
 
 def convnext_xlarge(return_endpoints=False):
 
-    return ConvNeXt(depths=[3, 3, 27, 3], filters_list=[256, 512, 1024, 2048], return_endpoints=return_endpoints, drop_path_rate=0.4)
+    return ConvNeXt(
+        depths=[3, 3, 27, 3], 
+        filters_list=[256, 512, 1024, 2048], 
+        return_endpoints=return_endpoints, 
+        drop_path_rate=0.4
+    )
+
+
+def convnext_xxlarge(return_endpoints=False):
+
+    return ConvNeXt(
+        depths=[3, 4, 40, 3], 
+        filters_list=[384, 768, 1536, 3072], 
+        return_endpoints=return_endpoints, 
+        drop_path_rate=0.4
+    )
 
 
 def build_dilated_convnext(model: ConvNeXt, output_stride=32):
