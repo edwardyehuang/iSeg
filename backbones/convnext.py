@@ -218,7 +218,7 @@ def convnext_xlarge(return_endpoints=False):
 def convnext_xxlarge(return_endpoints=False):
 
     return ConvNeXt(
-        depths=[3, 4, 40, 3], 
+        depths=[3, 4, 30, 3], 
         filters_list=[384, 768, 1536, 3072], 
         return_endpoints=return_endpoints, 
         drop_path_rate=0.4
