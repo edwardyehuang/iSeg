@@ -9,6 +9,7 @@ import tensorflow as tf
 import numpy as np
 
 from iseg.utils.drops import drop_path
+from iseg.backbones.utils.layerwise_decay import decay_layers_lr
 
 
 class GlobalResponseNormlizationLayer(tf.keras.layers.Layer):
@@ -214,6 +215,17 @@ class ConvNeXtV2(tf.keras.Model):
             return endpoints
 
         return x
+    
+
+    def decay_lr(
+        self, 
+        rate=0.99
+    ):
+
+        stages = self.stages
+        stages.reverse()
+
+        decay_layers_lr(stages, rate=rate)
 
 
 def convnext_v2_nano(return_endpoints=False):
