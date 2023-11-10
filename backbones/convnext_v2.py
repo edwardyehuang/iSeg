@@ -222,7 +222,7 @@ class ConvNeXtV2(tf.keras.Model):
         rate=0.99
     ):
 
-        stages = self.stages
+        stages = list(self.stages)
         stages.reverse()
 
         decay_layers_lr(stages, rate=rate)
