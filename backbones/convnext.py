@@ -9,6 +9,7 @@ import tensorflow as tf
 import numpy as np
 
 from iseg.utils.drops import drop_path
+from iseg.backbones.utils.layerwise_decay import decay_layers_lr
 
 
 class Block(tf.keras.Model):
@@ -183,6 +184,17 @@ class ConvNeXt(tf.keras.Model):
             return endpoints
 
         return x
+    
+    
+    def decay_lr(
+        self, 
+        rate=0.99
+    ):
+
+        stages = list(self.stages)
+        stages.reverse()
+
+        decay_layers_lr(stages, rate=rate)
 
 
 def convnext_tiny(return_endpoints=False):
