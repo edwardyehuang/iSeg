@@ -59,7 +59,7 @@ def resize_image(images, size, method=None, name=None):
     
     align_corners = DEFAULT_ALIGN_CORNERS
 
-    print(f"align_corners = {align_corners}")
+    # print(f"align_corners = {align_corners}")
 
     x = tf.compat.v1.image.resize(images, size, method=method, align_corners=align_corners, name=name)
     x = tf.cast(x, images.dtype)
