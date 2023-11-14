@@ -93,6 +93,7 @@ VIT_B_SAM = "vit_base_sam"
 
 IMAGE = "image"
 LABEL = "label"
+EMBEDDING = "embedding"
 
 IMAGES = "images"
 LABELS = "labels"
