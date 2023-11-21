@@ -136,6 +136,7 @@ class CoreTrain(object):
         initial_epoch=0,
         train_epoches=30,
         tensorboard_dir="tensorboard",
+        use_profiler=False,
         verbose=1,
     ):
 
@@ -160,7 +161,10 @@ class CoreTrain(object):
         eval_ds = self.prepare_val_dataset(model, eval_batch_size)
 
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=tensorboard_dir, histogram_freq=0, write_images=False
+            log_dir=tensorboard_dir, 
+            histogram_freq=0, 
+            write_images=False,
+            profile_batch=0 if not use_profiler else int(epoch_steps // 2),
         )
         checkpoint_saver = CheckpointSaver(self.model_helper)
         model_callback = ModelCallback(self.model_helper.model)
