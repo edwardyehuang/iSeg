@@ -164,7 +164,7 @@ class CoreTrain(object):
             log_dir=tensorboard_dir, 
             histogram_freq=0, 
             write_images=False,
-            profile_batch=0 if not use_profiler else (int(epoch_steps // 2), int(epoch_steps // 2) + 2),
+            profile_batch=0 if not use_profiler else (int(epoch_steps * 0.1), int(epoch_steps * 0.1) + 2),
         )
         checkpoint_saver = CheckpointSaver(self.model_helper)
         model_callback = ModelCallback(self.model_helper.model)
