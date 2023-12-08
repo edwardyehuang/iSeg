@@ -3,6 +3,7 @@ import tensorflow as tf
 from iseg.initializers.shared_initializers import SharedInitializer
 from iseg.layers.model_builder import get_tensor_shape_v2
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras_ops import replace_nan
 from iseg import check_numerics
 
 def safed_softmax (x):
@@ -108,6 +109,9 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
 
         v_attention_map = safed_softmax(v_attention_map) # [N, heads, W, H, H]
         u_attention_map = safed_softmax(u_attention_map) # [N, heads, H, W, W]
+
+        v_attention_map = replace_nan(v_attention_map, tf.keras.backend.epsilon())
+        u_attention_map = replace_nan(u_attention_map, tf.keras.backend.epsilon())
 
         v_attention_map = tf.clip_by_value(v_attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
         u_attention_map = tf.clip_by_value(u_attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
