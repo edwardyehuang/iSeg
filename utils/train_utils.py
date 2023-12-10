@@ -59,3 +59,13 @@ def exclude_no_weight_decay_layers_in_optimizer (
         exclude_from_weight_decay_func(
             var_names=excluded_name_list
         )
+
+
+def set_weights_lr_multiplier (var_list, lr_multiplier=1.0):
+
+    for v in var_list:
+        v.lr_multiplier = lr_multiplier
+
+        if hasattr(v, "values"):
+            for sub_v in v.values:
+                sub_v.lr_multiplier = lr_multiplier
