@@ -18,13 +18,14 @@ from iseg.losses.ohem import get_ohem_fn
 
 class SegBase(tf.keras.Model):
 
-    inference_sliding_window_size = None
+    
 
     def __init__(self, num_class=21, **kwargs):
 
         super(SegBase, self).__init__(**kwargs)
 
         self.num_class = num_class
+        self.inference_sliding_window_size = None
 
     def predict_step(self, data):
 

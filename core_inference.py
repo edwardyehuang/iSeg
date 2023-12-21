@@ -22,7 +22,7 @@ def inference_fn(inputs, model, num_class=21, training=False, sliding_window_cro
         )
     return model_results
 
-
+@tf.function
 def get_sliding_start_indexs_v2(length, crop_length):
 
     stride_rate = 2.0 / 3.0
@@ -33,7 +33,7 @@ def get_sliding_start_indexs_v2(length, crop_length):
 
     cond = length - (times - 1) * stride > crop_length
 
-    array_len = times + 1 if cond else times
+    array_len = times + tf.cast(cond, tf.int32)
     cropped_indexs = tf.TensorArray(tf.int32, size=array_len, dynamic_size=False, clear_after_read=False)
 
     for i in range(times):
@@ -116,7 +116,7 @@ def create_base_tensor_for_cropped_result(tensor, full_size):
 
     return multi_results_handler(tensor, seg_map_handler, lambda x: tf.zeros_like(x))
 
-
+@tf.function
 def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, inputs_width):
 
     sliding_indexs_h = get_sliding_start_indexs_v2(inputs_height, stride_h)  # [None]
@@ -166,7 +166,7 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
 
     return (slices_list_result, paddings_list_result, inference_count_map)
 
-
+@tf.function
 def inference_with_sliding_window(inputs, model, num_class=21, training=False, windows_size=(769, 769)):
 
     if windows_size is None:
