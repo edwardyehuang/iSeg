@@ -4,6 +4,8 @@
 
 ## News
 
+January-02-2024: Add DCNv3 and InternImage backbone.
+
 April-2023: Add weights for ViT-SAM.
 
 March-17-2023: Drop the support for old ResNet-50/101 h5 weights. Updated versions have been provided.
@@ -38,7 +40,7 @@ March-16-2022: The backbone weights are now available in [here](backbones/README
 - [x] ConvNeXt
 - [x] MOAT
 - [x] ConvNeXtV2
-- [ ] InternImage (WIP, coming very soon)
+- [x] InternImage
 
 Weights can be downloaded in [here](backbones/README.md)
 
