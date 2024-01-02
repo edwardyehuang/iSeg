@@ -8,7 +8,11 @@ import tensorflow as tf
 from iseg.layers.dcn_v3.utils import get_reference_points, generate_dilation_grids, bilinear_sampler
 from iseg.layers.model_builder import get_tensor_shape_v2
 
-
+@tf.function(
+    jit_compile=True,
+    autograph=False,
+    reduce_retracing=True,
+)
 def dcnv3_op (
     x, 
     offset, 
@@ -19,7 +23,7 @@ def dcnv3_op (
     dilation_rate, 
     groups, 
     group_channels, 
-    offset_scale
+    offset_scale,
 ):
     
     if not isinstance(padding, str):
@@ -46,6 +50,7 @@ def dcnv3_op (
     batch_size, height_in, width_in, channels = input_shape
     _, height_out, width_out, _ = get_tensor_shape_v2(offset)
 
+
     ref = get_reference_points(
         spatial_shapes=input_shape,
         kernel_h=kernel_h,
@@ -67,22 +72,23 @@ def dcnv3_op (
         dtype=x.dtype,
     )
 
+    P_ = kernel_h * kernel_w
+
     spatial_norm = tf.stack([width_in, height_in], axis=0)
-    spatial_norm = tf.cast(spatial_norm, dtype=x.dtype)
     spatial_norm = tf.reshape(spatial_norm, [1, 1, 1, 2])
-    spatial_norm = tf.tile(spatial_norm, [1, 1, 1, groups * kernel_h * kernel_w])
+    spatial_norm = tf.tile(spatial_norm, [1, 1, 1, groups * P_])
+    spatial_norm = tf.cast(spatial_norm, dtype=x.dtype)
 
     sampling_locations = ref + grid * offset_scale
-    sampling_locations = tf.tile(sampling_locations, [batch_size, 1, 1, 1, 1]) # CHECK: is this correct?
-    sampling_locations = tf.reshape(sampling_locations, [batch_size, height_out, width_out, groups * kernel_h * kernel_w * 2])
+    sampling_locations = tf.reshape(sampling_locations, [1, height_out, width_out, groups * P_ * 2])
+    sampling_locations = tf.stop_gradient(sampling_locations)
 
-    sampling_locations += offset * offset_scale / spatial_norm
+    sampling_locations += offset * tf.stop_gradient(offset_scale / spatial_norm)
 
-    P_ = kernel_h * kernel_w
     sampling_grids = 2 * sampling_locations - 1
 
-    x = tf.reshape(x, [batch_size, height_in * width_in, groups, group_channels])
-    x = tf.transpose(x, [0, 2, 1, 3])
+    x = tf.reshape(x, [batch_size, height_in, width_in, groups, group_channels])
+    x = tf.transpose(x, [0, 3, 1, 2, 4])
     x = tf.reshape(x, [batch_size * groups, height_in, width_in, group_channels])
 
     sampling_grids = tf.reshape(sampling_grids, [batch_size, height_out * width_out, groups, P_, 2])

@@ -36,6 +36,6 @@ class DownsampleLayer(tf.keras.Model):
     def call(self, inputs, training=False):
 
         x = self.conv(inputs)
-        x = self.norm(x, training=training)
+        x = self.norm(x)
 
         return x

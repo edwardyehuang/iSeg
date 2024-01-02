@@ -100,7 +100,6 @@ class DeformableConvolutionV3 (tf.keras.Model):
                 name=f"{self.name}/center_feature_scale_proj"
             )
 
-        
         super().build(input_shape)
 
 
