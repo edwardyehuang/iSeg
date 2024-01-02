@@ -13,26 +13,26 @@ def get_reference_points (
     dilation_w,
     stride_h=1,
     stride_w=1,
+    dtype=tf.float32
 ):
     _, H_, W_, _ = spatial_shapes
     
     H_out = (H_ - (dilation_h * (kernel_h - 1) + 1)) // stride_h + 1
     W_out = (W_ - (dilation_w * (kernel_w - 1) + 1)) // stride_w + 1
 
+    y_start = (dilation_h * (kernel_h - 1)) // 2 + 0.5
+    y_end = (dilation_h * (kernel_h - 1)) // 2 + 0.5 + tf.cast((H_out - 1) * stride_h, dtype=tf.float32)
 
-    ref_y, ref_x = tf.meshgrid(
-        tf.linspace(
-            (dilation_h * (kernel_h - 1)) // 2 + 0.5,
-            (dilation_h * (kernel_h - 1)) // 2 + 0.5 + (H_out - 1) * stride_h,
-            H_out
-        ),
-        tf.linspace(
-            (dilation_w * (kernel_w - 1)) // 2 + 0.5,
-            (dilation_w * (kernel_w - 1)) // 2 + 0.5 + (W_out - 1) * stride_w,
-            W_out,
-        ),
-        indexing='ij'
-    )
+    x_start =  (dilation_w * (kernel_w - 1)) // 2 + 0.5
+    x_end =  (dilation_w * (kernel_w - 1)) // 2 + 0.5 + tf.cast((W_out - 1) * stride_w, dtype=tf.float32)
+
+    y_linespace = tf.linspace(y_start, y_end, H_out)
+    x_linespace = tf.linspace(x_start, x_end, W_out)
+
+    ref_y, ref_x = tf.meshgrid(y_linespace, x_linespace, indexing='ij')
+
+    ref_y = tf.cast(ref_y, dtype=dtype)
+    ref_x = tf.cast(ref_x, dtype=dtype)
 
     ref_y = tf.reshape(ref_y, [-1])
     ref_x = tf.reshape(ref_x, [-1])
@@ -40,8 +40,8 @@ def get_reference_points (
     ref_y = tf.expand_dims(ref_y, axis=0)
     ref_x = tf.expand_dims(ref_x, axis=0)
 
-    ref_y /= H_
-    ref_x /= W_
+    ref_y /= tf.cast(H_, dtype=dtype)
+    ref_x /= tf.cast(W_, dtype=dtype)
 
     ref =  tf.stack([ref_y, ref_x], axis=-1)
     ref = tf.reshape(
@@ -82,7 +82,10 @@ def generate_dilation_grids(
     x = tf.cast(x, dtype=dtype)
     y = tf.cast(y, dtype=dtype)
 
-    grid = tf.stack([x / W_, y / H_], axis=-1)
+    x /= tf.cast(W_, dtype=dtype)
+    y /= tf.cast(H_, dtype=dtype)
+
+    grid = tf.stack([x, y], axis=-1)
     grid = tf.reshape(grid, [-1, 1, 2])
     grid = tf.tile(grid, [1, group, 1])
     grid = tf.transpose(grid, [1, 0, 2])

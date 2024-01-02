@@ -54,6 +54,7 @@ def dcnv3_op (
         dilation_w=dilation_w,
         stride_h=stride_h,
         stride_w=stride_w,
+        dtype=x.dtype,
     )
 
     grid = generate_dilation_grids(
@@ -63,9 +64,11 @@ def dcnv3_op (
         dilation_h=dilation_h,
         dilation_w=dilation_w,
         group=groups,
+        dtype=x.dtype,
     )
 
-    spatial_norm = tf.constant([width_in, height_in], dtype=tf.float32)
+    spatial_norm = tf.stack([width_in, height_in], axis=0)
+    spatial_norm = tf.cast(spatial_norm, dtype=x.dtype)
     spatial_norm = tf.reshape(spatial_norm, [1, 1, 1, 2])
     spatial_norm = tf.tile(spatial_norm, [1, 1, 1, groups * kernel_h * kernel_w])
 

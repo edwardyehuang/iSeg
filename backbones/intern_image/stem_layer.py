@@ -60,7 +60,9 @@ class StemLayer (tf.keras.Model):
         x = self.norm1(x)
         x = self.activation(x)
 
+        before_2nd_stride = x
+
         x = self.conv2(x)
         x = self.norm2(x)
         
-        return x
+        return x, before_2nd_stride

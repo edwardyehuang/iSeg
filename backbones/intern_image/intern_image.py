@@ -119,14 +119,14 @@ class InternImage(tf.keras.Model):
 
         x = inputs
 
-        x = self.patch_embed(x, training=training)
+        x, before_2nd_stride_x = self.patch_embed(x, training=training)
         x = self.pos_drop(x, training=training)
 
-        endpoints = []
+        endpoints = [before_2nd_stride_x]
 
         for i in range(len(self.blocks)):
             x, x_before_downsample = self.blocks[i](x, training=training)
-            endpoints.append(x)
+            endpoints.append(x_before_downsample)
 
         if self.return_endpoints:
             return endpoints
