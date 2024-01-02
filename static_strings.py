@@ -89,6 +89,11 @@ MOAT4 = "moat4"
 VIT_B = "vit_base"
 VIT_L = "vit_large"
 
+INTERN_IMAGE_TINY = "intern_image_tiny"
+INTERN_IMAGE_SMALL = "intern_image_small"
+INTERN_IMAGE_LARGE = "intern_image_large"
+INTERN_IMAGE_HUGE = "intern_image_huge"
+
 VIT_B_SAM = "vit_base_sam"
 
 IMAGE = "image"
