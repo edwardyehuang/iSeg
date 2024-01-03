@@ -11,7 +11,7 @@ from iseg.layers.model_builder import get_tensor_shape_v2
 @tf.function(
     jit_compile=True,
     autograph=False,
-    reduce_retracing=False,
+    reduce_retracing=True,
 )
 def dcnv3_op (
     x, 
@@ -91,20 +91,18 @@ def dcnv3_op (
     x = tf.transpose(x, [0, 3, 1, 2, 4])
     x = tf.reshape(x, [batch_size * groups, height_in, width_in, group_channels])
 
-    sampling_grids = tf.reshape(sampling_grids, [batch_size, height_out * width_out, groups, P_, 2]) # [N, HW, groups, kh*hw, 2]
-    sampling_grids = tf.transpose(sampling_grids, [3, 0, 2, 1, 4]) # [kh*kw, N, groups, HW, 2]
-    sampling_grids = tf.reshape(sampling_grids, [P_, batch_size, groups, height_out * width_out, 2]) # [kh*kw, N, groups, HW, 2]
+    sampling_grids = tf.reshape(sampling_grids, [batch_size, height_out * width_out, groups, P_, 2])
+    sampling_grids = tf.transpose(sampling_grids, [0, 2, 1, 3, 4])
+    sampling_grids = tf.reshape(sampling_grids, [batch_size * groups, height_out * width_out, P_, 2])
 
-    mask = tf.reshape(mask, [batch_size, height_out * width_out, groups, P_]) # [N, HW, groups, kh*kw]
-    mask = tf.transpose(mask, [3, 0, 2, 1]) # [kh*kw, N, groups, HW]
-    mask = tf.reshape(mask, [P_, batch_size, groups, height_out * width_out, 1]) # [kh*kw, N, groups, HW, 1]
+    sample_inputs = dcnv3_bilinear_sampler(x, sampling_grids, dtype=x.dtype)
 
-    output = None
+    mask = tf.reshape(mask, [batch_size, height_out * width_out, groups, P_])
+    mask = tf.transpose(mask, [0, 2, 1, 3])
+    mask = tf.reshape(mask, [batch_size * groups, height_out * width_out, P_, 1])
 
-    output = dcnv3_bilinear_sampler(x, sampling_grids, dtype=x.dtype) # [kh*kw, N, groups, HW, C]
-    output *= mask # [kh*kw, N, groups, HW, C]
-    output = tf.reduce_sum(output, axis=0)
-
+    output = sample_inputs * mask
+    output = tf.reduce_sum(output, axis=-2) # [batch_size * groups, height_out * width_out, group_channels]
     output = tf.reshape(output, [batch_size, groups, height_out, width_out, group_channels])
     output = tf.transpose(output, [0, 2, 3, 1, 4])
     output = tf.reshape(output, [batch_size, height_out, width_out, groups * group_channels])

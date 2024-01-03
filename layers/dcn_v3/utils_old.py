@@ -5,8 +5,6 @@
 
 import tensorflow as tf
 
-from iseg.layers.model_builder import get_tensor_shape_v2
-
 @tf.function(
     jit_compile=True,
     autograph=False,
@@ -116,26 +114,23 @@ def _get_pixel_value(img, x, y):
     Input
     -----
     - img: tensor of shape (N, H, W, C)
-    - x: flattened tensor of shape (4, kh*kw, N, groups, H*W,)
-    - y: flattened tensor of shape (4, kh*kw, N, groups, H*W,)
+    - x: flattened tensor of shape (N*H*W,)
+    - y: flattened tensor of shape (N*H*W,)
 
     Returns
     -------
     - output: tensor of shape (N, H, W, C)
     """
+    shape = tf.shape(x)
+    batch_size = shape[0]
+    height = shape[1]
+    width = shape[2]
 
-    grid_shapes = get_tensor_shape_v2(x)
+    batch_idx = tf.range(0, batch_size)
+    batch_idx = tf.reshape(batch_idx, (batch_size, 1, 1))
+    b = tf.tile(batch_idx, (1, height, width))
 
-    kernel_size = grid_shapes[1]
-    batch_size = grid_shapes[2]
-    num_groups = grid_shapes[3]
-    num_points = grid_shapes[4]
-
-    batch_idx = tf.range(0, batch_size) # [N * groups]
-    batch_idx = tf.reshape(batch_idx, (1, 1, batch_size, 1, 1))
-    b = tf.tile(batch_idx, (4, kernel_size, 1, num_groups, num_points)) # [4, kh*kw, N, groups, H*W]
-
-    indices = tf.stack([b, y, x], -1)
+    indices = tf.stack([b, y, x], 3)
 
     return tf.gather_nd(img, indices)
 
@@ -144,7 +139,7 @@ def _get_pixel_value(img, x, y):
     jit_compile=True,
     autograph=False,
 )
-def dcnv3_bilinear_sampler(img, grid, dtype=tf.float32):
+def bilinear_sampler(img, grid, dtype=tf.float32):
     """
     Performs bilinear sampling of the input images according to the
     normalized coordinates provided by the sampling grid. Note that
@@ -188,27 +183,31 @@ def dcnv3_bilinear_sampler(img, grid, dtype=tf.float32):
     y0 = tf.clip_by_value(y0, 0, max_y)
     y1 = tf.clip_by_value(y1, 0, max_y)
 
+    # get pixel value at corner coords
+    Ia = _get_pixel_value(img, x0, y0)
+    Ib = _get_pixel_value(img, x0, y1)
+    Ic = _get_pixel_value(img, x1, y0)
+    Id = _get_pixel_value(img, x1, y1)
+
     # recast as float for delta calculation
-    x0f = tf.cast(x0, dtype=dtype)
-    x1f = tf.cast(x1, dtype=dtype)
-    y0f = tf.cast(y0, dtype=dtype)
-    y1f = tf.cast(y1, dtype=dtype)
+    x0 = tf.cast(x0, dtype=dtype)
+    x1 = tf.cast(x1, dtype=dtype)
+    y0 = tf.cast(y0, dtype=dtype)
+    y1 = tf.cast(y1, dtype=dtype)
 
     # calculate deltas
-    wa = (x1f - x) * (y1f - y)
-    wb = (x1f - x) * (y - y0f)
-    wc = (x - x0f) * (y1f - y)
-    wd = (x - x0f) * (y - y0f)
+    wa = (x1-x) * (y1-y)
+    wb = (x1-x) * (y-y0)
+    wc = (x-x0) * (y1-y)
+    wd = (x-x0) * (y-y0)
 
-    deltas = tf.stack([wa, wb, wc, wd], axis=0) # [4, kh*kw, N, groups, H*W]
-    deltas = tf.expand_dims(deltas, axis=-1) # [4, kh*kw, N, groups, H*W, 1]
+    # add dimension for addition
+    wa = tf.expand_dims(wa, axis=-1)
+    wb = tf.expand_dims(wb, axis=-1)
+    wc = tf.expand_dims(wc, axis=-1)
+    wd = tf.expand_dims(wd, axis=-1)
 
-    all_x = tf.stack([x0, x0, x1, x1], axis=0) # [4, kh*kw, N, groups, H*W]
-    all_y = tf.stack([y0, y1, y0, y1], axis=0) # [4, kh*kw, N, groups, H*W]
+    # compute output
+    out = tf.add_n([wa*Ia, wb*Ib, wc*Ic, wd*Id])
 
-    pixel_values = _get_pixel_value(img, all_x, all_y) # [4, kh*kw, N, groups, H*W, C]
-    pixel_values *= deltas
-
-    y = tf.reduce_sum(pixel_values, axis=0) # [kh*kw, N, groups, H*W, C]
-
-    return y
+    return out
