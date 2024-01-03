@@ -99,11 +99,9 @@ def dcnv3_op (
     mask = tf.transpose(mask, [3, 0, 2, 1]) # [kh*kw, N, groups, HW]
     mask = tf.reshape(mask, [P_, batch_size, groups, height_out * width_out, 1]) # [kh*kw, N, groups, HW, 1]
 
-    output = None
+    # output = x
 
-    output = dcnv3_bilinear_sampler(x, sampling_grids, dtype=x.dtype) # [kh*kw, N, groups, HW, C]
-    output *= mask # [kh*kw, N, groups, HW, C]
-    output = tf.reduce_sum(output, axis=0)
+    output = dcnv3_bilinear_sampler(x, sampling_grids, mask) # [N, groups, HW, C]
 
     output = tf.reshape(output, [batch_size, groups, height_out, width_out, group_channels])
     output = tf.transpose(output, [0, 2, 3, 1, 4])
