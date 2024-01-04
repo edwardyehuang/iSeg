@@ -124,7 +124,7 @@ def dcnv3_bilinear_sampler(img, grid, mask):
 
     Returns
     -------
-    - out: interpolated images according to grids. Same size as grid.
+    - out: interpolated images according to grids.
     """
 
     dtype = img.dtype
@@ -194,17 +194,14 @@ def dcnv3_bilinear_sampler(img, grid, mask):
     
     for i in range(kernel_size):
 
-        four_pixel_values = tf.zeros([batch_size * num_points, img.shape[-1]], dtype=dtype) # [N*H*W, C]
+        indices = tf.raw_ops.Pack(values=[b, all_y[i], all_x[i]], axis=-1) # [4, N, H*W, 3]
+        indices = tf.reshape(indices, [4, -1, 3]) # [4, N *H*W, 3]
 
-        for j in range(4):
-            indices = tf.raw_ops.Pack(values=[b[j], all_y[i, j], all_x[i, j]], axis=-1) # [N, H*W, 3]
-            indices = tf.reshape(indices, [-1, 3]) # [N *H*W, 3]
-
-            pixel_values = tf.raw_ops.GatherNd(params=img, indices=indices)
-            pixel_values = tf.raw_ops.Mul(x=pixel_values, y=deltas[i,j]) # [N*H*W, 3]
-            four_pixel_values += pixel_values
-        
-        pixel_values = tf.raw_ops.Mul(x=four_pixel_values, y=mask[i])
+        pixel_values = tf.raw_ops.GatherNd(params=img, indices=indices)
+        pixel_values = tf.raw_ops.Mul(x=pixel_values, y=deltas[i]) # [4, N*H*W, 3]
+        pixel_values = tf.reduce_sum(pixel_values, axis=0) # [N*H*W, 3]
+    
+        pixel_values = tf.raw_ops.Mul(x=pixel_values, y=mask[i])
 
         y += pixel_values
 

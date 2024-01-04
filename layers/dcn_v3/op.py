@@ -80,12 +80,12 @@ def dcnv3_op (
     spatial_norm = tf.cast(spatial_norm, dtype=x.dtype)
 
     sampling_locations = ref + grid * offset_scale
-    sampling_locations = tf.reshape(sampling_locations, [1, height_out, width_out, groups * P_ * 2])
+    sampling_locations = tf.reshape(sampling_locations, [1, height_out, width_out, groups * P_ * 2]) # [1, H, W, groups * kh * kw * 2]
     sampling_locations = tf.stop_gradient(sampling_locations)
 
-    sampling_locations += offset * tf.stop_gradient(offset_scale / spatial_norm)
+    sampling_locations += offset * tf.stop_gradient(offset_scale / spatial_norm) # [N, H, W, groups * kh * kw * 2]
 
-    sampling_grids = 2 * sampling_locations - 1
+    sampling_grids = 2 * sampling_locations - 1 # [N, H, W, groups * kh * kw * 2]
 
     x = tf.reshape(x, [batch_size, height_in, width_in, groups, group_channels])
     x = tf.transpose(x, [0, 3, 1, 2, 4])
@@ -101,7 +101,7 @@ def dcnv3_op (
 
     # output = x
 
-    output = dcnv3_bilinear_sampler(x, sampling_grids, mask) # [N, groups, HW, C]
+    output = dcnv3_bilinear_sampler(x, sampling_grids, mask) # [N * groups * HW, C]
 
     output = tf.reshape(output, [batch_size, groups, height_out, width_out, group_channels])
     output = tf.transpose(output, [0, 2, 3, 1, 4])
