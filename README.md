@@ -41,6 +41,7 @@ March-16-2022: The backbone weights are now available in [here](backbones/README
 - [x] MOAT
 - [x] ConvNeXtV2
 - [x] InternImage
+- [ ] EVAv2 (Coming soon)
 
 Weights can be downloaded in [here](backbones/README.md)
 
