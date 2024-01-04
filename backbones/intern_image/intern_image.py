@@ -182,7 +182,7 @@ def intern_image_huge (return_endpoints=False):
         level2_post_norm_block_ids=[5, 11, 17, 23, 29],
         use_center_feature_scale=True,
         return_endpoints=return_endpoints,
-        name="intern_image_small"
+        name="intern_image_huge"
     )
 
         

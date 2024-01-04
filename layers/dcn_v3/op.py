@@ -93,11 +93,11 @@ def dcnv3_op (
 
     sampling_grids = tf.reshape(sampling_grids, [batch_size, height_out * width_out, groups, P_, 2]) # [N, HW, groups, kh*hw, 2]
     sampling_grids = tf.transpose(sampling_grids, [3, 0, 2, 1, 4]) # [kh*kw, N, groups, HW, 2]
-    sampling_grids = tf.reshape(sampling_grids, [P_, batch_size, groups, height_out * width_out, 2]) # [kh*kw, N, groups, HW, 2]
+    sampling_grids = tf.reshape(sampling_grids, [P_, batch_size * groups, height_out * width_out, 2]) # [kh*kw, N * groups, HW, 2]
 
     mask = tf.reshape(mask, [batch_size, height_out * width_out, groups, P_]) # [N, HW, groups, kh*kw]
     mask = tf.transpose(mask, [3, 0, 2, 1]) # [kh*kw, N, groups, HW]
-    mask = tf.reshape(mask, [P_, batch_size, groups, height_out * width_out, 1]) # [kh*kw, N, groups, HW, 1]
+    mask = tf.reshape(mask, [P_, batch_size * groups, height_out * width_out, 1]) # [kh*kw, N * groups, HW, 1]
 
     # output = x
 

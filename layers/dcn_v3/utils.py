@@ -107,42 +107,6 @@ def generate_dilation_grids(
     jit_compile=True,
     autograph=False,
 )
-def _get_pixel_value(img, x, y):
-    """
-    Utility function to get pixel value for coordinate
-    vectors x and y from a  4D tensor image.
-
-    Input
-    -----
-    - img: tensor of shape (N, H, W, C)
-    - x: flattened tensor of shape (4, kh*kw, N, groups, H*W,)
-    - y: flattened tensor of shape (4, kh*kw, N, groups, H*W,)
-
-    Returns
-    -------
-    - output: tensor of shape (N, H, W, C)
-    """
-
-    grid_shapes = get_tensor_shape_v2(x)
-
-    kernel_size = grid_shapes[1]
-    batch_size = grid_shapes[2]
-    num_groups = grid_shapes[3]
-    num_points = grid_shapes[4]
-
-    batch_idx = tf.range(0, batch_size) # [N * groups]
-    batch_idx = tf.reshape(batch_idx, (1, 1, batch_size, 1, 1))
-    b = tf.tile(batch_idx, (4, kernel_size, 1, num_groups, num_points)) # [4, kh*kw, N, groups, H*W]
-
-    indices = tf.stack([b, y, x], -1)
-
-    return tf.raw_ops.GatherNd(params=img, indices=indices)
-
-
-@tf.function(
-    jit_compile=True,
-    autograph=False,
-)
 def dcnv3_bilinear_sampler(img, grid, mask):
     """
     Performs bilinear sampling of the input images according to the
@@ -207,32 +171,43 @@ def dcnv3_bilinear_sampler(img, grid, mask):
     wc = dx0f * dy1f
     wd = dx0f * dy0f
 
-    deltas = tf.stack([wa, wb, wc, wd], axis=0) # [4, kh*kw, N, groups, H*W]
-    deltas = tf.expand_dims(deltas, axis=-1) # [4, kh*kw, N, groups, H*W, 1]
+    deltas = tf.stack([wa, wb, wc, wd], axis=1) # [kh*kw, 4, N, H*W]
+    deltas = tf.expand_dims(deltas, axis=-1) # [kh*kw, 4, N, H*W, 1]
 
-    all_x = tf.stack([x0, x0, x1, x1], axis=0) # [4, kh*kw, N, groups, H*W]
-    all_y = tf.stack([y0, y1, y0, y1], axis=0) # [4, kh*kw, N, groups, H*W]
+    all_x = tf.stack([x0, x0, x1, x1], axis=1) # [kh*kw, 4, N, H*W]
+    all_y = tf.stack([y0, y1, y0, y1], axis=1) # [kh*kw, 4, N, H*W]
 
     grid_shapes = get_tensor_shape_v2(all_x)
 
-    kernel_size = grid_shapes[1]
+    kernel_size = grid_shapes[0]
     batch_size = grid_shapes[2]
-    num_groups = grid_shapes[3]
-    num_points = grid_shapes[4]
+    num_points = grid_shapes[3]
 
-    batch_idx = tf.range(0, batch_size) # [N * groups]
-    batch_idx = tf.reshape(batch_idx, (1, 1, batch_size, 1, 1))
-    b = tf.tile(batch_idx, (4, kernel_size, 1, num_groups, num_points)) # [4, kh*kw, N, groups, H*W]
+    deltas = tf.reshape(deltas, [kernel_size, 4, batch_size * num_points, 1]) # [kh*kw, 4, N*H*W, 1]
+    mask = tf.reshape(mask, [kernel_size, batch_size * num_points, 1]) # [kh*kw, N*H*W, 1]
 
-    indices = tf.stack([b, all_y, all_x], -1)
+    y = tf.zeros([batch_size * num_points, img.shape[-1]], dtype=dtype)
 
-    pixel_values = tf.raw_ops.GatherNd(params=img, indices=indices)
-    pixel_values *= deltas
+    batch_idx = tf.range(0, batch_size) # [N]
+    batch_idx = tf.reshape(batch_idx, (1, batch_size, 1))
+    b = tf.tile(batch_idx, (4, 1, num_points)) # [4, N, H*W]
+    
+    for i in range(kernel_size):
 
-    y = tf.reduce_sum(pixel_values, axis=0) # [kh*kw, N, groups, H*W, C]
+        four_pixel_values = tf.zeros([batch_size * num_points, img.shape[-1]], dtype=dtype) # [N*H*W, C]
 
-    y *= mask
+        for j in range(4):
+            indices = tf.raw_ops.Pack(values=[b[j], all_y[i, j], all_x[i, j]], axis=-1) # [N, H*W, 3]
+            indices = tf.reshape(indices, [-1, 3]) # [N *H*W, 3]
 
-    y = tf.reduce_sum(y, axis=0) # [N, groups, H*W, C]
+            pixel_values = tf.raw_ops.GatherNd(params=img, indices=indices)
+            pixel_values = tf.raw_ops.Mul(x=pixel_values, y=deltas[i,j]) # [N*H*W, 3]
+            four_pixel_values += pixel_values
+        
+        pixel_values = tf.raw_ops.Mul(x=four_pixel_values, y=mask[i])
+
+        y += pixel_values
+
+    y = tf.reshape(y, [batch_size, num_points, img.shape[-1]]) # [N, H*W, C]
 
     return y
