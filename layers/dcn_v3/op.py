@@ -81,9 +81,8 @@ def dcnv3_op (
 
     sampling_locations = ref + grid * offset_scale
     sampling_locations = tf.reshape(sampling_locations, [1, height_out, width_out, groups * P_ * 2]) # [1, H, W, groups * kh * kw * 2]
-    sampling_locations = tf.stop_gradient(sampling_locations)
 
-    sampling_locations += offset * tf.stop_gradient(offset_scale / spatial_norm) # [N, H, W, groups * kh * kw * 2]
+    sampling_locations += offset * offset_scale / spatial_norm # [N, H, W, groups * kh * kw * 2]
 
     sampling_grids = 2 * sampling_locations - 1 # [N, H, W, groups * kh * kw * 2]
 

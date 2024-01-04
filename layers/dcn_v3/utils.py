@@ -55,7 +55,7 @@ def get_reference_points (
         [1, H_out, W_out, 1, 2]
     )
 
-    return tf.stop_gradient(ref)
+    return ref
 
 
 @tf.function(
@@ -100,7 +100,7 @@ def generate_dilation_grids(
     grid = tf.transpose(grid, [1, 0, 2])
     grid = tf.reshape(grid, [1, 1, 1, group * kernel_h * kernel_w, 2])
 
-    return tf.stop_gradient(grid)
+    return grid
 
 
 @tf.function(
