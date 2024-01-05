@@ -5,6 +5,8 @@
 
 import tensorflow as tf
 
+from iseg.utils.sugars import to_2d_tuple
+
 
 def extract_spatial_patches(x, size=4, use_mean_padding_value=False, padding_direction=0, inverse_slice=False):
 
@@ -63,7 +65,7 @@ class PatchEmbed(tf.keras.Model):
 
         super().__init__(name=name)
 
-        self.patch_size = patch_size
+        self.patch_size = to_2d_tuple(patch_size)
         self.embed_filters = embed_filters
 
         self.norm_layer = norm_layer
