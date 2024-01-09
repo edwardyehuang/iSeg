@@ -61,7 +61,7 @@ def extract_spatial_patches(x, size=4, use_mean_padding_value=False, padding_dir
 
 
 class PatchEmbed(tf.keras.Model):
-    def __init__(self, patch_size=(4, 4), embed_filters=96, norm_layer=None, name=None):
+    def __init__(self, patch_size=(4, 4), embed_filters=96, norm_layer=None, padding="SAME", name=None):
 
         super().__init__(name=name)
 
@@ -70,6 +70,9 @@ class PatchEmbed(tf.keras.Model):
 
         self.norm_layer = norm_layer
 
+        self.padding = padding
+
+
     def build(self, input_shape):
 
         self.proj = tf.keras.layers.Conv2D(
@@ -77,7 +80,7 @@ class PatchEmbed(tf.keras.Model):
             kernel_size=self.patch_size, 
             strides=self.patch_size, 
             name=f"{self.name}/projection",
-            padding="SAME",
+            padding=self.padding,
         )
         
         if self.norm_layer is not None:
