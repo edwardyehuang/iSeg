@@ -8,7 +8,7 @@ January-11-2024: Add [EVA02](https://github.com/baaivision/EVA/tree/master/EVA-0
 
 January-02-2024: Add DCNv3 and InternImage backbone.
 
-April-2023: Add weights for ViT-SAM.
+April-01-2023: Add weights for ViT-SAM.
 
 March-17-2023: Drop the support for old ResNet-50/101 h5 weights. Updated versions have been provided.
 
@@ -44,6 +44,8 @@ March-16-2022: The backbone weights are now available in [here](backbones/README
 - [x] ConvNeXtV2
 - [x] InternImage
 - [x] EVA02
+
+All backbones are independent of input size.
 
 Weights can be downloaded in [here](backbones/README.md)
 
