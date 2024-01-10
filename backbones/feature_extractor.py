@@ -21,6 +21,7 @@ from iseg.backbones.moat.moat import moat0, moat1, moat2, moat3, moat4
 from iseg.backbones.convnext_v2 import convnext_v2_nano, convnext_v2_tiny, convnext_v2_large, convnext_v2_huge
 from iseg.backbones.vit import ViT16B, ViT16L, ViT16B_SAM
 from iseg.backbones.intern_image.intern_image import intern_image_tiny, intern_image_small, intern_image_huge
+from iseg.backbones.eva.eva import EVA02_large_patch14_448
 
 
 def get_backbone(
@@ -102,6 +103,7 @@ def get_backbone(
         ss.INTERN_IMAGE_TINY: intern_image_tiny,
         ss.INTERN_IMAGE_SMALL: intern_image_small,
         ss.INTERN_IMAGE_HUGE: intern_image_huge,
+        ss.EVA02_LARGE: EVA02_large_patch14_448,
         ss.PLACEHOLDER: PlaceHolder,
     }
 

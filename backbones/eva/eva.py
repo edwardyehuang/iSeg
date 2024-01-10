@@ -238,6 +238,5 @@ def EVA02_large_patch14_448(return_endpoints=False):
         use_rot_pos_emb=True,
         use_post_norm=False,
         return_endpoints=return_endpoints,
-        trainable=True,
         name="eva02_large_patch14_448",
     )
