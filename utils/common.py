@@ -40,6 +40,21 @@ def enable_mixed_precision(use_tpu=False):
             tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
 
+def get_tensor_shape(x, return_list=False):
+
+    shapes = list(x.shape)
+    dynamic_shapes = tf.shape(x)
+
+    for i in range(len(shapes)):
+        if shapes[i] is None:
+            shapes[i] = dynamic_shapes[i]
+
+    if return_list:
+        return shapes
+
+    return tuple(shapes)
+
+
 def resize_image(images, size, method=None, name=None):
 
     if method is None:
@@ -127,3 +142,63 @@ def down_size_image_by_scale(images, scale, method=None, name=None):
     target_width = image_width // scale + is_width_odd
 
     return resize_image(images=images, size=(target_height, target_width), method=method, name=name)
+
+
+def resample_absolute_position_embedding (
+    position_embedding,
+    target_size,
+    source_size=None,
+    num_prefix_tokens=1,
+    method="bicubic",
+    antialias=True,
+):
+    with tf.name_scope("resample_absolute_position_embedding"):
+    
+        batch_size, num_pos_tokens, channels = get_tensor_shape(position_embedding)
+
+        num_new_tokens = target_size[0] * target_size[1] + num_prefix_tokens
+
+        # if num_new_tokens == num_pos_tokens and target_size[0] == target_size[1]:
+        # return position_embedding
+        
+        if num_prefix_tokens:
+            num_spatial_pos_tokens = num_pos_tokens - num_prefix_tokens
+            spatial_pos_embedding = position_embedding[:, num_prefix_tokens:] # [N, num_prefix_tokens + HW, C] -> [N, HW, C]
+            prefix_pos_embedding = position_embedding[:, :num_prefix_tokens]
+        else:
+            num_spatial_pos_tokens = num_pos_tokens
+            spatial_pos_embedding = position_embedding
+            prefix_pos_embedding = None
+        
+        if source_size is None:
+            hw = tf.sqrt(tf.cast(num_spatial_pos_tokens, tf.float32))
+            hw = tf.cast(hw, tf.int32)
+            source_size = hw, hw
+
+        orginal_dtype = position_embedding.dtype
+
+        spatial_pos_embedding = tf.reshape(
+            spatial_pos_embedding, 
+            [batch_size, source_size[0], source_size[1], channels]
+        )
+
+        spatial_pos_embedding = tf.image.resize(
+            spatial_pos_embedding,
+            target_size,
+            method=method,
+            antialias=antialias,
+        )
+
+        output_embedding = tf.reshape(
+            spatial_pos_embedding,
+            [batch_size, -1, channels]
+        )
+
+        output_embedding = tf.cast(output_embedding, orginal_dtype)
+
+        if prefix_pos_embedding is not None:
+            output_embedding = tf.concat([prefix_pos_embedding, output_embedding], axis=1)
+        
+        tf.assert_equal(tf.shape(output_embedding)[1], num_new_tokens)
+
+        return output_embedding

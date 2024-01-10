@@ -9,6 +9,7 @@ import iseg.static_strings as ss
 from iseg.core_model import SegFoundation
 from iseg.layers.normalizations import normalization
 from iseg.utils.common import resize_image
+from iseg.utils.common import get_tensor_shape as _get_tensor_shape
 
 
 def get_training_value(training=None):
@@ -322,14 +323,4 @@ def get_tensor_shape(x, static_dims=[-1]):
 
 def get_tensor_shape_v2(x, return_list=False):
 
-    shapes = list(x.shape)
-    dynamic_shapes = tf.shape(x)
-
-    for i in range(len(shapes)):
-        if shapes[i] is None:
-            shapes[i] = dynamic_shapes[i]
-
-    if return_list:
-        return shapes
-
-    return tuple(shapes)
+    return _get_tensor_shape(x, return_list=return_list)
