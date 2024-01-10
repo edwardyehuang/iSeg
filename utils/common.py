@@ -1,7 +1,7 @@
-# ================================================================
+# ====================================================================
 # MIT License
-# Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
-# ================================================================
+# Copyright (c) 2024 edwardyehuang (https://github.com/edwardyehuang)
+# ====================================================================
 
 import iseg.static_strings as ss
 import os
