@@ -149,8 +149,8 @@ def resample_absolute_position_embedding (
     target_size,
     source_size=None,
     num_prefix_tokens=1,
-    method="bicubic",
-    antialias=True,
+    method="bilinear",
+    antialias=False,
 ):
     with tf.name_scope("resample_absolute_position_embedding"):
     
