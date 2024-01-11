@@ -95,6 +95,7 @@ INTERN_IMAGE_LARGE = "intern_image_large"
 INTERN_IMAGE_HUGE = "intern_image_huge"
 
 EVA02_LARGE = "eva02_large"
+EVA02_TINY = "eva02_tiny"
 
 VIT_B_SAM = "vit_base_sam"
 
