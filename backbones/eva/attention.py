@@ -104,7 +104,7 @@ class EvaAttention (tf.keras.Model):
 
         if self.qkv_fused:
             qkv = self.qkv(x)
-            qkv = tf.nn.bias_add(qkv, self.qkv_bias)
+            qkv = tf.nn.bias_add(qkv, tf.cast(self.qkv_bias, qkv.dtype))
             qkv = tf.reshape(qkv, [batch_size, hw, 3, self.num_heads, qkv.shape[-1] // (self.num_heads * 3)])
             qkv = tf.transpose(qkv, [2, 0, 3, 1, 4]) # [3, batch_size, num_heads, hw, head_filters]
             q, k, v = tf.unstack(qkv, 3, axis=0) # [batch_size, num_heads, hw, head_filters]
