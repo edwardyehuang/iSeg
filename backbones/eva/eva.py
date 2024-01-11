@@ -169,6 +169,10 @@ class Eva (tf.keras.Model):
 
         if self.use_class_token:
             class_token = tf.cast(self.class_token, x.dtype)
+            class_token = tf.broadcast_to(
+                class_token, 
+                [tf.shape(x)[0], 1, x.shape[-1]]
+            )
             x = tf.concat([class_token, x], axis=1) # [N, 1 + HW, C]
 
         if pos_embed is not None:
