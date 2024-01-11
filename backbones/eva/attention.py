@@ -75,8 +75,6 @@ class EvaAttention (tf.keras.Model):
                 trainable=True,
             )
 
-            self.qkv_bias = tf.concat([self.q_bias, self.k_bias, self.v_bias], axis=0)
-
         else:
             self.q_proj = tf.keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=f"{self.name}/q_proj")
             self.k_proj = tf.keras.layers.Dense(all_head_filters, use_bias=False, name=f"{self.name}/k_proj")
@@ -104,7 +102,17 @@ class EvaAttention (tf.keras.Model):
 
         if self.qkv_fused:
             qkv = self.qkv(x)
-            qkv = tf.nn.bias_add(qkv, tf.cast(self.qkv_bias, qkv.dtype))
+
+            qkv_bias = tf.concat(
+                [
+                    tf.cast(self.q_bias, qkv.dtype),
+                    tf.cast(self.k_bias, qkv.dtype),
+                    tf.cast(self.v_bias, qkv.dtype)
+                ], 
+                axis=0
+            )
+
+            qkv = tf.nn.bias_add(qkv, qkv_bias)
             qkv = tf.reshape(qkv, [batch_size, hw, 3, self.num_heads, qkv.shape[-1] // (self.num_heads * 3)])
             qkv = tf.transpose(qkv, [2, 0, 3, 1, 4]) # [3, batch_size, num_heads, hw, head_filters]
             q, k, v = tf.unstack(qkv, 3, axis=0) # [batch_size, num_heads, hw, head_filters]
