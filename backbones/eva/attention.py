@@ -90,7 +90,7 @@ class EvaAttention (tf.keras.Model):
             self.norm = tf.identity
 
         self.projection_dropout = tf.keras.layers.Dropout(self.projection_dropout_rate, name="projection_dropout")
-        self.projection = tf.keras.layers.Dense(input_channels, use_bias=False, name=f"{self.name}/proj")
+        self.projection = tf.keras.layers.Dense(input_channels, use_bias=True, name=f"{self.name}/proj")
 
         super().build(input_shape)
 
@@ -105,9 +105,9 @@ class EvaAttention (tf.keras.Model):
         if self.qkv_fused:
             qkv = self.qkv(x)
             qkv = tf.nn.bias_add(qkv, self.qkv_bias)
-            qkv = tf.reshape(qkv, [batch_size, hw, 3, self.num_heads, qkv.shape[-1] // self.num_heads])
+            qkv = tf.reshape(qkv, [batch_size, hw, 3, self.num_heads, qkv.shape[-1] // (self.num_heads * 3)])
             qkv = tf.transpose(qkv, [2, 0, 3, 1, 4]) # [3, batch_size, num_heads, hw, head_filters]
-            q, k, v = tf.split(qkv, 3, axis=0)
+            q, k, v = tf.unstack(qkv, 3, axis=0) # [batch_size, num_heads, hw, head_filters]
         else:
             q = self.q_proj(x)
             k = self.k_proj(x)

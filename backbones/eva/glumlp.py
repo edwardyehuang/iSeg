@@ -63,7 +63,7 @@ class GluMlp (tf.keras.Model):
 
         assert hidden_filters % 2 == 0
 
-        self.fc1 = self.build_fc(hidden_filters, name="fc1")
+        self.fc1 = self.build_fc(hidden_filters, name=f"{self.name}/fc1")
 
         self.drop1 = tf.keras.layers.Dropout(
             rate=self.dropout_rate,
