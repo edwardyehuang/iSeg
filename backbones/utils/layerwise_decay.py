@@ -6,11 +6,16 @@
 import tensorflow as tf
 
 
-def decay_layers_lr (layers=[], rate=0.99):
+def decay_layers_lr (layers=[], weights=[], rate=0.99):
+
+    num_layers = len(layers)
+    last_layer_index = num_layers - 1
 
     current_rate = rate
 
-    for layer in layers:
+    for i in range(num_layers):
+
+        layer = layers[i]
 
         print(f"decay lr for {layer.name} with rate = {current_rate}")
 
@@ -27,4 +32,18 @@ def decay_layers_lr (layers=[], rate=0.99):
                 current_rate
             )
 
-        current_rate *= rate
+        if i < last_layer_index:
+            current_rate *= rate
+
+
+    for weight in weights:
+
+        current_lr_multiplier = 1.
+
+        if hasattr(weight, 'lr_multiplier'):
+            current_lr_multiplier = weight.lr_multiplier
+
+        weight.lr_multiplier = tf.multiply(
+            current_lr_multiplier, 
+            current_rate
+        )

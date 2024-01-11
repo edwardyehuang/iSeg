@@ -9,10 +9,9 @@ import tensorflow as tf
 from iseg.layers.common_layers import PatchEmbed
 from iseg.utils.common import resample_absolute_position_embedding, get_tensor_shape
 from iseg.utils.sugars import to_2d_tuple
-from iseg.layers.model_builder import get_tensor_shape_v2
+from iseg.backbones.utils.layerwise_decay import decay_layers_lr
 
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat
-
 from iseg.backbones.eva.block import EvaBlock
 
 class Eva (tf.keras.Model):
@@ -190,6 +189,35 @@ class Eva (tf.keras.Model):
         x = self.pos_droppout(x, training=training)
 
         return x
+    
+
+    def decay_lr(
+        self, 
+        rate=0.99
+    ):
+
+        layers =  [self.patch_embed] + list(self.blocks)
+        layers.reverse()
+
+        dacay_weights_names = [
+            self.position_embedding.name,
+            self.class_token.name,
+        ]
+
+        all_weights = self.trainable_weights
+
+        matched_weights = []
+
+        for weight in all_weights:
+            name = weight.name
+
+            for decay_name in dacay_weights_names:
+                if decay_name in name:
+                    matched_weights.append(weight)
+                    print(f"matched weights : {name} vs {decay_name}")
+                    break
+
+        decay_layers_lr(layers, weights=matched_weights, rate=rate)
 
 
     def call (self, inputs, training=None):
@@ -212,7 +240,7 @@ class Eva (tf.keras.Model):
         x = tf.reshape(x, [batch_size, height, width, channels])
 
         if self.return_endpoints:
-            x = [x]
+            x = [class_token, x]
 
         return x
     
