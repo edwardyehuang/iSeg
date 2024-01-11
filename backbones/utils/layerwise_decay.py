@@ -5,6 +5,8 @@
 
 import tensorflow as tf
 
+from iseg.utils.train_utils import set_weights_lr_multiplier
+
 
 def decay_layers_lr (layers=[], weights=[], rate=0.99):
 
@@ -27,9 +29,9 @@ def decay_layers_lr (layers=[], weights=[], rate=0.99):
             if hasattr(v, 'lr_multiplier'):
                 current_lr_multiplier = v.lr_multiplier
 
-            v.lr_multiplier = tf.multiply(
-                current_lr_multiplier, 
-                current_rate
+            set_weights_lr_multiplier(
+                v, 
+                lr_multiplier=current_lr_multiplier * current_rate
             )
 
         if i < last_layer_index:
@@ -43,7 +45,7 @@ def decay_layers_lr (layers=[], weights=[], rate=0.99):
         if hasattr(weight, 'lr_multiplier'):
             current_lr_multiplier = weight.lr_multiplier
 
-        weight.lr_multiplier = tf.multiply(
-            current_lr_multiplier, 
-            current_rate
+        set_weights_lr_multiplier(
+            weight, 
+            lr_multiplier=current_lr_multiplier * current_rate
         )

@@ -63,6 +63,12 @@ def exclude_no_weight_decay_layers_in_optimizer (
 
 def set_weights_lr_multiplier (var_list, lr_multiplier=1.0):
 
+    if isinstance(var_list, tuple):
+        var_list = list(var_list)
+
+    if not isinstance(var_list, list):
+        var_list = [var_list]
+
     for v in var_list:
         v.lr_multiplier = lr_multiplier
 
