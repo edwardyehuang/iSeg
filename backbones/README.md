@@ -22,4 +22,5 @@
 | ViT-Large|[-]()|[Baidu Drive](https://pan.baidu.com/s/1-py5JEVaUdAbsYSyEIGeLA?pwd=txag)
 | ViT-Base-AugReg|[-]()|[Baidu Drive](https://pan.baidu.com/s/10V3jOD6lrQuWxb2N20JJJw?pwd=m8y7)
 | ViT-Large-AugReg|[-]()|[Baidu Drive](https://pan.baidu.com/s/1mvAsZYDhvqTVmre_8KDNkg?pwd=su45)
-| ViT-Base-SAM|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.7/vit_base_SAM.h5)|[-](https://pan.baidu.com/s/1I84-mc6hnQF4Jux7z9PD8A?pwd=v6dn)
+| ViT-Base-SAM|[Github](https://github.com/edwardyehuang/iSeg/releases/download/0.0.7/vit_base_SAM.h5)|[Baidu Drive](https://pan.baidu.com/s/1I84-mc6hnQF4Jux7z9PD8A?pwd=v6dn)
+| EVA02-Large|[-]()|[Baidu Drive](https://pan.baidu.com/s/1EhKskGtGyGkXqllf43Ih2g?pwd=b5nw)
