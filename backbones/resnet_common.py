@@ -14,6 +14,8 @@ from iseg.layers.normalizations import normalization
 from iseg.backbones.resnet_blocks import BlockType1, BlockType2
 from iseg.backbones.resnet_blocks_small import BlockType2Small
 
+from iseg.backbones.utils.layerwise_decay import decay_layers_lr
+
 BN_EPSILON = 1.001e-5
 
 DEFAULT_CONV_FUNC = tf.keras.layers.Conv2D
@@ -270,6 +272,32 @@ class ResNet(tf.keras.Model):
         x = tf.nn.relu(x)
 
         return x
+    
+
+    def decay_lr(
+        self, 
+        rate=0.99
+    ):
+
+        stages = list(self.stacks)
+
+        if self.replace_7x7_conv:
+            stems = [
+                self.conv1_1_conv, 
+                self.conv1_1_bn, 
+                self.conv1_2_conv, 
+                self.conv1_2_bn, 
+                self.conv1_3_conv, 
+                self.conv1_3_bn
+            ]
+        else:
+            stems = [self.conv1_conv, self.conv1_bn]
+
+        stages = [stems] + stages
+
+        stages.reverse()
+        decay_layers_lr(stages, rate=rate)
+
 
     ### ResNet Call ###################
 

@@ -19,20 +19,27 @@ def decay_layers_lr (layers=[], weights=[], rate=0.99):
 
         layer = layers[i]
 
-        print(f"decay lr for {layer.name} with rate = {current_rate}")
+        if isinstance(layer, tuple):
+            layer = list(layer)
 
-        var_list = layer.trainable_weights
+        if not isinstance(layer, list):
+            layer = [layer]
 
-        for v in var_list:
-            current_lr_multiplier = 1.
+        for sub_layer in layer:
+            print(f"decay lr for {sub_layer.name} with rate = {current_rate}")
 
-            if hasattr(v, 'lr_multiplier'):
-                current_lr_multiplier = v.lr_multiplier
+            var_list = sub_layer.trainable_weights
 
-            set_weights_lr_multiplier(
-                v, 
-                lr_multiplier=current_lr_multiplier * current_rate
-            )
+            for v in var_list:
+                current_lr_multiplier = 1.
+
+                if hasattr(v, 'lr_multiplier'):
+                    current_lr_multiplier = v.lr_multiplier
+
+                set_weights_lr_multiplier(
+                    v, 
+                    lr_multiplier=current_lr_multiplier * current_rate
+                )
 
         if i < last_layer_index:
             current_rate *= rate
