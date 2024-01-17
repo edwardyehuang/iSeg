@@ -15,7 +15,7 @@ class AdamW_EXT (_ADAMW):
 
         if hasattr(variable, "lr_multiplier"):
             lr = lr * variable.lr_multiplier
-            print(f"lr_multiplier: {variable.lr_multiplier}")
+            # print(f"lr_multiplier: {variable.lr_multiplier}")
 
         local_step = tf.cast(self.iterations + 1, variable.dtype)
         beta_1_power = tf.pow(tf.cast(self.beta_1, variable.dtype), local_step)

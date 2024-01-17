@@ -16,7 +16,7 @@ class SGD_EXT (_SGD):
 
         if hasattr(variable, "lr_multiplier"):
             lr = lr * variable.lr_multiplier
-            print(f"lr_multiplier: {variable.lr_multiplier}")
+            # print(f"lr_multiplier: {variable.lr_multiplier}")
 
         m = None
         var_key = self._var_key(variable)
