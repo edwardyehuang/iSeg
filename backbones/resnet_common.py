@@ -279,16 +279,19 @@ class ResNet(tf.keras.Model):
         rate=0.99
     ):
 
-        stages = list(self.stacks)
+        stages = list(self.stacks)[:-1]
 
         if self.replace_7x7_conv:
             stems = [
-                [self.conv1_1_conv, self.conv1_1_bn, ],
-                [self.conv1_2_conv, self.conv1_2_bn, ], 
-                [self.conv1_3_conv, self.conv1_3_bn, ],
+                self.conv1_1_conv, 
+                self.conv1_1_bn,
+                self.conv1_2_conv, 
+                self.conv1_2_bn,
+                self.conv1_3_conv, 
+                self.conv1_3_bn,
             ]
         else:
-            stems = [[self.conv1_conv, self.conv1_bn]]
+            stems = [self.conv1_conv, self.conv1_bn]
 
         stages = stems + stages
 
