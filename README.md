@@ -4,6 +4,8 @@
 
 ## News
 
+January-14-2024: Add support for TensorFlow 2.15
+
 January-11-2024: Add [EVA02](https://github.com/baaivision/EVA/tree/master/EVA-02).
 
 January-02-2024: Add DCNv3 and InternImage backbone.
@@ -71,5 +73,5 @@ Weights can be downloaded in [here](backbones/README.md)
 ## Installation (Conda)
 
 ```
-conda create -n tf211 python=3.9 tensorflow-gpu=2.11 pillow tqdm -c conda-forge
+conda create -n tf215 tensorflow-gpu=2.15 pillow tqdm -c conda-forge
 ```
