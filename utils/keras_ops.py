@@ -204,8 +204,15 @@ def capture_func(model, func_name):
 
 
 def replace_nan(x, value=0.0):
-
     return tf.where(tf.math.is_nan(x), tf.ones_like(x) * value, x)
+
+
+def replace_inf(x, value=0.0):
+    return tf.where(tf.math.is_inf(x), tf.ones_like(x) * value, x)
+
+
+def replace_nan_or_inf(x, value=0.0):
+    return replace_inf(replace_nan(x, value), value)
 
 
 class HookLayer(tf.keras.Model):
