@@ -100,8 +100,8 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
         u_key = tf.transpose(u_key,(0, 3, 1, 4, 2)) # [N, heads, H, C, W]
         u_attention_map = tf.matmul(u_query, u_key) # [N, heads, H, W, W]
 
-        v_attention_map = tf.clip_by_value(v_attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
-        u_attention_map = tf.clip_by_value(u_attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
+        v_attention_map = tf.clip_by_value(v_attention_map, -1.0 + tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
+        u_attention_map = tf.clip_by_value(u_attention_map, -1.0 + tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
 
         v_attention_map = check_numerics(v_attention_map, "v_attention_map contains NaN/Inf", level=1)
         u_attention_map = check_numerics(u_attention_map, "u_attention_map contains NaN/Inf", level=1)
