@@ -17,7 +17,7 @@ from iseg.core_model import SegBase
 from iseg.utils.data_loader import load_image_tensor_from_path
 
 
-@tf.function(reduce_retracing=True)
+@tf.function
 def predict_with_dir(
     distribute_strategy,
     batch_size,
