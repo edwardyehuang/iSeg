@@ -45,12 +45,14 @@ def predict_with_dir(
         if image_sets is None:
             ds = tf.data.Dataset.from_generator(
                 dir_data_generator, 
-                args=(input_dir)
+                args=(input_dir),
+                output_types=(tf.float32, tf.int32, tf.string),
             )
         else:
             ds = tf.data.Dataset.from_generator(
                 dir_data_generator_with_imagesets,
                 args=(input_dir, image_sets),
+                output_types=(tf.float32, tf.int32, tf.string),
             )
 
         ds = ds.repeat()
