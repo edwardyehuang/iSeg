@@ -114,8 +114,7 @@ def dir_data_generator_with_imagesets(
                 continue
             
             image_tensor, _ = load_image_tensor_from_path(file_path)
-            image_tensor = tf.expand_dims(image_tensor, axis=0)
-            image_size = tf.shape(image_tensor)[1:3]
+            image_size = tf.shape(image_tensor)[0:2]
 
             image_tensor = pad_to_bounding_box(
                 image_tensor, 
