@@ -115,7 +115,6 @@ class SegBase(tf.keras.Model):
 
         return logits
 
-    @tf.function(jit_compile=True)
     def inference_with_multi_scales(
         self, 
         inputs, 

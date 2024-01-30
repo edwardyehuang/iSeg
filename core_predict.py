@@ -47,14 +47,12 @@ def predict_with_dir(
 
         if image_sets is None:
             ds = tf.data.Dataset.from_generator(
-                dir_data_generator, 
-                args=(input_dir, crop_height, crop_width),
+                dir_data_generator(input_dir, crop_height, crop_width), 
                 output_types=(tf.float32, tf.int32, tf.string),
             )
         else:
             ds = tf.data.Dataset.from_generator(
-                dir_data_generator_with_imagesets,
-                args=(input_dir, crop_height, crop_width, image_sets),
+                dir_data_generator_with_imagesets(input_dir, crop_height, crop_width, image_sets),
                 output_types=(tf.float32, tf.int32, tf.string),
             )
 
@@ -72,6 +70,7 @@ def predict_with_dir(
 
         @tf.function
         def step_fn(image_tensor, output_size, output_name):
+            image_tensor.set_shape([None, crop_height, crop_width, 3])
             image_predict_func(
                 model,
                 image_tensor=image_tensor,
@@ -85,6 +84,7 @@ def predict_with_dir(
         counter = 0
 
         for image_tensor, output_size, output_name in ds:
+            
             distribute_strategy.run(step_fn, args=(image_tensor, output_size, output_name))
 
             counter += batch_size
@@ -103,32 +103,35 @@ def dir_data_generator_with_imagesets(
     crop_width=513, 
     image_sets=None
 ):
+    
+    def gen_func():
+        for root, dirs, files in tf.io.gfile.walk(input_dir):
+            for filename in files:
+                file_path = root + os.sep + filename
 
-    for root, dirs, files in tf.io.gfile.walk(input_dir):
-        for filename in files:
-            file_path = root + os.sep + filename
+                filename_wo_ext = os.path.splitext(filename)[0]
 
-            filename_wo_ext = os.path.splitext(filename)[0]
+                if image_sets is not None and str.encode(filename_wo_ext) not in image_sets:
+                    continue
+                
+                image_tensor, _ = load_image_tensor_from_path(file_path)
+                image_size = tf.shape(image_tensor)[0:2]
 
-            if image_sets is not None and str.encode(filename_wo_ext) not in image_sets:
-                continue
-            
-            image_tensor, _ = load_image_tensor_from_path(file_path)
-            image_size = tf.shape(image_tensor)[0:2]
+                image_tensor = pad_to_bounding_box(
+                    image_tensor, 
+                    0, 
+                    0, 
+                    crop_height, 
+                    crop_width, 
+                    pad_value=[127.5, 127.5, 127.5]
+                
+                )
 
-            image_tensor = pad_to_bounding_box(
-                image_tensor, 
-                0, 
-                0, 
-                crop_height, 
-                crop_width, 
-                pad_value=[127.5, 127.5, 127.5]
-            
-            )
+                image_tensor = normalize_value_range(image_tensor)
 
-            image_tensor = normalize_value_range(image_tensor)
+                yield image_tensor, image_size, filename_wo_ext
 
-            yield image_tensor, image_size, filename_wo_ext
+    return gen_func
 
             # output_path = tf.strings.join([output_dir, filename_wo_ext], separator=os.sep)
             # yield file_path, output_path
