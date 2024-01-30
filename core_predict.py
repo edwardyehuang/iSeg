@@ -40,18 +40,21 @@ def predict_with_dir(
     if not tf.io.gfile.exists(output_dir):
         tf.io.gfile.makedirs(output_dir)
 
+    print("Input dir : ", input_dir)
+    print("Output dir : ", output_dir)
+
     with distribute_strategy.scope():
 
         if image_sets is None:
             ds = tf.data.Dataset.from_generator(
                 dir_data_generator, 
-                args=(input_dir),
+                args=(input_dir, crop_height, crop_width),
                 output_types=(tf.float32, tf.int32, tf.string),
             )
         else:
             ds = tf.data.Dataset.from_generator(
                 dir_data_generator_with_imagesets,
-                args=(input_dir, image_sets),
+                args=(input_dir, crop_height, crop_width, image_sets),
                 output_types=(tf.float32, tf.int32, tf.string),
             )
 
