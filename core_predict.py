@@ -19,7 +19,6 @@ from iseg.utils.data_loader import load_image_tensor_from_path
 from tqdm import tqdm
 
 
-@tf.function
 def predict_with_dir(
     distribute_strategy,
     batch_size,
