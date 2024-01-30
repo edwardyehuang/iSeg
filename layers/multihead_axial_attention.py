@@ -116,6 +116,9 @@ class MultiHeadAxialAttentionLayer (tf.keras.Model):
         v_attention_map = replace_nan(v_attention_map, tf.keras.backend.epsilon())
         u_attention_map = replace_nan(u_attention_map, tf.keras.backend.epsilon())
 
+        v_attention_map = replace_inf(v_attention_map)
+        u_attention_map = replace_inf(u_attention_map)
+
         v_attention_map = tf.clip_by_value(v_attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
         u_attention_map = tf.clip_by_value(u_attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
 
