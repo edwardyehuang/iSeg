@@ -16,58 +16,16 @@ from iseg.core_inference import *
 from iseg.core_model import SegBase
 from iseg.utils.data_loader import load_image_tensor_from_path
 
-def __load_batch_image_mapfn(input_path, output_name):
 
-    batch_size = tf.shape(input_path)[0]
-    max_height = tf.constant(1, tf.int32)
-    max_width = tf.constant(1, tf.int32)
-
-    batched_images = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True, name="batched_images")
-
-    orginal_sizes = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True, name="orginal_sizes")
-
-    for i in tf.range(batch_size):
-        image_tensor, _ = load_image_tensor_from_path(input_path[i])
-        image_tensor = tf.expand_dims(image_tensor, axis=0)
-        image_size = tf.shape(image_tensor)[1:3]
-
-        batched_images = batched_images.write(i, image_tensor)
-        orginal_sizes = orginal_sizes.write(i, image_size)
-
-        image_height = image_size[0] + 1 if image_size[0] % 2 == 0 else image_size[0]
-        image_width = image_size[1] + 1 if image_size[1] % 2 == 0 else image_size[1]
-
-        max_height = max_height if max_height >= image_height else image_height
-        max_width = max_width if max_width >= image_width else image_width
-
-    for i in tf.range(batch_size):
-
-        image_tensor = batched_images.read(i)
-        image_tensor = pad_to_bounding_box(image_tensor, 0, 0, max_height, max_width, pad_value=[127.5, 127.5, 127.5])
-        image_tensor = normalize_value_range(image_tensor)
-
-        batched_images = batched_images.write(i, image_tensor)
-
-    result_batched_images = batched_images.concat()
-    result_orginal_sizes = orginal_sizes.stack()
-
-    batched_images.close()
-    orginal_sizes.close()
-
-    tf.debugging.assert_equal(tf.shape(result_batched_images)[0], batch_size)
-    tf.debugging.assert_equal(tf.shape(result_orginal_sizes)[0], batch_size)
-
-    return result_batched_images, result_orginal_sizes, output_name
-
-
-
-@tf.function
+#@tf.function
 def predict_with_dir(
     distribute_strategy,
     batch_size,
     model,
     num_class,
     input_dir,
+    crop_height=513,
+    crop_width=513,
     image_count=0,
     image_sets=None,
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
@@ -87,13 +45,11 @@ def predict_with_dir(
         if image_sets is None:
             ds = tf.data.Dataset.from_generator(
                 dir_data_generator, 
-                output_types=(tf.string, tf.string), 
                 args=(input_dir)
             )
         else:
             ds = tf.data.Dataset.from_generator(
                 dir_data_generator_with_imagesets,
-                output_types=(tf.string, tf.string),
                 args=(input_dir, image_sets),
             )
 
@@ -105,7 +61,6 @@ def predict_with_dir(
         options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
         ds = ds.with_options(options)
 
-        ds = ds.map(__load_batch_image_mapfn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         ds = distribute_strategy.experimental_distribute_dataset(ds)
         # ds = ds.prefetch(buffer_size = tf.data.experimental.AUTOTUNE)
@@ -132,12 +87,17 @@ def predict_with_dir(
             tf.print("processed : ", counter)
 
 
-def dir_data_generator(input_dir):
+def dir_data_generator(input_dir, crop_height=513, crop_width=513):
 
-    return dir_data_generator_with_imagesets(input_dir)
+    return dir_data_generator_with_imagesets(input_dir, crop_height, crop_width)
 
 
-def dir_data_generator_with_imagesets(input_dir, image_sets=None):
+def dir_data_generator_with_imagesets(
+    input_dir, 
+    crop_height=513, 
+    crop_width=513, 
+    image_sets=None
+):
 
     for root, dirs, files in tf.io.gfile.walk(input_dir):
         for filename in files:
@@ -147,8 +107,24 @@ def dir_data_generator_with_imagesets(input_dir, image_sets=None):
 
             if image_sets is not None and str.encode(filename_wo_ext) not in image_sets:
                 continue
+            
+            image_tensor, _ = load_image_tensor_from_path(file_path)
+            image_tensor = tf.expand_dims(image_tensor, axis=0)
+            image_size = tf.shape(image_tensor)[1:3]
 
-            yield file_path, filename_wo_ext
+            image_tensor = pad_to_bounding_box(
+                image_tensor, 
+                0, 
+                0, 
+                crop_height, 
+                crop_width, 
+                pad_value=[127.5, 127.5, 127.5]
+            
+            )
+
+            image_tensor = normalize_value_range(image_tensor)
+
+            yield image_tensor, image_size, filename_wo_ext
 
             # output_path = tf.strings.join([output_dir, filename_wo_ext], separator=os.sep)
             # yield file_path, output_path
