@@ -60,7 +60,7 @@ class SegBase(tf.keras.Model):
 
         return results
 
-
+    @tf.function(reduce_retracing=True)
     def inference_with_scale(
         self, 
         inputs, 
@@ -115,6 +115,7 @@ class SegBase(tf.keras.Model):
 
         return logits
 
+    @tf.function(reduce_retracing=True)
     def inference_with_multi_scales(
         self, 
         inputs, 
