@@ -5,6 +5,8 @@
 
 import tensorflow as tf
 
+from iseg.utils.common import get_tensor_shape
+
 
 @tf.function
 def internel_inference(inputs, model, training=None):
@@ -166,18 +168,13 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
 
     return (slices_list_result, paddings_list_result, inference_count_map)
 
-@tf.function
+
 def inference_with_sliding_window(inputs, model, num_class=21, training=False, windows_size=(769, 769)):
 
     if windows_size is None:
         raise ValueError("Window size must not be None !!!!!!!!")
 
-    inputs_shape = tf.shape(inputs)
-    inputs_height = inputs_shape[1]
-    inputs_width = inputs_shape[2]
-
-    # stride_h = windows_size[0] if inputs_height > windows_size[0] else inputs_height
-    # stride_w = windows_size[1] if inputs_width > windows_size[1] else inputs_width
+    _, inputs_height, inputs_width, _ = get_tensor_shape(inputs)
 
     stride_h = tf.where(inputs_height > windows_size[0], windows_size[0], inputs_height)
     stride_w = tf.where(inputs_width > windows_size[1], windows_size[1], inputs_width)

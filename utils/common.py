@@ -106,7 +106,7 @@ def get_scaled_size_v2 (size, scale_rate=1.0):
 
 def get_scaled_size(inputs, scale_rate, pad_mode=0):
 
-    inputs_size = tf.shape(inputs)[1:3]
+    inputs_size = get_tensor_shape(inputs, return_list=True)[1:3]
 
     if pad_mode == 0:
         return get_scaled_size_v2(inputs_size, scale_rate)

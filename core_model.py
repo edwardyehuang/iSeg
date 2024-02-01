@@ -9,7 +9,7 @@ import numpy as np
 from tensorflow.python.keras.engine import data_adapter
 
 from iseg.core_inference import *
-from iseg.utils.common import resize_image, get_scaled_size
+from iseg.utils.common import resize_image, get_scaled_size, get_tensor_shape
 
 from iseg.metrics.utils import SegMetricBuilder
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
@@ -60,7 +60,7 @@ class SegBase(tf.keras.Model):
 
         return results
 
-    @tf.function(reduce_retracing=True)
+    @tf.function
     def inference_with_scale(
         self, 
         inputs, 
@@ -70,9 +70,10 @@ class SegBase(tf.keras.Model):
         resize_method="bilinear"
     ):
 
-        inputs_size = tf.shape(inputs)[1:3]
-
-        inputs = tf.raw_ops.SelectV2(condition=flip, t=tf.image.flip_left_right(inputs), e=inputs)
+        inputs_size = get_tensor_shape(inputs, return_list=True)[1:3]
+        
+        if flip:
+            inputs = tf.image.flip_left_right(inputs)
 
         sizes = get_scaled_size(inputs, scale_rate, pad_mode=1)
 
@@ -81,17 +82,12 @@ class SegBase(tf.keras.Model):
         sliding_window_size = self.inference_sliding_window_size
 
         if sliding_window_size is not None:
-            """
-            sliding_window_h = tf.cast(float(sliding_window_size[0]) * scale_rate, tf.int32)
-            sliding_window_w = tf.cast(float(sliding_window_size[1]) * scale_rate, tf.int32)
-
-            sliding_window_h = tf.where((sliding_window_h % 2 == 0) & (sliding_window_size[0] % 2 == 1), sliding_window_h + 1, sliding_window_h)
-            sliding_window_w = tf.where((sliding_window_w % 2 == 0) & (sliding_window_size[1] % 2 == 1), sliding_window_w + 1, sliding_window_w)
-            """
             sliding_window_h = tf.where(sliding_window_size[0] < sizes[0], sliding_window_size[0], sizes[0])
             sliding_window_w = tf.where(sliding_window_size[1] < sizes[1], sliding_window_size[1], sizes[1])
 
             sliding_window_size = (sliding_window_h, sliding_window_w)
+
+        print(f"sliding_window_size = {sliding_window_size}")
 
         logits = inference_fn(
             inputs,
@@ -108,14 +104,13 @@ class SegBase(tf.keras.Model):
         )
 
         logits = multi_results_handler(
-            logits, lambda x: tf.raw_ops.SelectV2(condition=flip, t=tf.image.flip_left_right(x), e=x)
+            logits, lambda x: tf.image.flip_left_right(x) if flip else x
         )
 
         logits = free_from_list_if_single(logits)
 
         return logits
 
-    @tf.function(reduce_retracing=True)
     def inference_with_multi_scales(
         self, 
         inputs, 
