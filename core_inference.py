@@ -6,6 +6,7 @@
 import tensorflow as tf
 
 from iseg.utils.common import get_tensor_shape, smart_where, isinstance_all
+from iseg.utils.sliding_window_inference_utils import get_sliding_start_indexs
 
 
 @tf.function
@@ -23,31 +24,6 @@ def inference_fn(inputs, model, num_class=21, training=False, sliding_window_cro
             inputs, num_class=num_class, model=model, training=training, windows_size=sliding_window_crop_size
         )
     return model_results
-
-@tf.function
-def get_sliding_start_indexs(length, crop_length):
-
-    stride_rate = 2.0 / 3.0
-
-    stride = tf.cast(stride_rate * tf.cast(crop_length, tf.float32), tf.int32)
-
-    times = (length - crop_length) // stride + 1
-
-    cond = length - (times - 1) * stride > crop_length
-
-    array_len = times + tf.cast(cond, tf.int32)
-    cropped_indexs = tf.TensorArray(tf.int32, size=array_len, dynamic_size=False, clear_after_read=False)
-
-    for i in range(times):
-        cropped_indexs = cropped_indexs.write(i, stride * i)
-
-    if cond:
-        cropped_indexs = cropped_indexs.write(times, length - crop_length)
-
-    results = cropped_indexs.stack()
-    cropped_indexs.close()
-
-    return results
 
 
 def check_if_tuple_or_list(inputs):
@@ -127,8 +103,12 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
     inference_count_map = tf.zeros(tf.stack([1, inputs_height, inputs_width, 1]), tf.int32)
     cropped_onces = tf.ones(tf.stack([1, stride_h, stride_w, 1]), tf.int32)  # [1, window_h, window_w, 1]
 
-    sliding_indexs_h_len = tf.shape(sliding_indexs_h)[0]
-    sliding_indexs_w_len = tf.shape(sliding_indexs_w)[0]
+    if isinstance_all([sliding_indexs_h, sliding_indexs_w], list):
+        sliding_indexs_h_len = len(sliding_indexs_h)
+        sliding_indexs_w_len = len(sliding_indexs_w)
+    else:
+        sliding_indexs_h_len = tf.shape(sliding_indexs_h)[0]
+        sliding_indexs_w_len = tf.shape(sliding_indexs_w)[0]
 
     total_sliding_indexs_len = sliding_indexs_h_len * sliding_indexs_w_len
 
