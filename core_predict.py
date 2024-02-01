@@ -20,11 +20,11 @@ from tqdm import tqdm
 
 
 def predict_with_dir(
-    distribute_strategy,
-    batch_size,
+    distribute_strategy : tf.distribute.Strategy,
+    batch_size : int,
     model,
-    num_class,
-    input_dir,
+    num_class : int,
+    input_dir : str,
     crop_height=513,
     crop_width=513,
     image_count=0,
@@ -32,7 +32,8 @@ def predict_with_dir(
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
     flip=True,
     output_dir=None,
-    image_predict_func=None
+    image_predict_func=None,
+    output_ext=".png",
 ):
     
     if image_predict_func is None:
@@ -54,7 +55,7 @@ def predict_with_dir(
         )
 
         ds = ds.repeat()
-        ds = ds.take(image_count + 1)
+        ds = ds.take(image_count + image_count % batch_size)
         ds = ds.batch(batch_size, drop_remainder=True)
 
         options = tf.data.Options()
@@ -66,27 +67,55 @@ def predict_with_dir(
         # ds = ds.prefetch(buffer_size = tf.data.experimental.AUTOTUNE)
 
         @tf.function
-        def step_fn(image_tensor, output_size, output_name):
+        def step_fn(image_tensor):
             image_tensor.set_shape([None, crop_height, crop_width, 3])
-            image_predict_func(
+            return image_predict_func(
                 model,
                 image_tensor=image_tensor,
-                output_size=output_size,
-                output_dir=output_dir,
-                output_name=output_name,
                 scale_rates=scale_rates,
                 flip=flip,
             )
 
-        counter = 0
 
         with tqdm(total=len(paths[0])) as pbar:
 
             for image_tensor, output_size, output_name in ds:
                 
-                distribute_strategy.run(step_fn, args=(image_tensor, output_size, output_name))
+                predicts = distribute_strategy.run(step_fn, args=(image_tensor,))
 
-                counter += batch_size
+                output_name = distribute_strategy.experimental_local_results(
+                    output_name
+                )
+
+                output_name = tf.concat(output_name, axis=0)
+                output_path = tf.strings.join([output_dir, output_name], separator=os.sep)
+
+                output_size = distribute_strategy.experimental_local_results(
+                    output_size
+                )
+                output_size = tf.concat(output_size, axis=0)
+
+                for i in range(len(predicts)):
+                    batch_predict = predicts[i]
+                    batch_predict = distribute_strategy.experimental_local_results(
+                        batch_predict
+                    )
+                    batch_predict = tf.concat(batch_predict, axis=0)
+
+                    for k in range(batch_size):
+                        predict = batch_predict[k]
+                        orginal_size = output_size[k]
+
+                        predict = tf.image.crop_to_bounding_box(predict, 0, 0, orginal_size[0], orginal_size[1])
+                        predict = tf.cast(predict, tf.uint8)
+
+                        png = tf.io.encode_png(predict)
+                        path = output_path[k]
+
+                        if i > 0:
+                            path = path + "_{}".format(i)
+
+                        tf.io.write_file(path + output_ext, png)
 
                 pbar.update(batch_size)
 
@@ -140,14 +169,10 @@ def data_process (crop_height, crop_width):
 def default_image_predict(
     model: SegBase,
     image_tensor,
-    output_size,
-    output_dir,
-    output_name,
-    output_ext=".png",
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
     flip=True,
 ):
-    output_path = tf.strings.join([output_dir, output_name], separator=os.sep)
+    
 
     image_tensor = tf.cast(image_tensor, tf.float32)
 
@@ -159,21 +184,6 @@ def default_image_predict(
     )  # Now the size = [N, h, w]
     predicts = multi_results_handler(predicts, lambda x: tf.expand_dims(x, axis=-1))  # Now the size = [N, h, w, 1]
 
-    for i in range(len(predicts)):
-        batch_predict = predicts[i]
-        batch_size = tf.shape(batch_predict)[0]
+    return predicts
 
-        for j in tf.range(batch_size):
-            predict = batch_predict[j]
-            orginal_size = output_size[j]
 
-            predict = tf.image.crop_to_bounding_box(predict, 0, 0, orginal_size[0], orginal_size[1])
-            predict = tf.cast(predict, tf.uint8)
-
-            png = tf.io.encode_png(predict)
-            path = output_path[j]
-
-            if i > 0:
-                path = path + "_{}".format(i)
-
-            tf.io.write_file(path + output_ext, png)
