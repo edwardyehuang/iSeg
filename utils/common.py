@@ -54,6 +54,27 @@ def get_tensor_shape(x, return_list=False):
 
     return tuple(shapes)
 
+def isinstance_all (inputs, t):
+
+    for x in inputs:
+        if not isinstance(x, t):
+            return False
+        
+    return True
+
+
+def smart_where(cond, x, y, name=None):
+    if name is None:
+        name = "smart_where"
+
+    if isinstance(cond, bool):
+        if cond:
+            return x
+        else:
+            return y
+
+    return tf.where(cond, x, y, name=name)
+
 
 def resize_image(images, size, method=None, name=None):
 
@@ -118,11 +139,18 @@ def get_scaled_size(inputs, scale_rate, pad_mode=0):
     inputs_size_h = inputs_size[0]
     inputs_size_w = inputs_size[1]
 
-    target_size_h = tf.cast(scale_rate * tf.cast(inputs_size_h, tf.float32), tf.int32)
-    target_size_w = tf.cast(scale_rate * tf.cast(inputs_size_w, tf.float32), tf.int32)
+    if isinstance_all([inputs_size_h, inputs_size_w], int):
+        target_size_h = int(scale_rate * inputs_size_h)
+        target_size_w = int(scale_rate * inputs_size_w)
+    else:
+        target_size_h = tf.cast(scale_rate * tf.cast(inputs_size_h, tf.float32), tf.int32)
+        target_size_w = tf.cast(scale_rate * tf.cast(inputs_size_w, tf.float32), tf.int32)
 
-    target_size_h = tf.where((target_size_h % 2 == 0) & (inputs_size_h % 2 != 0), target_size_h + pad_size, target_size_h)
-    target_size_w = tf.where((target_size_w % 2 == 0) & (inputs_size_w % 2 != 0), target_size_w + pad_size, target_size_w)
+    cond_h = (target_size_h % 2 == 0) & (inputs_size_h % 2 != 0)
+    cond_w = (target_size_w % 2 == 0) & (inputs_size_w % 2 != 0)
+
+    target_size_h = smart_where(cond_h, target_size_h + pad_size, target_size_h)
+    target_size_w = smart_where(cond_w, target_size_w + pad_size, target_size_w)
 
     sizes = [target_size_h, target_size_w]
 

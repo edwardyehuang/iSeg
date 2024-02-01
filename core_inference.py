@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 
-from iseg.utils.common import get_tensor_shape
+from iseg.utils.common import get_tensor_shape, smart_where, isinstance_all
 
 
 @tf.function
@@ -25,7 +25,7 @@ def inference_fn(inputs, model, num_class=21, training=False, sliding_window_cro
     return model_results
 
 @tf.function
-def get_sliding_start_indexs_v2(length, crop_length):
+def get_sliding_start_indexs(length, crop_length):
 
     stride_rate = 2.0 / 3.0
 
@@ -121,8 +121,8 @@ def create_base_tensor_for_cropped_result(tensor, full_size):
 @tf.function
 def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, inputs_width):
 
-    sliding_indexs_h = get_sliding_start_indexs_v2(inputs_height, stride_h)  # [None]
-    sliding_indexs_w = get_sliding_start_indexs_v2(inputs_width, stride_w)  # [None]
+    sliding_indexs_h = get_sliding_start_indexs(inputs_height, stride_h)  # [None]
+    sliding_indexs_w = get_sliding_start_indexs(inputs_width, stride_w)  # [None]
 
     inference_count_map = tf.zeros(tf.stack([1, inputs_height, inputs_width, 1]), tf.int32)
     cropped_onces = tf.ones(tf.stack([1, stride_h, stride_w, 1]), tf.int32)  # [1, window_h, window_w, 1]
@@ -176,8 +176,8 @@ def inference_with_sliding_window(inputs, model, num_class=21, training=False, w
 
     _, inputs_height, inputs_width, _ = get_tensor_shape(inputs)
 
-    stride_h = tf.where(inputs_height > windows_size[0], windows_size[0], inputs_height)
-    stride_w = tf.where(inputs_width > windows_size[1], windows_size[1], inputs_width)
+    stride_h = smart_where(inputs_height > windows_size[0], windows_size[0], inputs_height)
+    stride_w = smart_where(inputs_width > windows_size[1], windows_size[1], inputs_width)
 
     slices_list, paddings_list, inference_count_map = get_sliding_window_slices_paddings_list(
         stride_h, stride_w, inputs_height, inputs_width

@@ -9,7 +9,7 @@ import numpy as np
 from tensorflow.python.keras.engine import data_adapter
 
 from iseg.core_inference import *
-from iseg.utils.common import resize_image, get_scaled_size, get_tensor_shape
+from iseg.utils.common import resize_image, get_scaled_size, get_tensor_shape, smart_where
 
 from iseg.metrics.utils import SegMetricBuilder
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
@@ -82,12 +82,10 @@ class SegBase(tf.keras.Model):
         sliding_window_size = self.inference_sliding_window_size
 
         if sliding_window_size is not None:
-            sliding_window_h = tf.where(sliding_window_size[0] < sizes[0], sliding_window_size[0], sizes[0])
-            sliding_window_w = tf.where(sliding_window_size[1] < sizes[1], sliding_window_size[1], sizes[1])
+            sliding_window_h = smart_where(sliding_window_size[0] < sizes[0], sliding_window_size[0], sizes[0])
+            sliding_window_w = smart_where(sliding_window_size[1] < sizes[1], sliding_window_size[1], sizes[1])
 
             sliding_window_size = (sliding_window_h, sliding_window_w)
-
-        print(f"sliding_window_size = {sliding_window_size}")
 
         logits = inference_fn(
             inputs,
@@ -134,9 +132,6 @@ class SegBase(tf.keras.Model):
         logits_sum_list = None
 
         def loop_body(image, scale_rate=1.0, inner_flip=False):
-
-            scale_rate = tf.constant(scale_rate)
-            inner_flip = tf.convert_to_tensor(inner_flip)
 
             logits_list = self.inference_with_scale(
                 image, 
