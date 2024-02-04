@@ -190,7 +190,7 @@ def default_image_predict(
     flip=True,
 ):
     
-    image_tensor = tf.cast(image_tensor, tf.int32)
+    # image_tensor = tf.cast(image_tensor, tf.int32)
 
     logits = model.inference_with_multi_scales(
         image_tensor, 
