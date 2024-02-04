@@ -18,6 +18,7 @@ class SegManaged(SegFoundation):
         self,
         backbone_name=ss.RESNET50,
         backbone_weights_path=None,
+        backbone_use_xla=False,
         output_stride=32,
         num_class=21,
         num_aux_loss=0,
@@ -58,6 +59,7 @@ class SegManaged(SegFoundation):
 
         self.backbone_name = backbone_name
         self.backbone_weights_path = backbone_weights_path
+        self.backbone_use_xla = backbone_use_xla
         self.output_stride = output_stride
 
         self.label_as_backbone_inputs = label_as_backbone_inputs
@@ -107,7 +109,20 @@ class SegManaged(SegFoundation):
 
 
         return aux_logits_convs
+    
+    @tf.function(jit_compile=True)
+    def compute_backbone_results_xla (self, backbone_inputs, training=None):
 
+        return self.backbone(backbone_inputs, training=training)
+    
+
+    def compute_backbone_results (self, backbone_inputs, training=None):
+        
+        if self.backbone_use_xla:
+            return self.compute_backbone_results_xla(backbone_inputs, training=training)
+        
+        return self.backbone(backbone_inputs, training=training)
+        
 
     def compute_head_results (self, head_inputs, training=None):
 
@@ -196,7 +211,7 @@ class SegManaged(SegFoundation):
         if self.label_as_inputs and self.label_as_backbone_inputs:
             backbone_inputs = [backbone_inputs, label]
 
-        endpoints = self.backbone(backbone_inputs, training=training)
+        endpoints = self.compute_backbone_results(backbone_inputs, training=training)
 
         # Compute head results
 

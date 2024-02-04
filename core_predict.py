@@ -75,6 +75,10 @@ def predict_with_dir(
 
             nonlocal compiled_image_predict_func
             if compiled_image_predict_func is None:
+
+                if hasattr(model, "backbone_use_xla"):
+                    model.backbone_use_xla = False
+
                 compiled_image_predict_func = tf.function(
                     image_predict_func, 
                     autograph=False,
@@ -84,6 +88,7 @@ def predict_with_dir(
                     scale_rates,
                     flip,
                 )
+
 
             return compiled_image_predict_func(
                 image_tensor,
