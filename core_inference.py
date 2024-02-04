@@ -14,15 +14,18 @@ def internel_inference(inputs, model, training=None):
 
     return model(inputs, training=training)
 
-
+@tf.function(autograph=False)
 def inference_fn(inputs, model, num_class=21, training=False, sliding_window_crop_size=None):
 
     if sliding_window_crop_size is None:
         model_results = internel_inference(inputs, model, training=training)
     else:
         model_results = inference_with_sliding_window(
-            inputs, num_class=num_class, model=model, training=training, windows_size=sliding_window_crop_size
+            inputs, model=model, training=training, windows_size=sliding_window_crop_size
         )
+
+        print(inference_with_sliding_window.pretty_printed_concrete_signatures())
+
     return model_results
 
 
@@ -86,7 +89,7 @@ def multi_results_handler(multi_inputs, seg_map_handler, others_handler=None):
 def multi_results_add(v0, v1):
     return [a + b for a, b in zip(v0, v1)]
 
-
+@tf.function(autograph=True, jit_compile=True)
 def create_base_tensor_for_cropped_result(tensor, full_size):
     def seg_map_handler(x):
         tensor_shape = tf.shape(x)
@@ -94,7 +97,7 @@ def create_base_tensor_for_cropped_result(tensor, full_size):
 
     return multi_results_handler(tensor, seg_map_handler, lambda x: tf.zeros_like(x))
 
-@tf.function
+@tf.function(autograph=False)
 def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, inputs_width):
 
     sliding_indexs_h = get_sliding_start_indexs(inputs_height, stride_h)  # [None]
@@ -119,8 +122,9 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
         tf.int32, size=total_sliding_indexs_len, dynamic_size=False, clear_after_read=False, name="paddings_list"
     )
 
-    for i in range(total_sliding_indexs_len):
+    # for i in tf.range(total_sliding_indexs_len):
 
+    def loop_body(i, _slices_list, _paddings_list, _inference_count_map):
         j = i // sliding_indexs_w_len
         k = i % sliding_indexs_w_len
 
@@ -133,12 +137,20 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
         pad_right = inputs_width - right
 
         paddings = [[0, 0], [top, pad_bottom], [left, pad_right], [0, 0]]
-        inference_count_map += tf.pad(cropped_onces, paddings)
+        _inference_count_map += tf.pad(cropped_onces, paddings)
 
         slice_indexs = [top, bottom, left, right]
 
-        slices_list = slices_list.write(i, slice_indexs)
-        paddings_list = paddings_list.write(i, paddings)
+        _slices_list = _slices_list.write(i, slice_indexs)
+        _paddings_list = _paddings_list.write(i, paddings)
+
+        return tf.add(i, 1), _slices_list, _paddings_list, _inference_count_map
+    
+    _, slices_list, paddings_list, inference_count_map = tf.while_loop(
+        lambda i, *_: i < total_sliding_indexs_len,
+        loop_body,
+        [0, slices_list, paddings_list, inference_count_map],
+    )
 
     slices_list_result = slices_list.stack()
     paddings_list_result = paddings_list.stack()
@@ -148,8 +160,10 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
 
     return (slices_list_result, paddings_list_result, inference_count_map)
 
+@tf.function(autograph=False)
+def inference_with_sliding_window(inputs, model, training=False, windows_size=(769, 769)):
 
-def inference_with_sliding_window(inputs, model, num_class=21, training=False, windows_size=(769, 769)):
+    print("trace: inference_with_sliding_window")
 
     if windows_size is None:
         raise ValueError("Window size must not be None !!!!!!!!")
@@ -163,10 +177,8 @@ def inference_with_sliding_window(inputs, model, num_class=21, training=False, w
         stride_h, stride_w, inputs_height, inputs_width
     )
 
-    results = None
-
     total_sliding_indexs_len = tf.shape(slices_list)[0]
-
+    
     def loop_body(i, results=None):
 
         slices_indexs = slices_list[i]
@@ -179,26 +191,31 @@ def inference_with_sliding_window(inputs, model, num_class=21, training=False, w
         cropped_results = convert_to_list_if_single(cropped_results)
 
         if results is None:
-            results = create_base_tensor_for_cropped_result(cropped_results, (inputs_height, inputs_width))
+            results = create_base_tensor_for_cropped_result(
+                cropped_results, 
+                (inputs_height, inputs_width)
+            )
 
-        cropped_results = multi_results_handler(cropped_results, seg_map_handler=lambda x: tf.pad(x, paddings))
+        cropped_results = multi_results_handler(
+            cropped_results, 
+            seg_map_handler=lambda x: tf.pad(x, paddings)
+        )
 
         results = multi_results_add(results, cropped_results)
 
-        return i, results
+        return tf.add(i, 1), results
 
     _, results = loop_body(tf.constant(0))
 
-    for i in range(1, total_sliding_indexs_len):
-        _, results = loop_body(i, results)
+    _, results = tf.while_loop(
+        lambda i, _: i < total_sliding_indexs_len, 
+        loop_body, 
+        [1, results]
+    )
 
     inference_count_map = tf.cast(inference_count_map, dtype=results[0].dtype)
 
     results = multi_results_handler(results, lambda r: r / inference_count_map)
-
-    # sliding_indexs_h.close()
-    # sliding_indexs_w.close()
-
     results = free_from_list_if_single(results)
 
     return results

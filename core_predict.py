@@ -18,7 +18,6 @@ from iseg.utils.data_loader import load_image_tensor_from_path
 
 from tqdm import tqdm
 
-
 def predict_with_dir(
     distribute_strategy : tf.distribute.Strategy,
     batch_size : int,
@@ -38,6 +37,8 @@ def predict_with_dir(
     
     if image_predict_func is None:
         image_predict_func = default_image_predict
+
+    compiled_image_predict_func = None
 
     if not tf.io.gfile.exists(output_dir):
         tf.io.gfile.makedirs(output_dir)
@@ -66,22 +67,38 @@ def predict_with_dir(
         ds = distribute_strategy.experimental_distribute_dataset(ds)
         # ds = ds.prefetch(buffer_size = tf.data.experimental.AUTOTUNE)
 
-        @tf.function
+        @tf.function(autograph=False)
         def step_fn(image_tensor):
-            image_tensor.set_shape([None, crop_height, crop_width, 3])
-            return image_predict_func(
-                model,
-                image_tensor=image_tensor,
-                scale_rates=scale_rates,
-                flip=flip,
-            )
 
+            curent_dtype = tf.keras.backend.floatx()
+            image_tensor = tf.cast(image_tensor, curent_dtype)
+
+            nonlocal compiled_image_predict_func
+            if compiled_image_predict_func is None:
+                compiled_image_predict_func = tf.function(
+                    image_predict_func, 
+                    autograph=False,
+                ).get_concrete_function(
+                    model,
+                    tf.TensorSpec([None, None, None, 3], curent_dtype),
+                    scale_rates,
+                    flip,
+                )
+
+            return compiled_image_predict_func(
+                image_tensor,
+            )
+        
+        @tf.function(autograph=False)
+        def run_fn (image_tensor):
+            return distribute_strategy.run(step_fn, args=(image_tensor,))
+        
 
         with tqdm(total=len(paths[0])) as pbar:
 
             for image_tensor, output_size, output_name in ds:
                 
-                predicts = distribute_strategy.run(step_fn, args=(image_tensor,))
+                predicts = run_fn(image_tensor)
 
                 output_name = distribute_strategy.experimental_local_results(
                     output_name
@@ -173,10 +190,14 @@ def default_image_predict(
     flip=True,
 ):
     
+    image_tensor = tf.cast(image_tensor, tf.int32)
 
-    image_tensor = tf.cast(image_tensor, tf.float32)
-
-    logits = model.inference_with_multi_scales(image_tensor, training=False, scale_rates=scale_rates, flip=flip)
+    logits = model.inference_with_multi_scales(
+        image_tensor, 
+        training=False, 
+        scale_rates=scale_rates, 
+        flip=flip
+    )
 
     logits = convert_to_list_if_single(logits)
     predicts = multi_results_handler(

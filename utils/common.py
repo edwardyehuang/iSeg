@@ -139,7 +139,7 @@ def get_scaled_size(inputs, scale_rate, pad_mode=0):
     inputs_size_h = inputs_size[0]
     inputs_size_w = inputs_size[1]
 
-    if isinstance_all([inputs_size_h, inputs_size_w], int):
+    if isinstance_all([inputs_size_h, inputs_size_w, scale_rate], int):
         target_size_h = int(scale_rate * inputs_size_h)
         target_size_w = int(scale_rate * inputs_size_w)
     else:

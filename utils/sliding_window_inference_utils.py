@@ -2,6 +2,7 @@ import tensorflow as tf
 
 from iseg.utils.common import isinstance_all
 
+@tf.function(autograph=False, jit_compile=True)
 def get_sliding_start_indexs(length, crop_length):
 
     stride_rate = 2.0 / 3.0
@@ -31,7 +32,6 @@ def _get_sliding_start_indexs_py (length, crop_length, stride_rate):
     return cropped_indexs
 
 
-@tf.function
 def _get_sliding_start_indexs_graph (length, crop_length, stride_rate):
 
     stride = tf.cast(stride_rate * tf.cast(crop_length, tf.float32), tf.int32)
@@ -43,11 +43,20 @@ def _get_sliding_start_indexs_graph (length, crop_length, stride_rate):
     array_len = times + tf.cast(cond, tf.int32)
     cropped_indexs = tf.TensorArray(tf.int32, size=array_len, dynamic_size=False, clear_after_read=False)
 
-    for i in range(times):
-        cropped_indexs = cropped_indexs.write(i, stride * i)
+    def loop_body(i, _cropped_indexs):
+        return tf.add(i, 1), _cropped_indexs.write(i, stride * i)
+    
+    _, cropped_indexs = tf.while_loop(
+        lambda i, _: i < times,
+        loop_body,
+        [0, cropped_indexs]
+    )
 
-    if cond:
-        cropped_indexs = cropped_indexs.write(times, length - crop_length)
+    cropped_indexs = tf.cond(
+        cond,
+        lambda: cropped_indexs.write(times, length - crop_length),
+        lambda: cropped_indexs
+    )
 
     results = cropped_indexs.stack()
     cropped_indexs.close()

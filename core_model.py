@@ -60,7 +60,7 @@ class SegBase(tf.keras.Model):
 
         return results
 
-    @tf.function
+    @tf.function(autograph=False)
     def inference_with_scale(
         self, 
         inputs, 
@@ -77,6 +77,7 @@ class SegBase(tf.keras.Model):
 
         sizes = get_scaled_size(inputs, scale_rate, pad_mode=1)
 
+        inputs = tf.cast(inputs, tf.float32)
         inputs = resize_image(inputs, sizes, method=resize_method, name="inference_resize")
 
         sliding_window_size = self.inference_sliding_window_size
@@ -117,11 +118,6 @@ class SegBase(tf.keras.Model):
         flip=False,
         resize_method="bilinear",
     ):
-
-        # print("Traced ! ! inference_with_multi_scales.")
-
-        # inputs_size = inputs.shape[1:3]
-
         num_rates = len(scale_rates)
 
         divide_factor = num_rates
@@ -131,6 +127,7 @@ class SegBase(tf.keras.Model):
 
         logits_sum_list = None
 
+        @tf.function(autograph=False)
         def loop_body(image, scale_rate=1.0, inner_flip=False):
 
             logits_list = self.inference_with_scale(
@@ -143,10 +140,18 @@ class SegBase(tf.keras.Model):
 
             return convert_to_list_if_single(logits_list)
 
-        logits_sum_list = loop_body(inputs, scale_rates[0], inner_flip=False)
+        logits_sum_list = loop_body(
+            inputs, 
+            tf.constant(scale_rates[0]), 
+            inner_flip=False
+        )
 
         for i in range(1, num_rates):
-            logits_list = loop_body(inputs, scale_rates[i], inner_flip=False)
+            logits_list = loop_body(
+                inputs, 
+                tf.constant(scale_rates[i]), 
+                inner_flip=False
+            )
             logits_sum_list = multi_results_add(logits_sum_list, logits_list)
 
         if flip:
@@ -154,7 +159,7 @@ class SegBase(tf.keras.Model):
             logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.image.flip_left_right(x))
 
             for i in range(0, num_rates):
-                logits_list = loop_body(inputs, scale_rates[i], inner_flip=False)
+                logits_list = loop_body(inputs, tf.constant(scale_rates[i]), inner_flip=False)
                 logits_sum_list = multi_results_add(logits_sum_list, logits_list)
 
             logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.image.flip_left_right(x))
