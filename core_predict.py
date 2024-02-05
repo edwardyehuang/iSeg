@@ -76,12 +76,10 @@ def predict_with_dir(
             nonlocal compiled_image_predict_func
             if compiled_image_predict_func is None:
 
-                if hasattr(model, "backbone_use_xla"):
-                    model.backbone_use_xla = False
-
                 compiled_image_predict_func = tf.function(
                     image_predict_func, 
                     autograph=False,
+                    reduce_retracing=True,
                 ).get_concrete_function(
                     model,
                     tf.TensorSpec([None, None, None, 3], curent_dtype),

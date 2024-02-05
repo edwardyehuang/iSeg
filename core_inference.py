@@ -24,7 +24,7 @@ def inference_fn(inputs, model, num_class=21, training=False, sliding_window_cro
             inputs, model=model, training=training, windows_size=sliding_window_crop_size
         )
 
-        print(inference_with_sliding_window.pretty_printed_concrete_signatures())
+        # print(inference_with_sliding_window.pretty_printed_concrete_signatures())
 
     return model_results
 

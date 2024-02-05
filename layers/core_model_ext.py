@@ -110,7 +110,7 @@ class SegManaged(SegFoundation):
 
         return aux_logits_convs
     
-    @tf.function(jit_compile=True)
+    @tf.function(jit_compile=True, autograph=False)
     def compute_backbone_results_xla (self, backbone_inputs, training=None):
 
         return self.backbone(backbone_inputs, training=training)
