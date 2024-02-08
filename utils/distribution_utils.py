@@ -64,7 +64,7 @@ def get_distribution_strategy(
         )
     else:
         strategy = tf.distribute.MirroredStrategy(
-            evices=dist_devices, cross_device_ops=cross_device_ops
+            devices=dist_devices, cross_device_ops=cross_device_ops
         )
     # issue 41539 may be fixed: https://github.com/tensorflow/tensorflow/issues/41539
     # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(communication= tf.distribute.experimental.CollectiveCommunication.RING)
