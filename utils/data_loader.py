@@ -6,15 +6,19 @@ from iseg.data_process.augments.pad_to_odd_augment import pad_to_odd
 
 
 def load_label_to_tensor(label_path):
-    label_tensor = tf.py_function(__load_label_to_tensor_internel, [label_path], tf.int32)
+    label_tensor = tf.py_function(_load_label_to_tensor_internel, [label_path], tf.int32)
     label_tensor.set_shape([None, None, 1])
 
     return label_tensor
 
 
-def __load_label_to_tensor_internel(path_tensor):
+def _load_label_to_tensor_internel(path_tensor):
 
-    label_path = path_tensor.numpy()
+    if isinstance(path_tensor, str):
+        label_path = path_tensor
+    else:
+        label_path = path_tensor.numpy()
+
     label_image = Image.open(label_path)
     label_array = tf.keras.preprocessing.image.img_to_array(label_image, "channels_last")
     label_image.close()
