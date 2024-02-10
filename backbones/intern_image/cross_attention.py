@@ -5,8 +5,7 @@
 
 import tensorflow as tf
 
-from iseg.layers.model_builder import get_tensor_shape_v2
-
+from iseg.utils import get_tensor_shape
 from iseg.backbones.intern_image.utils import extract_qkv
 
 class CrossAttention(tf.keras.Model):
@@ -95,7 +94,7 @@ class CrossAttention(tf.keras.Model):
 
         q, k, v = extract_qkv(x)
         
-        batch_size, height, width, channels = get_tensor_shape_v2(q)
+        batch_size, height, width, channels = get_tensor_shape(q)
 
         q, k, v = self.q(q), self.k(k), self.v(v)
         hw = height * width

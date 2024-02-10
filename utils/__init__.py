@@ -4,4 +4,4 @@
 # ================================================================
 
 from iseg.utils.sugars import *
-from iseg.utils.common import resize_image
+from iseg.utils.common import resize_image, get_tensor_shape

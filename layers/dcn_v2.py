@@ -3,7 +3,7 @@
 
 import tensorflow as tf
 
-from iseg.layers.model_builder import get_tensor_shape_v2
+from iseg.utils import get_tensor_shape
 
 class DCNv2(tf.keras.layers.Layer):
     def __init__(
@@ -96,7 +96,7 @@ class DCNv2(tf.keras.layers.Layer):
         #offset: [B, H, W, ic] convx [kh, kw, ic, 3 * groups * kh * kw] ---> [B, H, W, 3 * groups * kh * kw]
         offset = tf.nn.conv2d(offset, self.offset_kernel, strides = self.stride, padding = 'SAME')
         offset += self.offset_bias
-        bs, ih, iw, ic = get_tensor_shape_v2(x)
+        bs, ih, iw, ic = get_tensor_shape(x)
 
         #[B, H, W, 18], [B, H, W, 9]
         oyox, mask = offset[..., :2*self.ks], offset[..., 2*self.ks:]

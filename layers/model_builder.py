@@ -294,33 +294,3 @@ def drop_connect(inputs, drop_connect_rate, training=None):
     binary_tensor = tf.floor(random_tensor)
     output = tf.div(inputs, keep_prob) * binary_tensor
     return output
-
-
-def get_tensor_shape(x, static_dims=[-1]):
-
-    if not isinstance(static_dims, (list, tuple)):
-        static_dims = [static_dims]
-
-    for i in range(len(static_dims)):
-        if static_dims[i] < 0:
-            static_dims[i] += len(x.shape)
-
-    dynamic_shape = tf.shape(x)
-
-    results = []
-
-    for i in range(len(x.shape)):
-
-        s = dynamic_shape[i]
-
-        if i in static_dims:
-            s = x.shape[i]
-
-        results.append(s)
-
-    return tuple(results)
-
-
-def get_tensor_shape_v2(x, return_list=False):
-
-    return _get_tensor_shape(x, return_list=return_list)

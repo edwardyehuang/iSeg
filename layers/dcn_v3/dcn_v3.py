@@ -8,7 +8,7 @@ import tensorflow as tf
 
 from iseg.layers.dcn_v3.op import dcnv3_op
 
-from iseg.layers.model_builder import get_tensor_shape_v2
+from iseg.utils import get_tensor_shape
 
 LAYER_NORM_EPSILON = 1e-6
 
@@ -105,7 +105,7 @@ class DeformableConvolutionV3 (tf.keras.Model):
 
     def call(self, inputs, training=False):
         
-        batch_size, height, width, channels = get_tensor_shape_v2(inputs)
+        batch_size, height, width, channels = get_tensor_shape(inputs)
 
         x = inputs
         

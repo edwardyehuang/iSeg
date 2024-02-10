@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 
-from iseg.layers.model_builder import get_tensor_shape_v2
+from iseg.utils import get_tensor_shape
 
 
 class PatchDropout (tf.keras.layers.Layer):
@@ -45,7 +45,7 @@ class PatchDropout (tf.keras.layers.Layer):
         else:
             prefix_tokens = None
 
-        batch_size, num_patches, channels = get_tensor_shape_v2(x)
+        batch_size, num_patches, _ = get_tensor_shape(x)
 
         num_keep = max(1, int(num_patches * (1. - self.prob)))
         rand = tf.random.normal([batch_size, num_patches])

@@ -6,7 +6,7 @@
 import tensorflow as tf
 
 from iseg.layers.dcn_v3.utils import get_reference_points, generate_dilation_grids, dcnv3_bilinear_sampler
-from iseg.layers.model_builder import get_tensor_shape_v2
+from iseg.utils import get_tensor_shape
 
 @tf.function(
     jit_compile=True,
@@ -45,10 +45,10 @@ def dcnv3_op (
     
     x = tf.pad(x, [[0, 0], [pad_h, pad_h], [pad_w, pad_w], [0, 0]])
 
-    input_shape = get_tensor_shape_v2(x)
+    input_shape = get_tensor_shape(x)
 
     batch_size, height_in, width_in, channels = input_shape
-    _, height_out, width_out, _ = get_tensor_shape_v2(offset)
+    _, height_out, width_out, _ = get_tensor_shape(offset)
 
 
     ref = get_reference_points(

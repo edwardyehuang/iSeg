@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 
-from iseg.layers.model_builder import get_tensor_shape_v2
+from iseg.utils import get_tensor_shape
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat, apply_rot_embed_cat
 
 LAYER_NORM_EPSILON = 1e-6
@@ -98,7 +98,7 @@ class EvaAttention (tf.keras.Model):
         x = inputs[0]
         rope = inputs[1]
 
-        batch_size, hw, channels = get_tensor_shape_v2(x)
+        batch_size, hw, channels = get_tensor_shape(x)
 
         if self.qkv_fused:
             qkv = self.qkv(x)

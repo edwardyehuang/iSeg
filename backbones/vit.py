@@ -7,7 +7,8 @@ import numpy as np
 import tensorflow as tf
 
 from iseg.utils.attention_utils import flatten_hw
-from iseg.layers.model_builder import get_tensor_shape, get_training_value
+from iseg.utils.common import get_tensor_shape
+from iseg.layers.model_builder import get_training_value
 from iseg.layers.common_layers import PatchEmbed
 from iseg.utils.drops import drop_path
 

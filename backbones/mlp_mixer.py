@@ -6,7 +6,7 @@
 import iseg.static_strings as ss
 import tensorflow as tf
 
-from iseg.layers.model_builder import get_tensor_shape
+from iseg.utils.common import get_tensor_shape
 
 
 class MLPBlock(tf.keras.Model):

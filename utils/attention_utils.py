@@ -7,8 +7,6 @@ import tensorflow as tf
 
 import numpy as np
 
-from iseg.layers.model_builder import get_tensor_shape
-
 
 def flatten_hw(inputs):
 

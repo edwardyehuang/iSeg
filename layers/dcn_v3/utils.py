@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 
-from iseg.layers.model_builder import get_tensor_shape_v2
+from iseg.utils import get_tensor_shape
 
 @tf.function(
     jit_compile=True,
@@ -177,7 +177,7 @@ def dcnv3_bilinear_sampler(img, grid, mask):
     all_x = tf.stack([x0, x0, x1, x1], axis=1) # [kh*kw, 4, N, H*W]
     all_y = tf.stack([y0, y1, y0, y1], axis=1) # [kh*kw, 4, N, H*W]
 
-    grid_shapes = get_tensor_shape_v2(all_x)
+    grid_shapes = get_tensor_shape(all_x)
 
     kernel_size = grid_shapes[0]
     batch_size = grid_shapes[2]
