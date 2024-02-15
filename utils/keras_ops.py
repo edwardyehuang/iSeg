@@ -217,7 +217,9 @@ def replace_inf(x):
 
 
 def replace_nan_or_inf(x, nan_value=0.0):
-    return replace_inf(replace_nan(x, nan_value))
+    
+    with tf.name_scope("replace_nan_or_inf"):
+        return replace_inf(replace_nan(x, nan_value))
 
 
 class HookLayer(tf.keras.Model):
