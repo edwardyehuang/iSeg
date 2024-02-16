@@ -23,6 +23,8 @@ from iseg.backbones.vit import ViT16B, ViT16L, ViT16B_SAM
 from iseg.backbones.intern_image.intern_image import intern_image_tiny, intern_image_small, intern_image_huge
 from iseg.backbones.eva.eva import EVA02_large_patch14_448, EVA02_large_patch14_224, EVA02_tiny_patch_14_336
 
+from iseg.utils.keras_ops import load_h5_weight
+
 
 def get_backbone(
     name=ss.RESNET50,
@@ -114,7 +116,7 @@ def get_backbone(
     if not name in backbone_dicts:
         raise ValueError(f"Backbone {name} currently not supported")
 
-    backbone = backbone_dicts[name](**general_kwargs)
+    backbone : tf.keras.Model = backbone_dicts[name](**general_kwargs)
 
     if ss.RESNET in name:
         build_atrous_resnet(backbone, output_stride=output_stride)
@@ -142,7 +144,8 @@ def get_backbone(
 
         if ".h5" in weights_path[-3:]:
             print(f"Load backbone weights {weights_path} as H5 format")
-            backbone.load_weights(weights_path, by_name=True) 
+            # backbone.load_weights(weights_path, by_name=True) 
+            load_h5_weight(backbone, weights_path)
         elif ".ckpt" in weights_path[-5:]:
             print(f"Load backbone weights {weights_path} as ckpt format")
             backbone.load_weights(weights_path)

@@ -204,6 +204,12 @@ class Block(tf.keras.Model):
         if drop_rate > 0:
             self.dropout = tf.keras.layers.Dropout(drop_rate, noise_shape=(None, 1, 1, 1))
 
+
+    def build(self, input_shape):
+
+        super().build(input_shape)
+
+
     def call(self, inputs, training=None):
 
         x = inputs
@@ -243,7 +249,7 @@ class Block(tf.keras.Model):
             if self.drop_rate > 0:
                 x = self.dropout(x, training=training)
 
-            x = tf.add(x, inputs, name=self.name + "add")
+            x += tf.cast(inputs, x.dtype)
 
         return x
 
@@ -323,6 +329,12 @@ class EfficientNet(tf.keras.Model):
         )
 
         self.top_bn = normalization(name="top_bn")
+
+
+    def build(self, input_shape):
+
+        super().build(input_shape)
+
 
     def call(self, inputs, training=None, **kwargs):
 
