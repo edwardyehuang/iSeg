@@ -6,10 +6,11 @@
 import tensorflow as tf
 
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 LAYER_NORM_EPSILON = 1e-6
 
-class StemLayer (tf.keras.Model):
+class StemLayer (Keras3_Model_Wrapper):
 
     def __init__(
         self, 

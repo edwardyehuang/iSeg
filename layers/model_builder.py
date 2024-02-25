@@ -10,6 +10,7 @@ from iseg.core_model import SegFoundation
 from iseg.layers.normalizations import normalization
 from iseg.utils.common import resize_image
 from iseg.utils.common import get_tensor_shape as _get_tensor_shape
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
 def get_training_value(training=None):
@@ -23,7 +24,7 @@ def get_training_value(training=None):
     return training
 
 
-class ConvBnRelu(tf.keras.Model):
+class ConvBnRelu(Keras3_Model_Wrapper):
     def __init__(
         self,
         filters=256,
@@ -107,7 +108,7 @@ class ConvBnRelu(tf.keras.Model):
         weight.assign(initializer(weight.shape, weight.dtype))
 
 
-class SepConvBnReLU (tf.keras.Model):
+class SepConvBnReLU (Keras3_Model_Wrapper):
     
     def __init__ (
         self, 
@@ -164,7 +165,7 @@ class SepConvBnReLU (tf.keras.Model):
 
 
 
-class LnConvGelu(tf.keras.Model):
+class LnConvGelu(Keras3_Model_Wrapper):
     def __init__(
         self,
         filters=256,
@@ -224,7 +225,7 @@ class LnConvGelu(tf.keras.Model):
         weight.assign(initializer(weight.shape, weight.dtype))
 
 
-class ImageLevelBlock(tf.keras.Model):
+class ImageLevelBlock(Keras3_Model_Wrapper):
     def __init__(self, filters=256, pooling_axis=(1, 2), name=None):
         super(ImageLevelBlock, self).__init__(name="ImageLevelBlock" if name is None else name)
 
@@ -247,7 +248,7 @@ class ImageLevelBlock(tf.keras.Model):
         return x
 
 
-class CommonEndBlock(tf.keras.Model):
+class CommonEndBlock(Keras3_Model_Wrapper):
     def __init__(self, filters=256, num_class=21, dropout_rate=0.1, name=None):
 
         super().__init__(name=name)

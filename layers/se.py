@@ -1,9 +1,9 @@
 import tensorflow as tf
 
-from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class SqueezeAndExcitationModule(tf.keras.Model):
+class SqueezeAndExcitationModule(Keras3_Model_Wrapper):
     def __init__(
             self, 
             ratio=16, 

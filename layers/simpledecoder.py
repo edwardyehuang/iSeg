@@ -2,9 +2,10 @@ import tensorflow as tf
 
 from iseg.utils import resize_image
 from iseg.layers.model_builder import ConvBnRelu
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class SimpleDecoder(tf.keras.Model):
+class SimpleDecoder(Keras3_Model_Wrapper):
     def __init__(self, low_level_filters=48, mlp_filters=256, name=None):
 
         super().__init__(name=name)

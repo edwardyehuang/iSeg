@@ -9,11 +9,13 @@ if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
 else:
     from keras.src.utils import tf_utils
 
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
+
 # Copied from TensorFlow : Addon
 
 
 # @keras_export("keras.layers.GroupNormalization", v1=[])
-class GroupNormalization(tf.keras.layers.Layer):
+class GroupNormalization(Keras3_Layer_Wrapper):
     """Group normalization layer.
 
     Group Normalization divides the channels into groups and computes

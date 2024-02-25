@@ -16,6 +16,7 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops.parallel_for.control_flow_ops import pfor
 from tensorflow.python.keras import backend as K
 from iseg.layers import SyncBatchNormalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
 def get_all_layers_v2(model, recursive=True, include_self=True):
@@ -217,7 +218,7 @@ def replace_nan_or_inf(x, nan_value=0.0):
         return replace_inf(replace_nan(x, nan_value))
 
 
-class HookLayer(tf.keras.Model):
+class HookLayer(Keras3_Model_Wrapper):
     def __init__(self, target):
         super(HookLayer, self).__init__()
 

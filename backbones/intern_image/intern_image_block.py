@@ -8,9 +8,11 @@ import tensorflow as tf
 from iseg.backbones.intern_image.intern_image_layer import InternImageLayer
 from iseg.backbones.intern_image.dowmsample_layer import DownsampleLayer
 
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+
 LAYER_NORM_EPSILON = 1e-6
 
-class InternImageBlock(tf.keras.Model):
+class InternImageBlock(Keras3_Model_Wrapper):
 
     def __init__(
         self,

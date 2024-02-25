@@ -12,10 +12,11 @@ from iseg.backbones.eva.glumlp import GluMlp
 from iseg.backbones.eva.mlp import Mlp
 
 from iseg.utils.drops import drop_path
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 LAYER_NORM_EPSILON = 1e-6
 
-class EvaBlock (tf.keras.Model):
+class EvaBlock (Keras3_Model_Wrapper):
 
     def __init__(
         self,

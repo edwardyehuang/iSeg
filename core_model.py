@@ -14,9 +14,10 @@ from iseg.utils.common import resize_image, get_scaled_size, get_tensor_shape, s
 from iseg.metrics.utils import SegMetricBuilder
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
 from iseg.losses.ohem import get_ohem_fn
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class SegBase(tf.keras.Model):
+class SegBase(Keras3_Model_Wrapper):
 
     
 

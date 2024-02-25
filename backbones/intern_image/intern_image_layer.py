@@ -10,9 +10,11 @@ from iseg.backbones.intern_image.mlp_layer import MLPLayer
 
 from iseg.utils.drops import drop_path
 
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+
 LAYER_NROM_EPSILON = 1e-6
 
-class InternImageLayer (tf.keras.Model):
+class InternImageLayer (Keras3_Model_Wrapper):
 
     def __init__(
         self, 

@@ -8,9 +8,10 @@
 import tensorflow as tf
 from iseg.layers.model_builder import ConvBnRelu
 from iseg.utils.common import resize_image
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class FeaturePyramidNetwork(tf.keras.Model):
+class FeaturePyramidNetwork(Keras3_Model_Wrapper):
     def __init__(self, skip_conv_filters=256, name=None):
         super().__init__(name=name)
 
@@ -49,7 +50,7 @@ class FeaturePyramidNetwork(tf.keras.Model):
         return result_endpoints
 
 
-class SemanticPyramidNetworkBlock_V1(tf.keras.Model):
+class SemanticPyramidNetworkBlock_V1(Keras3_Model_Wrapper):
     def __init__(self, filters=128, name=None):
         super().__init__(name=name)
 
@@ -80,7 +81,7 @@ class SemanticPyramidNetworkBlock_V1(tf.keras.Model):
         return y
 
 
-class SemanticPyramidNetworkCell_v1(tf.keras.Model):
+class SemanticPyramidNetworkCell_v1(Keras3_Model_Wrapper):
     def __init__(self, filters=128, name=None):
         super().__init__(name=name)
 
@@ -100,7 +101,7 @@ class SemanticPyramidNetworkCell_v1(tf.keras.Model):
         return x
 
 
-class SemanticPyramidNetworkBlock_V2(tf.keras.Model):
+class SemanticPyramidNetworkBlock_V2(Keras3_Model_Wrapper):
     def __init__(self, filters=128, name=None):
         super().__init__(name=name)
 

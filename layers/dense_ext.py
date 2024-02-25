@@ -8,8 +8,9 @@ import tensorflow as tf
 from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
 
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
 
-class DenseExt(tf.keras.layers.Layer):
+class DenseExt(Keras3_Layer_Wrapper):
     def __init__(
         self,
         units,

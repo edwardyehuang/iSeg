@@ -9,9 +9,10 @@ from iseg.utils.common import get_tensor_shape
 from iseg.utils.attention_utils import *
 from iseg.initializers.shared_initializers import SharedInitializer
 from iseg.vis.vismanager import get_visualization_manager
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class SelfAttention(tf.keras.Model):
+class SelfAttention(Keras3_Model_Wrapper):
     def __init__(
         self,
         guided_filters=64,

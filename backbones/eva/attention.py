@@ -7,10 +7,11 @@ import tensorflow as tf
 
 from iseg.utils import get_tensor_shape
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat, apply_rot_embed_cat
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 LAYER_NORM_EPSILON = 1e-6
 
-class EvaAttention (tf.keras.Model):
+class EvaAttention (Keras3_Model_Wrapper):
 
     def __init__(
         self,

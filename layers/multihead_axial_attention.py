@@ -2,9 +2,9 @@ import tensorflow as tf
 
 from iseg.initializers.shared_initializers import SharedInitializer
 from iseg.utils import get_tensor_shape
-from iseg.layers.normalizations import normalization
 from iseg.utils.keras_ops import replace_nan, replace_inf
 from iseg import check_numerics
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 def safed_softmax (x):
     t = x.dtype
@@ -15,7 +15,7 @@ def safed_softmax (x):
     return x
 
 
-class MultiHeadAxialAttentionLayer (tf.keras.Model):
+class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
 
     def __init__(
         self, 

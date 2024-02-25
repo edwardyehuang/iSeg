@@ -9,10 +9,11 @@ import tensorflow as tf
 from iseg.layers.dcn_v3.op import dcnv3_op
 
 from iseg.utils import get_tensor_shape
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 LAYER_NORM_EPSILON = 1e-6
 
-class DeformableConvolutionV3 (tf.keras.Model):
+class DeformableConvolutionV3 (Keras3_Model_Wrapper):
 
     def __init__(
         self, 

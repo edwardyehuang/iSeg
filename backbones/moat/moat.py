@@ -25,6 +25,7 @@ from .moat_blocks import MBConvBlock
 from .moat_blocks import MOATBlock
 
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
 # This handles the invalid name scope of tf.keras.sequential
@@ -40,7 +41,7 @@ DEFAULT_POS_EMB_SIZE=[
     _STRIDE_32_POSITION_EMBEDDING_SIZE
 ]
 
-class MOAT(tf.keras.Model):
+class MOAT(Keras3_Model_Wrapper):
     """MOAT backbone."""
 
     def __init__(

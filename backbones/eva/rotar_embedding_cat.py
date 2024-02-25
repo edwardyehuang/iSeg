@@ -6,6 +6,7 @@
 import tensorflow as tf
 import math
 
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
 
 def pixel_freq_bands(
     num_bands,
@@ -157,7 +158,7 @@ def build_rotary_pos_embed(
     return sin_emb, cos_emb
 
 
-class RotaryEmbeddingCat (tf.keras.layers.Layer):
+class RotaryEmbeddingCat (Keras3_Layer_Wrapper):
 
     def __init__(
         self,

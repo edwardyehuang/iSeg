@@ -5,7 +5,9 @@ import tensorflow as tf
 
 from iseg.utils import get_tensor_shape
 
-class DCNv2(tf.keras.layers.Layer):
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
+
+class DCNv2(Keras3_Layer_Wrapper):
     def __init__(
         self, filters, 
         kernel_size, 

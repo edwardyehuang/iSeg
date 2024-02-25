@@ -1,9 +1,10 @@
 import tensorflow as tf
 
 from iseg.layers.model_builder import ImageLevelBlock, ConvBnRelu
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class AtrousSpatialPyramidPooling(tf.keras.Model):
+class AtrousSpatialPyramidPooling(Keras3_Model_Wrapper):
     def __init__(
         self, 
         filters=256, 

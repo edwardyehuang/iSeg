@@ -11,8 +11,10 @@ import numpy as np
 from iseg.utils.drops import drop_path
 from iseg.backbones.utils.layerwise_decay import decay_layers_lr
 
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, Keras3_Model_Wrapper
 
-class GlobalResponseNormlizationLayer(tf.keras.layers.Layer):
+
+class GlobalResponseNormlizationLayer(Keras3_Layer_Wrapper):
 
     def __init__(self, trainable=True, epsilon=1e-6, name=None):
         super().__init__(trainable=trainable, name=name)
@@ -59,7 +61,7 @@ class GlobalResponseNormlizationLayer(tf.keras.layers.Layer):
         return tf.cast(x, inputs.dtype)
 
 
-class Block(tf.keras.Model):
+class Block(Keras3_Model_Wrapper):
     def __init__(self, filters, drop_path_prob=0.0, name=None):
 
         super().__init__(name=name)
@@ -96,7 +98,7 @@ class Block(tf.keras.Model):
         return x
 
 
-class DownSampleLayer(tf.keras.Model):
+class DownSampleLayer(Keras3_Model_Wrapper):
     def __init__(self, filters=96, strides=2, swap=False, name=None):
         super().__init__(name=name)
 
@@ -124,7 +126,7 @@ class DownSampleLayer(tf.keras.Model):
         return x
 
 
-class Stage(tf.keras.Model):
+class Stage(Keras3_Model_Wrapper):
     def __init__(self, filters=96, depth=3, drop_path_probs=[], name=None):
 
         super().__init__(name=name)
@@ -154,7 +156,7 @@ class Stage(tf.keras.Model):
         return x
 
 
-class ConvNeXtV2(tf.keras.Model):
+class ConvNeXtV2(Keras3_Model_Wrapper):
     def __init__(
         self,
         depths=[3, 3, 9, 3],

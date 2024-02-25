@@ -18,6 +18,8 @@ from typing import Optional
 import numpy as np
 import tensorflow as tf
 
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, Keras3_Model_Wrapper
+
 # Global dict storing the computed lookup tensor to avoid repeated computation.
 LOOKUP_TENSOR_CACHE = {}
 
@@ -118,7 +120,7 @@ def reindex_2d_einsum_lookup(
     return reindexed_tensor
 
 
-class TrailDense(tf.keras.layers.Layer):
+class TrailDense(Keras3_Layer_Wrapper):
     """A dense layer that projects features in multiple trailing axes.
 
     This layer projects features from multiple dimensions to multiple dimensions.
@@ -211,7 +213,7 @@ class TrailDense(tf.keras.layers.Layer):
         return output
 
 
-class Attention(tf.keras.Model):
+class Attention(Keras3_Model_Wrapper):
 
     def __init__(
         self,

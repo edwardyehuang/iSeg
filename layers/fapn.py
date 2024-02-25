@@ -4,6 +4,7 @@ from iseg.layers.se import SqueezeAndExcitationModule
 from iseg.layers.dcn_v2 import DCNv2
 
 from iseg.utils.common import resize_image
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
 class FeatureSelectionModule(SqueezeAndExcitationModule):
@@ -39,7 +40,7 @@ class FeatureSelectionModule(SqueezeAndExcitationModule):
     
 
 
-class FeatureAlignment (tf.keras.Model):
+class FeatureAlignment (Keras3_Model_Wrapper):
 
     def __init__(self, filters=128, name=None):
         super().__init__(name=name)
@@ -75,7 +76,7 @@ class FeatureAlignment (tf.keras.Model):
         return feat_align + feats_arm
 
 
-class FeatureAlignedPyramidNet (tf.keras.Model):
+class FeatureAlignedPyramidNet (Keras3_Model_Wrapper):
     def __init__(self, skip_conv_filters=256, name=None):
         super().__init__(name=name)
 

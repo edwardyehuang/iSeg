@@ -15,13 +15,14 @@ from iseg.backbones.resnet_blocks import BlockType1, BlockType2
 from iseg.backbones.resnet_blocks_small import BlockType2Small
 
 from iseg.backbones.utils.layerwise_decay import decay_layers_lr
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 BN_EPSILON = 1.001e-5
 
 DEFAULT_CONV_FUNC = tf.keras.layers.Conv2D
 
 
-class Stack(tf.keras.Model):
+class Stack(Keras3_Model_Wrapper):
     def __init__(
         self, 
         filters, 
@@ -85,7 +86,7 @@ class Stack(tf.keras.Model):
             return x
 
 
-class Stack2(tf.keras.Model):
+class Stack2(Keras3_Model_Wrapper):
     def __init__(
         self, 
         filters, 
@@ -175,7 +176,7 @@ class Stack2(tf.keras.Model):
             return x
 
 
-class ResNet(tf.keras.Model):
+class ResNet(Keras3_Model_Wrapper):
     def __init__(
         self, 
         stacks, 

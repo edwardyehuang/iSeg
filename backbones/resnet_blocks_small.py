@@ -1,12 +1,14 @@
 import tensorflow as tf
 
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 BN_EPSILON = 1.001e-5
 
 DEFAULT_CONV_FUNC = tf.keras.layers.Conv2D
 
-class BlockType2Small(tf.keras.Model):
+
+class BlockType2Small(Keras3_Model_Wrapper):
     def __init__(
         self,
         filters,

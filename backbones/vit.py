@@ -11,6 +11,7 @@ from iseg.utils.common import get_tensor_shape
 from iseg.layers.model_builder import get_training_value
 from iseg.layers.common_layers import PatchEmbed
 from iseg.utils.drops import drop_path
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
 def resize_pos_embed(
@@ -60,7 +61,7 @@ def resize_pos_embed(
     return tf.concat([extra_tokens, pos_embed], axis=1)
 
 
-class MLPBlock(tf.keras.Model):
+class MLPBlock(Keras3_Model_Wrapper):
     def __init__(
         self, 
         filters, 
@@ -110,7 +111,7 @@ class MLPBlock(tf.keras.Model):
         return x
     
 
-class TransformerBlock(tf.keras.Model):
+class TransformerBlock(Keras3_Model_Wrapper):
     def __init__(
         self, 
         mlp_filters=4096, 
@@ -180,7 +181,7 @@ class TransformerBlock(tf.keras.Model):
         return x
 
 
-class VisionTransformer(tf.keras.Model):
+class VisionTransformer(Keras3_Model_Wrapper):
     def __init__(
         self, 
         patch_size, 

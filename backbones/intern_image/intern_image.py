@@ -11,8 +11,9 @@ import numpy as np
 
 from iseg.backbones.intern_image.intern_image_block import InternImageBlock
 from iseg.backbones.intern_image.stem_layer import StemLayer
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
-class InternImage(tf.keras.Model):
+class InternImage(Keras3_Model_Wrapper):
 
     def __init__(
         self,

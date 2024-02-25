@@ -9,9 +9,10 @@ import numpy as np
 import tensorflow as tf
 
 from iseg.utils.drops import drop_path
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, Keras3_Model_Wrapper
 
 
-class Mlp(tf.keras.Model):
+class Mlp(Keras3_Model_Wrapper):
     def __init__(self, in_features, hidden_features=None, out_features=None, dropout_rate=0.0, name=None):
         super().__init__(name=name)
 
@@ -63,7 +64,7 @@ def window_reverse(windows, window_size, height, width, channels):
     return x
 
 
-class WindowAttention(tf.keras.Model):
+class WindowAttention(Keras3_Model_Wrapper):
     def __init__(
         self, filters, window_size, num_heads, use_qkv_bias=True, qk_scale=None, attn_drop=0.0, proj_drop=0.0, name=None
     ):
@@ -166,7 +167,7 @@ class WindowAttention(tf.keras.Model):
         return x
 
 
-class DropPath(tf.keras.layers.Layer):
+class DropPath(Keras3_Layer_Wrapper):
     def __init__(self, drop_prob=None):
         super().__init__()
         self.drop_prob = drop_prob
@@ -175,7 +176,7 @@ class DropPath(tf.keras.layers.Layer):
         return drop_path(x, self.drop_prob, training=training)
 
 
-class SwinTransformerBlock(tf.keras.Model):
+class SwinTransformerBlock(Keras3_Model_Wrapper):
     def __init__(
         self,
         filters,
@@ -293,7 +294,7 @@ class SwinTransformerBlock(tf.keras.Model):
         return x
 
 
-class PatchMerging(tf.keras.Model):
+class PatchMerging(Keras3_Model_Wrapper):
     def __init__(self, filters, norm_layer=tf.keras.layers.LayerNormalization, name=None):
 
         super().__init__(name=name)
@@ -336,7 +337,7 @@ class PatchMerging(tf.keras.Model):
         return x
 
 
-class BasicLayer(tf.keras.Model):
+class BasicLayer(Keras3_Model_Wrapper):
     def __init__(
         self,
         filters,
@@ -454,7 +455,7 @@ class BasicLayer(tf.keras.Model):
         return x, before_downsample
 
 
-class PatchEmbed(tf.keras.Model):
+class PatchEmbed(Keras3_Model_Wrapper):
     def __init__(self, patch_size=(4, 4), in_channels=3, embed_filters=96, norm_layer=None, name=None):
 
         super().__init__(name=name)
@@ -500,7 +501,7 @@ class PatchEmbed(tf.keras.Model):
         return x
 
 
-class SwinTransformerModel(tf.keras.Model):
+class SwinTransformerModel(Keras3_Model_Wrapper):
     def __init__(
         self,
         patch_size=(4, 4),

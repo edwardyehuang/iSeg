@@ -17,6 +17,7 @@ else:
     from keras.src.applications import imagenet_utils
 
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 DEFAULT_BLOCKS_ARGS = [
     {
@@ -113,7 +114,7 @@ def round_repeats(repeats, depth_coefficient):
     return int(math.ceil(depth_coefficient * repeats))
 
 
-class Block(tf.keras.Model):
+class Block(Keras3_Model_Wrapper):
     def __init__(
         self,
         activation=tf.nn.swish,
@@ -254,7 +255,7 @@ class Block(tf.keras.Model):
         return x
 
 
-class EfficientNet(tf.keras.Model):
+class EfficientNet(Keras3_Model_Wrapper):
     def __init__(
         self,
         width_confficient,

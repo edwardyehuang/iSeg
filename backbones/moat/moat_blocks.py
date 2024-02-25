@@ -19,6 +19,7 @@ import tensorflow as tf
 from .attention import Attention
 
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
 def drop_connect(inputs: tf.Tensor, training: bool, survival_prob: float) -> tf.Tensor:
@@ -64,7 +65,7 @@ def residual_add_with_drop_path(
     return shortcut + residual
 
 
-class SqueezeAndExcitation(tf.keras.Model):
+class SqueezeAndExcitation(Keras3_Model_Wrapper):
     """Implementation of Squeeze-and-excitation layer."""
 
     def __init__(
@@ -115,7 +116,7 @@ class SqueezeAndExcitation(tf.keras.Model):
         return tf.cast(tf.sigmoid(se_tensor), inputs.dtype) * inputs
 
 
-class MBConvBlock(tf.keras.Model):
+class MBConvBlock(Keras3_Model_Wrapper):
 
     def __init__(
         self,
@@ -255,7 +256,7 @@ class MBConvBlock(tf.keras.Model):
         return output
 
 
-class MOATBlock(tf.keras.Model):
+class MOATBlock(Keras3_Model_Wrapper):
     """Implementation of MOAT block [1].
 
     [1] MOAT: Alternating Mobile Convolution and Attention

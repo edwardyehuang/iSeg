@@ -8,9 +8,10 @@
 
 import tensorflow as tf
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class XceptionDepthWiseConv(tf.keras.Model):
+class XceptionDepthWiseConv(Keras3_Model_Wrapper):
     def __init__(
         self, block_index, conv_index, filters, strides=(1, 1), activation=False, weight_decay=0.0, momentun=0.9
     ):
@@ -78,7 +79,7 @@ class XceptionDepthWiseConv(tf.keras.Model):
         self.depthwise_conv.dilation_rate = value
 
 
-class XceptionBlock(tf.keras.Model):
+class XceptionBlock(Keras3_Model_Wrapper):
     def __init__(self, block_index, filters_list, strides, skip_connection=0, activation=False):
 
         super(XceptionBlock, self).__init__(name="XceptionBlock")
@@ -155,7 +156,7 @@ class XceptionBlock(tf.keras.Model):
             self.shortcut.dilation_rate = value
 
 
-class Xception(tf.keras.Model):
+class Xception(Keras3_Model_Wrapper):
     def __init__(self, return_endpoints=False, name=None):
 
         super(Xception, self).__init__(name=name)

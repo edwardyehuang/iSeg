@@ -13,9 +13,10 @@ from iseg.layers.normalizations import normalization
 
 from iseg.layers.model_builder import ConvBnRelu
 from iseg.utils.common import resize_image
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class JointPyramidUpsampling(tf.keras.Model):
+class JointPyramidUpsampling(Keras3_Model_Wrapper):
     def __init__(self, width=512, trainable=True, name=None):
         super().__init__(trainable=trainable, name=name)
 

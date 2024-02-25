@@ -7,8 +7,10 @@ import tensorflow as tf
 
 from iseg.utils import get_tensor_shape
 
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
 
-class PatchDropout (tf.keras.layers.Layer):
+
+class PatchDropout (Keras3_Layer_Wrapper):
 
     def __init__(
         self,

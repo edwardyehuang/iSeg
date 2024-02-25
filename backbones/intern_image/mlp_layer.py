@@ -5,7 +5,9 @@
 
 import tensorflow as tf
 
-class MLPLayer(tf.keras.Model):
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+
+class MLPLayer(Keras3_Model_Wrapper):
 
     def __init__(
         self,

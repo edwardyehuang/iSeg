@@ -4,6 +4,7 @@ REPLACE_SLASH = False
 
 from iseg.utils.slash_utils import replace_slash
 
+
 class Keras3_Model_Wrapper(tf.keras.Model):
 
     def __init__(self, *args, name=None, **kwargs):

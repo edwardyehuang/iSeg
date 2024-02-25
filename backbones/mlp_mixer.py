@@ -7,9 +7,10 @@ import iseg.static_strings as ss
 import tensorflow as tf
 
 from iseg.utils.common import get_tensor_shape
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class MLPBlock(tf.keras.Model):
+class MLPBlock(Keras3_Model_Wrapper):
     def __init__(self, filters, name=None):
         super().__init__(name=name)
 
@@ -28,7 +29,7 @@ class MLPBlock(tf.keras.Model):
         return x
 
 
-class MixerBlock(tf.keras.Model):
+class MixerBlock(Keras3_Model_Wrapper):
     def __init__(self, token_filters, channel_filters, name=None):
         super().__init__(name=name)
 
@@ -56,7 +57,7 @@ class MixerBlock(tf.keras.Model):
         return idenity + x
 
 
-class MLPMixer(tf.keras.Model):
+class MLPMixer(Keras3_Model_Wrapper):
     def __init__(self, filters=768, patch_size=16, num_blocks=12, token_filters=384, channel_filters=3072, name=None):
 
         super().__init__(name=name)

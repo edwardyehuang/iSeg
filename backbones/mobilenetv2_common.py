@@ -10,9 +10,10 @@ import tensorflow as tf
 from tensorflow.python.keras.utils import conv_utils
 
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class MobileNetV2(tf.keras.Model):
+class MobileNetV2(Keras3_Model_Wrapper):
     def __init__(self, alpha=1.0, return_endpoints=False, name=None):
         super().__init__(name=name)
 
@@ -80,7 +81,7 @@ class MobileNetV2(tf.keras.Model):
             )
 
 
-class InvertedResBlock(tf.keras.Model):
+class InvertedResBlock(Keras3_Model_Wrapper):
     def __init__(self, expansion, stride, alpha, filters, block_id):
         super().__init__()
 

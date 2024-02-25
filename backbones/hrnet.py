@@ -10,9 +10,10 @@
 import tensorflow as tf
 
 from iseg.layers.normalizations import normalization
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
-class BasicBlock(tf.keras.Model):
+class BasicBlock(Keras3_Model_Wrapper):
 
     expansion = 1
 
@@ -55,7 +56,7 @@ class BasicBlock(tf.keras.Model):
         return tf.nn.relu(x + residual)
 
 
-class Bottleneck(tf.keras.Model):
+class Bottleneck(Keras3_Model_Wrapper):
 
     expansion = 4
 
@@ -103,7 +104,7 @@ class Bottleneck(tf.keras.Model):
         return tf.nn.relu(x + residual)
 
 
-class ConvBlock(tf.keras.Model):
+class ConvBlock(Keras3_Model_Wrapper):
     def __init__(self, filters, kernel_size=(1, 1), strides=1, use_relu=True, name=None) -> None:
         super().__init__(name=name)
 
@@ -130,7 +131,7 @@ class ConvBlock(tf.keras.Model):
         return x
 
 
-class TransitionBlockStack(tf.keras.Model):
+class TransitionBlockStack(Keras3_Model_Wrapper):
     def __init__(self, filters_list, name=None) -> None:
         super().__init__(name=name)
 
@@ -153,7 +154,7 @@ class TransitionBlockStack(tf.keras.Model):
         return x
 
 
-class DownSampleBlock(tf.keras.Model):
+class DownSampleBlock(Keras3_Model_Wrapper):
     def __init__(self, filters=None, strides=1, name=None):
         super().__init__(name=name)
 
@@ -172,7 +173,7 @@ class DownSampleBlock(tf.keras.Model):
         return x
 
 
-class HighResolutionLayer(tf.keras.Model):
+class HighResolutionLayer(Keras3_Model_Wrapper):
     def __init__(self, block_func, filters, num_blocks, strides=1, name=None):
         super().__init__(name=name)
 
@@ -211,7 +212,7 @@ class HighResolutionLayer(tf.keras.Model):
         return x
 
 
-class HighResolutionFuseStack(tf.keras.Model):
+class HighResolutionFuseStack(Keras3_Model_Wrapper):
     def __init__(self, dest_branch_index=0, src_branch_index=0, channnels_list=[], num_branches=1, name=None):
         super().__init__(name=name)
 
@@ -247,7 +248,7 @@ class HighResolutionFuseStack(tf.keras.Model):
         return x
 
 
-class HighResolutionFuseModule(tf.keras.Model):
+class HighResolutionFuseModule(Keras3_Model_Wrapper):
     def __init__(self, multi_scale_output=True, name=None) -> None:
         super().__init__(name=name)
 
@@ -308,7 +309,7 @@ class HighResolutionFuseModule(tf.keras.Model):
         return x_list
 
 
-class HighResolutionModule(tf.keras.Model):
+class HighResolutionModule(Keras3_Model_Wrapper):
     def __init__(
         self, block_func, num_block_list, filters_list, multi_scale_output=True, name=None,
     ):
@@ -355,7 +356,7 @@ class HighResolutionModule(tf.keras.Model):
         return y_list
 
 
-class HighResolutionTransitionLayer(tf.keras.Model):
+class HighResolutionTransitionLayer(Keras3_Model_Wrapper):
     def __init__(self, filters_list=[], name=None) -> None:
         super().__init__(name=name)
 
@@ -411,7 +412,7 @@ class HighResolutionTransitionLayer(tf.keras.Model):
         return y_list
 
 
-class HighResolutionStage(tf.keras.Model):
+class HighResolutionStage(Keras3_Model_Wrapper):
     def __init__(
         self, num_modules, num_block_list, filters_list, block_func=BasicBlock, multi_scale_output=True, name=None
     ):
@@ -459,7 +460,7 @@ class HighResolutionStage(tf.keras.Model):
         return x
 
 
-class HighResolutionNet(tf.keras.Model):
+class HighResolutionNet(Keras3_Model_Wrapper):
     def __init__(
         self, 
         stage1_filters=64, 

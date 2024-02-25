@@ -7,8 +7,9 @@ import tensorflow as tf
 
 from iseg.utils import get_tensor_shape
 from iseg.backbones.intern_image.utils import extract_qkv
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
-class CrossAttention(tf.keras.Model):
+class CrossAttention(Keras3_Model_Wrapper):
 
     def __init__(
         self,

@@ -5,9 +5,11 @@
 
 import tensorflow as tf
 
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+
 LAYER_NORM_EPSILON = 1e-6
 
-class DownsampleLayer(tf.keras.Model):
+class DownsampleLayer(Keras3_Model_Wrapper):
 
     def __init__(self, name=None):
         super().__init__(name=name)
