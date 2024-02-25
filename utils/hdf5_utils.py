@@ -3,6 +3,9 @@ from distutils.version import LooseVersion
 import numpy as np
 import tensorflow as tf
 
+from iseg.utils.slash_utils import replace_slash
+
+
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
     from keras.saving.legacy.hdf5_format import (
         load_attributes_from_hdf5_group,
@@ -67,6 +70,8 @@ def load_weights_from_hdf5_group_by_name(
         g = f[name]
         weight_names = load_attributes_from_hdf5_group(g, 'weight_names')
         weight_values = [np.asarray(g[weight_name]) for weight_name in weight_names]
+
+        name = replace_slash(name)
 
         for layer in index.get(name, []):
             symbolic_weights = _legacy_weights(layer)
