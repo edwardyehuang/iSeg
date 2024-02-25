@@ -12,12 +12,18 @@ if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
         preprocess_weights_for_loading,
         _legacy_weights,
     )
-else:
+elif LooseVersion(tf.version.VERSION) < LooseVersion("2.16.0"):
     from keras.src.saving.legacy.hdf5_format import (
         load_attributes_from_hdf5_group, 
         preprocess_weights_for_loading, 
         _legacy_weights
     )
+else:
+    from keras.src.legacy.saving.legacy_h5_format import (
+        load_attributes_from_hdf5_group, 
+        _legacy_weights
+    )
+
 
 from keras import backend
 from absl import logging
@@ -75,8 +81,10 @@ def load_weights_from_hdf5_group_by_name(
 
         for layer in index.get(name, []):
             symbolic_weights = _legacy_weights(layer)
-            weight_values = preprocess_weights_for_loading(
-                    layer, weight_values, original_keras_version, original_backend)
+
+            if LooseVersion(tf.version.VERSION) < LooseVersion("2.16.0"):
+                weight_values = preprocess_weights_for_loading(
+                        layer, weight_values, original_keras_version, original_backend)
             if len(weight_values) != len(symbolic_weights):
                 if skip_mismatch:
                     logging.warning('Skipping loading of weights for '
