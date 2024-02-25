@@ -9,7 +9,8 @@ from functools import partial
 import tensorflow as tf
 import h5py
 
-from tensorflow.python.keras.saving.hdf5_format import load_weights_from_hdf5_group_by_name, save_weights_to_hdf5_group
+from tensorflow.python.keras.saving.hdf5_format import save_weights_to_hdf5_group
+from iseg.utils.hdf5_utils import load_weights_from_hdf5_group_by_name
 
 from tensorflow.python.framework import ops
 from tensorflow.python.ops.parallel_for.control_flow_ops import pfor
