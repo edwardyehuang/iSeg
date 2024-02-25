@@ -18,6 +18,8 @@ import math
 import tensorflow as tf
 from .attention import Attention
 
+from iseg.layers.normalizations import normalization
+
 
 def drop_connect(inputs: tf.Tensor, training: bool, survival_prob: float) -> tf.Tensor:
     """Drops the entire conv with given survival probability [1].
@@ -123,7 +125,7 @@ class MBConvBlock(tf.keras.Model):
         se_ratio=0.25,
         block_stride=1,
         pool_size=2,
-        norm_class=tf.keras.layers.experimental.SyncBatchNormalization,
+        norm_class=normalization,
         activation=tf.keras.activations.gelu,
         survival_prob=None,
         kernel_initializer=tf.random_normal_initializer(stddev=0.02),
@@ -270,7 +272,7 @@ class MOATBlock(tf.keras.Model):
         expansion_rate=4,
         block_stride=2,
         pool_size=2,
-        norm_class=tf.keras.layers.experimental.SyncBatchNormalization,
+        norm_class=normalization,
         activation=tf.keras.activations.gelu,
         head_size=32,
         window_size=None,

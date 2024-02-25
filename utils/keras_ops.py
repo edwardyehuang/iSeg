@@ -14,12 +14,6 @@ from tensorflow.python.keras.saving.hdf5_format import load_weights_from_hdf5_gr
 from tensorflow.python.framework import ops
 from tensorflow.python.ops.parallel_for.control_flow_ops import pfor
 from tensorflow.python.keras import backend as K
-
-if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
-    from tensorflow.python.keras.utils import conv_utils
-else:
-    from keras.src.utils import conv_utils
-
 from iseg.layers import SyncBatchNormalization
 
 

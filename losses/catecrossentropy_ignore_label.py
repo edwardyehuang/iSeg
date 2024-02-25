@@ -2,10 +2,14 @@
 # MIT License
 # Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
 # ================================================================
+from distutils.version import LooseVersion
 
 import tensorflow as tf
 
-from iseg.losses.categorical_focal_crossentropy_loss import CategoricalFocalCrossentropy
+if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
+    from iseg.losses.categorical_focal_crossentropy_loss import CategoricalFocalCrossentropy
+else:
+    from keras.losses import CategoricalFocalCrossentropy
 
 def catecrossentropy_ignore_label_loss(
     num_class=21,
