@@ -1,11 +1,22 @@
+from distutils.version import LooseVersion
+
 import tensorflow as tf
+
+if LooseVersion(tf.version.VERSION) < LooseVersion("2.15.0"):
+    from tensorflow import keras
+else:
+    import keras
 
 REPLACE_SLASH = False
 
 from iseg.utils.slash_utils import replace_slash
 
 
-class Keras3_Model_Wrapper(tf.keras.Model):
+def is_keras3():
+    return LooseVersion(tf.version.VERSION) >= LooseVersion("2.16.0")
+
+
+class Keras3_Model_Wrapper(keras.Model):
 
     def __init__(self, *args, name=None, **kwargs):
 
@@ -14,7 +25,7 @@ class Keras3_Model_Wrapper(tf.keras.Model):
         super().__init__(*args, name=name, **kwargs)
 
 
-class Keras3_Layer_Wrapper(tf.keras.layers.Layer):
+class Keras3_Layer_Wrapper(keras.layers.Layer):
 
     def __init__(
         self,

@@ -3,6 +3,8 @@
 # Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
 # ================================================================
 
+from distutils.version import LooseVersion
+
 import tensorflow as tf
 import iseg.static_strings as ss
 
@@ -131,7 +133,7 @@ def get_backbone(
         build_dilated_convnext(backbone, output_stride=output_stride)
 
     if weights_path is not None:
-        if "swin" in name:
+        if "swin" in name or LooseVersion(tf.version.VERSION) >= LooseVersion("2.16.0"): # for keras 3
             if label_shape is None:
                 backbone(tf.ones(image_shape))
             else:

@@ -68,6 +68,11 @@ class Stack(Keras3_Model_Wrapper):
     @property
     def strides(self):
         return self.blocks[0].strides
+    
+
+    def build(self, input_shape):
+        super().build(input_shape)
+
 
     def call(self, inputs, training=None, **kwargs):
 
@@ -158,6 +163,9 @@ class Stack2(Keras3_Model_Wrapper):
     @property
     def strides(self):
         return self.blocks[-1].strides
+    
+    def build(self, input_shape):
+        super().build(input_shape)
 
     def call(self, inputs, training=None, **kwargs):
 
@@ -298,6 +306,10 @@ class ResNet(Keras3_Model_Wrapper):
 
         stages.reverse()
         decay_layers_lr(stages, rate=rate)
+
+
+    def build(self, input_shape):
+        super().build(input_shape)
 
 
     ### ResNet Call ###################

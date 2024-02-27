@@ -10,10 +10,13 @@ from iseg.core_model import SegFoundation
 from iseg.layers.normalizations import normalization
 from iseg.utils.common import resize_image
 from iseg.utils.common import get_tensor_shape as _get_tensor_shape
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, is_keras3
 
 
 def get_training_value(training=None):
+
+    if is_keras3():
+        return training
 
     if training is None:
         training = tf.keras.backend.learning_phase()

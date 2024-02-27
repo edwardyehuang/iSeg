@@ -4,7 +4,7 @@ from iseg.initializers.shared_initializers import SharedInitializer
 from iseg.utils import get_tensor_shape
 from iseg.utils.keras_ops import replace_nan, replace_inf
 from iseg import check_numerics
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, is_keras3
 
 def safed_softmax (x):
     t = x.dtype
@@ -50,7 +50,12 @@ class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
         qk_filters = channels if self.filters == -1 else self.filters
 
         if self.shared_qk_weights:
-            q_kernel_initializer = k_kernel_initializer = SharedInitializer(tf.keras.initializers.GlorotUniform())
+            if is_keras3():
+                q_kernel_initializer_value = tf.keras.initializers.GlorotUniform()(shape=(1, 1, channels, qk_filters))
+                q_kernel_initializer = tf.keras.initializers.Constant(value=q_kernel_initializer_value)
+                k_kernel_initializer = tf.keras.initializers.constant(value=q_kernel_initializer_value)
+            else:
+                q_kernel_initializer = k_kernel_initializer = SharedInitializer(tf.keras.initializers.GlorotUniform())
         else:
             q_kernel_initializer = tf.keras.initializers.GlorotUniform()
             k_kernel_initializer = tf.keras.initializers.GlorotUniform()
@@ -79,6 +84,8 @@ class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
                 trainable=self.trainable,
                 name="value_conv"
             )
+
+        super().build(input_shape)
 
 
     def compute_attetnion (self, query, key, value, training=None):

@@ -23,10 +23,16 @@ class SegBase(Keras3_Model_Wrapper):
 
     def __init__(self, num_class=21, **kwargs):
 
-        super(SegBase, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.num_class = num_class
         self.inference_sliding_window_size = None
+
+
+    def build(self, input_shape):
+            
+        super().build(input_shape)
+
 
     def predict_step(self, data):
 
