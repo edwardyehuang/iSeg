@@ -248,14 +248,19 @@ class SegFoundation(SegBase):
             label = tuple([label] * (self.num_aux_loss + 1))
 
         return image, label
+    
 
-    def __aux_index_to_output_key(self, index):
-
-        key = index + 2
+    def _index_to_output_key(self, index):
+        key = index + 1
         key = f"output_{key}"
 
         return key
-    
+
+
+    def __aux_index_to_output_key(self, index):
+
+        return self._index_to_output_key(index + 1)
+
 
     def add_class_weights (
         self,
@@ -311,7 +316,7 @@ class SegFoundation(SegBase):
             **kwargs,
         )
 
-        loss_dict = {"output_1": loss(ohem_func)}
+        loss_dict = {self._index_to_output_key(0): loss(ohem_func)}
 
         if self.custom_aux_loss_fns is None or len(self.custom_aux_loss_fns) == 0:
             for i in range(self.num_aux_loss):
@@ -332,7 +337,7 @@ class SegFoundation(SegBase):
 
     def custom_losses_weights(self):
 
-        weights_dict = {"output_1": 1.0}
+        weights_dict = {self._index_to_output_key(0): 1.0}
 
         for i in range(self.num_aux_loss):
             weights_dict[self.__aux_index_to_output_key(i)] = self.aux_loss_rate[i]

@@ -50,8 +50,9 @@ def get_per_class_miou (cm, dtype=tf.float32):
 
     return iou, num_valid_entries
 
+import keras
 
-class MeanIOU(tf.keras.metrics.Metric):
+class MeanIOU(keras.metrics.Metric):
     def __init__(self, num_classes, name=None, dtype=None):
         """Initializes `PerClassIoU`.
 
@@ -69,7 +70,9 @@ class MeanIOU(tf.keras.metrics.Metric):
 
         # Variable to accumulate the predictions in the confusion matrix.
         self.total_cm = self.add_weight(
-            "total_confusion_matrix", shape=(num_classes, num_classes), initializer=tf.compat.v1.zeros_initializer
+            name="total_confusion_matrix", 
+            shape=(num_classes, num_classes), 
+            initializer=tf.compat.v1.zeros_initializer
         )
 
     def update_state(self, y_true, y_pred, sample_weight=None):

@@ -11,6 +11,7 @@ from iseg.core_model import SegFoundation
 from iseg.backbones.feature_extractor import get_backbone
 from iseg.utils.common import resize_image
 from iseg.utils.keras_ops import capture_func
+from iseg.utils.keras3_utils import is_keras3
 
 
 class SegManaged(SegFoundation):
@@ -190,6 +191,15 @@ class SegManaged(SegFoundation):
 
         if len(y) == 1:
             y = y[0]
+
+        if isinstance(y, list):
+            _y = y
+            y = dict()
+
+            for i in range(len(_y)):
+                output_name = self._index_to_output_key(i)
+                y[output_name] = tf.identity(_y[i], name=output_name)
+
 
         return y
 

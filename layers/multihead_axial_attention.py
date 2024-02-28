@@ -51,9 +51,9 @@ class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
 
         if self.shared_qk_weights:
             if is_keras3():
-                q_kernel_initializer_value = tf.keras.initializers.GlorotUniform()(shape=(1, 1, channels, qk_filters))
-                q_kernel_initializer = tf.keras.initializers.Constant(value=q_kernel_initializer_value)
-                k_kernel_initializer = tf.keras.initializers.constant(value=q_kernel_initializer_value)
+                q_kernel_initializer_value = tf.keras.initializers.GlorotUniform()(shape=(1, 1, channels, qk_filters)).numpy()
+                q_kernel_initializer = tf.constant_initializer(value=q_kernel_initializer_value)
+                k_kernel_initializer = tf.constant_initializer(value=q_kernel_initializer_value)
             else:
                 q_kernel_initializer = k_kernel_initializer = SharedInitializer(tf.keras.initializers.GlorotUniform())
         else:
