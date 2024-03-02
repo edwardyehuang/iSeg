@@ -11,7 +11,7 @@ from iseg.core_model import SegFoundation
 from iseg.backbones.feature_extractor import get_backbone
 from iseg.utils.common import resize_image
 from iseg.utils.keras_ops import capture_func
-from iseg.utils.keras3_utils import is_keras3
+from iseg.utils.keras3_utils import _N, is_keras3
 
 
 class SegManaged(SegFoundation):
@@ -89,7 +89,7 @@ class SegManaged(SegFoundation):
         )
 
         if not self.use_custom_logits:
-            self.logits_conv = tf.keras.layers.Conv2D(self.num_class, (1, 1), name=f"{self.name}/logits_conv")
+            self.logits_conv = tf.keras.layers.Conv2D(self.num_class, (1, 1), name=_N(f"{self.name}/logits_conv"))
             self.aux_logits_convs = self.build_aux_logits_conv(self.num_aux_loss, self.aux_metric_names)
 
         self.layers_for_multi_optimizers = None
@@ -104,7 +104,7 @@ class SegManaged(SegFoundation):
             prefix = "aux" if aux_metric_names is None else aux_metric_names[i]
 
             aux_logits_conv = tf.keras.layers.Conv2D(
-                self.num_class, (1, 1), name=f"{self.name}/{prefix}_logits_conv_{i}"
+                self.num_class, (1, 1), name=_N(f"{self.name}/{prefix}_logits_conv_{i}")
             )
             aux_logits_convs.append(aux_logits_conv)
 
@@ -188,8 +188,10 @@ class SegManaged(SegFoundation):
 
         y = [tf.cast(logits, tf.float32) for logits in logits_list]
 
+        '''
         if len(y) == 1:
             y = y[0]
+        '''
 
         if isinstance(y, list) and is_keras3():
             _y = y

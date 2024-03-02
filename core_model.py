@@ -14,12 +14,11 @@ from iseg.utils.common import resize_image, get_scaled_size, get_tensor_shape, s
 from iseg.metrics.utils import SegMetricBuilder
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
 from iseg.losses.ohem import get_ohem_fn
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import is_keras3, Keras3_Model_Wrapper
+
 
 
 class SegBase(Keras3_Model_Wrapper):
-
-    
 
     def __init__(self, num_class=21, **kwargs):
 
@@ -43,16 +42,30 @@ class SegBase(Keras3_Model_Wrapper):
 
     def test_step(self, data):
 
-        data = data_adapter.expand_1d(data)
-        x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+        if is_keras3():
+            (x, y, sample_weight) = tf.keras.utils.unpack_x_y_sample_weight(data)
+            if self._call_has_training_arg:
+                y_pred = self.inference(x, training=False)
+            else:
+                y_pred = self.inference(x)
 
-        y_pred = self.inference(x, training=False)
-        # Updates stateful loss metrics.
-        self.compiled_loss(y, y_pred, sample_weight, regularization_losses=self.losses)
+            loss = self.compute_loss(
+                x=x, y=y, y_pred=y_pred, sample_weight=sample_weight
+            )
+            self._loss_tracker.update_state(loss)
+            return self.compute_metrics(x, y, y_pred, sample_weight=sample_weight)
+        else:
+            data = data_adapter.expand_1d(data)
+            x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
 
-        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+            y_pred = self.inference(x, training=False)
+            # Updates stateful loss metrics.
+            self.compiled_loss(y, y_pred, sample_weight, regularization_losses=self.losses)
 
-        return {m.name: m.result() for m in self.metrics}
+            self.compiled_metrics.update_state(y, y_pred, sample_weight)
+
+            return {m.name: m.result() for m in self.metrics}
+        
 
     @tf.function
     def inference(self, inputs, training=False):
@@ -336,6 +349,9 @@ class SegFoundation(SegBase):
         return loss_dict
 
     def custom_losses_weights(self):
+
+        if is_keras3() and self.num_aux_loss == 0:
+            return [1.0]
 
         weights_dict = {self._index_to_output_key(0): 1.0}
 

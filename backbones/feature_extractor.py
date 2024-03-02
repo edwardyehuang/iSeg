@@ -27,6 +27,8 @@ from iseg.backbones.eva.eva import EVA02_large_patch14_448, EVA02_large_patch14_
 
 from iseg.utils.keras_ops import load_h5_weight
 
+from iseg.utils.keras3_utils import is_keras3
+
 
 def get_backbone(
     name=ss.RESNET50,
@@ -133,7 +135,7 @@ def get_backbone(
         build_dilated_convnext(backbone, output_stride=output_stride)
 
     if weights_path is not None:
-        if "swin" in name or LooseVersion(tf.version.VERSION) >= LooseVersion("2.16.0"): # for keras 3
+        if "swin" in name or is_keras3(): # for keras 3
             if label_shape is None:
                 backbone(tf.ones(image_shape))
             else:

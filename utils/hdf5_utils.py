@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from iseg.utils.slash_utils import replace_slash
-
+from iseg.utils.keras3_utils import is_keras3
 
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
     from keras.saving.legacy.hdf5_format import (
@@ -12,7 +12,7 @@ if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
         preprocess_weights_for_loading,
         _legacy_weights,
     )
-elif LooseVersion(tf.version.VERSION) < LooseVersion("2.16.0"):
+elif not is_keras3():
     from keras.src.saving.legacy.hdf5_format import (
         load_attributes_from_hdf5_group, 
         preprocess_weights_for_loading, 
@@ -82,7 +82,7 @@ def load_weights_from_hdf5_group_by_name(
         for layer in index.get(name, []):
             symbolic_weights = _legacy_weights(layer)
 
-            if LooseVersion(tf.version.VERSION) < LooseVersion("2.16.0"):
+            if not is_keras3():
                 weight_values = preprocess_weights_for_loading(
                         layer, weight_values, original_keras_version, original_backend)
             if len(weight_values) != len(symbolic_weights):
@@ -119,7 +119,7 @@ def load_weights_from_hdf5_group_by_name(
 
 def is_weights_mismatch(symbolic_weight, weight_value):
 
-    if LooseVersion(tf.version.VERSION) < LooseVersion("2.16.0"):
+    if not is_keras3():
         return backend.int_shape(symbolic_weight) != weight_value.shape
     else:
         return symbolic_weight.shape != weight_value.shape

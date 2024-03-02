@@ -11,9 +11,15 @@ REPLACE_SLASH = False
 
 from iseg.utils.slash_utils import replace_slash
 
+def _N(name):
+    return replace_slash(name)
+
 
 def is_keras3():
-    return LooseVersion(tf.version.VERSION) >= LooseVersion("2.16.0")
+    if LooseVersion(tf.version.VERSION) < LooseVersion("2.15.0"):
+        return False
+    
+    return LooseVersion(keras.version()) >= LooseVersion("3.0.0")
 
 
 class Keras3_Model_Wrapper(keras.Model):
