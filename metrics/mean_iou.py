@@ -9,6 +9,7 @@ import tensorflow as tf
 import numpy as np
 
 from iseg.metrics.confusion_matrix import confusion_matrix
+from iseg.utils.keras3_utils import is_keras3
 
 
 def get_class_confusion_matrix (y_true, y_pred, num_class=21, sample_weight=None, dtype=tf.float32):
@@ -64,6 +65,9 @@ class MeanIOU(keras.metrics.Metric):
         dtype: (Optional) data type of the metric result.
 
         """
+
+        if is_keras3() and dtype is None:
+            dtype = tf.float32
 
         super(MeanIOU, self).__init__(name=name, dtype=dtype)
         self.num_classes = num_classes

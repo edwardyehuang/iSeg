@@ -116,6 +116,7 @@ class CoreTrain(object):
             metrics=metrics, 
             loss=losses, 
             loss_weights=losses_weights,
+            jit_compile=False,
         )
 
         if initial_epoch != -1:

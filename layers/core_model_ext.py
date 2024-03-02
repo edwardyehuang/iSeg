@@ -184,7 +184,6 @@ class SegManaged(SegFoundation):
         return logits
 
 
-
     def compute_final_results (self, logits_list):
 
         y = [tf.cast(logits, tf.float32) for logits in logits_list]
@@ -192,7 +191,7 @@ class SegManaged(SegFoundation):
         if len(y) == 1:
             y = y[0]
 
-        if isinstance(y, list):
+        if isinstance(y, list) and is_keras3():
             _y = y
             y = dict()
 

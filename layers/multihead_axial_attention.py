@@ -1,4 +1,6 @@
 import tensorflow as tf
+import numpy as np
+import math
 
 from iseg.initializers.shared_initializers import SharedInitializer
 from iseg.utils import get_tensor_shape
@@ -51,7 +53,9 @@ class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
 
         if self.shared_qk_weights:
             if is_keras3():
-                q_kernel_initializer_value = tf.keras.initializers.GlorotUniform()(shape=(1, 1, channels, qk_filters)).numpy()
+
+                limit = math.sqrt(3.0)
+                q_kernel_initializer_value = np.random.uniform(-limit, limit)
                 q_kernel_initializer = tf.constant_initializer(value=q_kernel_initializer_value)
                 k_kernel_initializer = tf.constant_initializer(value=q_kernel_initializer_value)
             else:
