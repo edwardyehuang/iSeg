@@ -1,8 +1,10 @@
-# iSeg : A TensorFlow 2 Library for Semantic Segmentation
+## iSeg : A Keras 3 ~~TensorFlow 2~~ Library for Semantic Segmentation
 
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/tensorflow-gpu/badges/version.svg)](https://anaconda.org/conda-forge/tensorflow-gpu)
 
-## News
+### News
+
+March-05-2024: Add support for keras 3. Note that we still retain support for keras 2 and currently only support the TensorFlow backend. Support for Pytorch and JAX backends will be released at a later date.
 
 January-14-2024: Add support for TensorFlow 2.15
 
