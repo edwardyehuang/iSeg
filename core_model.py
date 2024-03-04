@@ -351,7 +351,7 @@ class SegFoundation(SegBase):
     def custom_losses_weights(self):
 
         if is_keras3() and self.num_aux_loss == 0:
-            return [1.0]
+            return None
 
         weights_dict = {self._index_to_output_key(0): 1.0}
 
@@ -394,7 +394,7 @@ class SegFoundation(SegBase):
                 pre_compute_fn=aux_metric_pre_fns[i]
                 )
 
-        return metrics.metrics
+        return metrics.to_dict(self._index_to_output_key)
 
     def multi_optimizers_layers(self):
 

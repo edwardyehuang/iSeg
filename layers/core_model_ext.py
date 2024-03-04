@@ -204,7 +204,6 @@ class SegManaged(SegFoundation):
 
         return y
 
-
     def call(self, inputs, training=None):
 
         x = inputs

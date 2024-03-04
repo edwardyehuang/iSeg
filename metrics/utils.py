@@ -41,3 +41,13 @@ class SegMetricBuilder:
     @property
     def metrics(self):
         return self.__metrics
+    
+
+    def to_dict (self, name_fn):
+
+        metrics_dict = {}
+
+        for i, metrics_list in enumerate(self.__metrics):
+            metrics_dict[name_fn(i)] = metrics_list
+
+        return metrics_dict

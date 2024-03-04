@@ -8,14 +8,22 @@ from distutils.version import LooseVersion
 
 import tensorflow as tf
 
+from iseg.utils.keras3_utils import is_keras3
+
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.11.0"):
     from iseg.layers.syncbn import SyncBatchNormalization
 elif LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
     SyncBatchNormalization = tf.keras.layers.experimental.SyncBatchNormalization
-else:
+elif not is_keras3():
     SyncBatchNormalization = functools.partial(
         tf.keras.layers.BatchNormalization, 
         synchronized=True
+    )
+else:
+    from iseg.layers.keras3.bn import BatchNormalization_Patch
+    SyncBatchNormalization = functools.partial(
+        BatchNormalization_Patch,
+        synchronized=True,
     )
 
 from iseg.layers.groupnorm import GroupNormalization

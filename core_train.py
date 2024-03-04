@@ -20,6 +20,7 @@ from iseg.optimizers.multi_optimizer import MultiOptimizer
 
 from iseg.utils.keras_ops import capture_func, get_all_layers_v2
 from iseg.utils.train_utils import exclude_no_weight_decay_layers_in_optimizer
+from iseg.utils.keras3_utils import is_keras3
 
 
 class CoreTrain(object):
@@ -116,7 +117,6 @@ class CoreTrain(object):
             metrics=metrics, 
             loss=losses, 
             loss_weights=losses_weights,
-            jit_compile=False,
         )
 
         if initial_epoch != -1:
@@ -161,16 +161,27 @@ class CoreTrain(object):
         train_ds = self.prepare_train_dataset(model, batch_size, shuffle_rate)
         eval_ds = self.prepare_val_dataset(model, eval_batch_size)
 
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=tensorboard_dir, 
-            histogram_freq=0, 
-            write_images=False,
-            profile_batch=0 if not use_profiler else (int(epoch_steps * 0.1), int(epoch_steps * 0.1) + 2),
-        )
+        if not is_keras3():
+            tensorboard_callback = tf.keras.callbacks.TensorBoard(
+                log_dir=tensorboard_dir, 
+                histogram_freq=0, 
+                write_images=False,
+                profile_batch=0 if not use_profiler else (int(epoch_steps * 0.1), int(epoch_steps * 0.1) + 2),
+            )
+
         checkpoint_saver = CheckpointSaver(self.model_helper)
         model_callback = ModelCallback(self.model_helper.model)
 
         val_steps = None if eval_ds is None else int(math.ceil(self.val_image_count / eval_batch_size))
+
+        model_callbacks = [
+            checkpoint_saver, 
+            model_callback, 
+            TimeCallback(),
+        ]
+
+        if not is_keras3():
+            model_callbacks.insert(0, tensorboard_callback)
 
         # Note, we do not apply the shuffle in keras.model.fit as it has already shuffled in tf.data
         model.fit(
@@ -178,12 +189,7 @@ class CoreTrain(object):
             epochs=train_epoches,
             validation_data=eval_ds,
             shuffle=False,
-            callbacks=[
-                tensorboard_callback, 
-                checkpoint_saver, 
-                model_callback, 
-                TimeCallback(),
-            ],
+            callbacks=model_callbacks,
             initial_epoch=initial_epoch,
             steps_per_epoch=epoch_steps,
             validation_steps=val_steps,
