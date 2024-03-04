@@ -4,7 +4,7 @@
 
 ### News
 
-March-05-2024: Add support for keras 3. Note that we still retain support for keras 2 and currently only support the TensorFlow backend. Support for Pytorch and JAX backends will be released at a later date.
+March-05-2024: Add support for keras 3. Note that I still retain support for keras 2 and currently only support the TensorFlow backend. Support for Pytorch and JAX backends will be released at a later date.
 
 January-14-2024: Add support for TensorFlow 2.15
 
