@@ -30,6 +30,16 @@ def is_keras3():
     return True
 
 
+def is_keras2_15():
+
+    if LooseVersion(tf.version.VERSION) < LooseVersion("2.15.0"):
+        return False
+    
+    keras_version = LooseVersion(keras.__version__)
+
+    return keras_version == LooseVersion("2.15.0")
+
+
 class Keras3_Model_Wrapper(keras.Model):
 
     def __init__(self, *args, name=None, **kwargs):

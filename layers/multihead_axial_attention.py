@@ -53,11 +53,7 @@ class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
 
         if self.shared_qk_weights:
             if is_keras3():
-
-                limit = math.sqrt(3.0)
-                q_kernel_initializer_value = np.random.uniform(-limit, limit)
-                q_kernel_initializer = tf.constant_initializer(value=q_kernel_initializer_value)
-                k_kernel_initializer = tf.constant_initializer(value=q_kernel_initializer_value)
+                q_kernel_initializer = k_kernel_initializer = tf.keras.initializers.GlorotUniform()
             else:
                 q_kernel_initializer = k_kernel_initializer = SharedInitializer(tf.keras.initializers.GlorotUniform())
         else:

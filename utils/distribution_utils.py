@@ -9,6 +9,8 @@ import os
 from distutils.version import LooseVersion
 from platform import uname
 
+from iseg.utils.keras3_utils import is_keras3, is_keras2_15
+
 def get_tpu_strategy(name=None):
 
     cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(name)
@@ -104,3 +106,36 @@ def get_gpu_counts():
         return len(gpus)
     else:
         return 0
+    
+
+def all_reduce_values (
+    vars,
+    reduce_op=tf.distribute.ReduceOp.SUM
+):
+
+    if is_keras3():
+        from keras.src.backend.tensorflow.trainer import reduce_per_replica
+
+        reduced = reduce_per_replica(
+            values=vars,
+            strategy=tf.distribute.get_strategy(),
+            reduction=reduce_op,
+        )
+    elif is_keras2_15():
+        from keras.src.engine.training import reduce_per_replica
+
+        reduced = reduce_per_replica(
+            values=vars,
+            strategy=tf.distribute.get_strategy(),
+            reduction=reduce_op,
+        )
+
+    else:
+        replica_ctx : tf.distribute.ReplicaContext = tf.distribute.get_replica_context()
+
+        reduced = replica_ctx.all_reduce(
+            reduce_op=reduce_op, 
+            value=vars,
+        )
+
+    return reduced

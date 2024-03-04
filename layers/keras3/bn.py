@@ -4,24 +4,7 @@ from keras.src import backend
 from keras.src import ops
 from keras.src.backend.tensorflow.core import cast
 
-from keras.src.backend.tensorflow.trainer import reduce_per_replica
-
-
-
-def all_reduce_values (replica_ctx : tf.distribute.ReplicaContext ,vars):
-
-    if tf.__internal__.distribute.strategy_supports_no_merge_call():
-        reduced = replica_ctx.all_reduce(
-            tf.distribute.ReduceOp.SUM, vars,
-        )
-    else:
-        reduced = reduce_per_replica(
-            values=vars,
-            strategy=tf.distribute.get_strategy(),
-            reduction=tf.distribute.ReduceOp.SUM,
-        )
-
-    return reduced
+from iseg.utils.distribution_utils import all_reduce_values
 
 
 def moments(x, axes, keepdims=False, synchronized=False):
@@ -60,11 +43,9 @@ def _compute_moments_sync(x, axes, keepdims, synchronized=True):
             # ordering issue for NCCL. We don't have a mechanism to launch
             # NCCL in the same order in each replica nowadays, so we limit
             # NCCL to batch all-reduces.
-            y_sum = all_reduce_values(replica_ctx, local_sum)
-            y_squared_sum = all_reduce_values(
-                replica_ctx, local_squared_sum
-            )
-            global_batch_size = all_reduce_values(replica_ctx, batch_size)
+            y_sum = all_reduce_values(local_sum)
+            y_squared_sum = all_reduce_values(local_squared_sum)
+            global_batch_size = all_reduce_values(batch_size)
 
             axes_vals = [(tf.shape(x))[axes[i]] for i in range(1, len(axes))]
             multiplier = tf.cast(tf.reduce_prod(axes_vals), tf.int32)
