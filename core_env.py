@@ -25,6 +25,8 @@ def common_env_setup(
     
     set_random_seed(random_seed)
 
+    tf.get_logger().setLevel(0)
+
     if use_deterministic:
         if LooseVersion(tf.version.VERSION) < LooseVersion("2.8.0"):
             os.environ["TF_DETERMINISTIC_OPS"] = "1"
