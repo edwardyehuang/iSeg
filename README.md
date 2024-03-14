@@ -81,7 +81,7 @@ Make sure the CUDA DRVIER is the latest version.
 
 ```
 conda create -n tf215 python=3.9 tqdm matplotlib gitpython -c conda-forge
-pip pip install --upgrade pip setuptools
+pip install --upgrade pip setuptools
 pip install --upgrade tensorrt
 pip install tensorflow[and-cuda]==2.15 ml-dtypes
 pip install tensorflow-text==2.15
