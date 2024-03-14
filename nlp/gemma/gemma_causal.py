@@ -443,7 +443,7 @@ class GemmaCausalLM(GenerativeTask):
         per_token_loss = per_token_loss_fn(target_ids, logits)
         return per_token_loss
     
-
+'''
     @classmethod
     def from_preset(
         cls,
@@ -484,3 +484,4 @@ class GemmaCausalLM(GenerativeTask):
             preprocessor = cls.preprocessor_cls(tokenizer=tokenizer)
             
         return cls(backbone=backbone, preprocessor=preprocessor, **kwargs)
+'''

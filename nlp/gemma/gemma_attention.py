@@ -92,13 +92,14 @@ class CachedGemmaAttention(keras.layers.Layer):
         self.softmax = keras.layers.Softmax(dtype=tf.float32)
         self.built = True
 
+    @tf.autograph.experimental.do_not_convert
     def _apply_rope(self, x, positions):
         """Rope rotate q or k."""
         # TODO: refactor to use RotaryEmbedding layer?
         max_wavelength = 10000
         x_shape = tf.shape(x)
-        freq_exponents = (2.0 / tf.cast(x_shape[-1], dtype=tf.float32)) * tf.cast(
-            tf.range(x_shape[-1] // 2, dtype=tf.float32), self.compute_dtype
+        freq_exponents = (2.0 / tf.cast(x_shape[-1], dtype=self.compute_dtype)) * tf.cast(
+            tf.range(x_shape[-1] // 2, dtype=tf.int32), self.compute_dtype
         )
         timescale = max_wavelength**freq_exponents
         radians = positions[..., None] / timescale[None, None, :]
