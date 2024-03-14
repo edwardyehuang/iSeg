@@ -77,7 +77,7 @@ Weights can be downloaded in [here](backbones/README.md)
 ## Installation (Conda)
 
 The following order can avoid many bugs.
-Make sure the CUDA DRVIER is the latest version.
+Make sure the NVIDIA and CUDA driver is the latest version.
 
 ```
 conda create -n tf215 python=3.9 tqdm matplotlib gitpython -c conda-forge
