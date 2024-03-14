@@ -4,6 +4,8 @@
 
 ### News
 
+March-14-2024: Add support for Gemma (Keras 2.15 compatible).
+
 March-05-2024: Add support for keras 3. Note that I still retain support for keras 2 and currently only support the TensorFlow backend. Support for Pytorch and JAX backends will be released at a later date.
 
 January-14-2024: Add support for TensorFlow 2.15
@@ -74,6 +76,14 @@ Weights can be downloaded in [here](backbones/README.md)
 
 ## Installation (Conda)
 
+The following order can avoid many bugs.
+Make sure the CUDA DRVIER is the latest version.
+
 ```
-conda create -n tf215 tensorflow-gpu=2.15 pillow tqdm -c conda-forge
+conda create -n tf215 python=3.9 tqdm matplotlib gitpython -c conda-forge
+pip pip install --upgrade pip setuptools
+pip install --upgrade tensorrt
+pip install tensorflow[and-cuda]==2.15 ml-dtypes
+pip install tensorflow-text==2.15
+pip install keras-nlp==0.8.2
 ```
