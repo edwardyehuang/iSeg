@@ -67,6 +67,10 @@ def normalization(
 
     if method == BATCH_NORM:
         name = name if name is not None else BATCH_NORM
+
+        if LooseVersion(tf.version.VERSION) >= LooseVersion("2.13.0"):
+            kwargs["synchronized"] = False
+            
         return tf.keras.layers.BatchNormalization(
             axis=axis,
             momentum=momentum,
