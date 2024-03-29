@@ -31,14 +31,15 @@ def decay_layers_lr (layers=[], weights=[], rate=0.99):
             var_list = sub_layer.trainable_weights
 
             for v in var_list:
-                current_lr_multiplier = 1.
+                current_lr_multiplier = current_rate
 
                 if hasattr(v, 'lr_multiplier'):
-                    current_lr_multiplier = v.lr_multiplier
+                    current_lr_multiplier *= v.lr_multiplier
+                    print(f"Found existing lr_multiplier = {v.lr_multiplier}, set new lr_multiplier = {current_lr_multiplier}")
 
                 set_weights_lr_multiplier(
                     v, 
-                    lr_multiplier=current_lr_multiplier * current_rate
+                    lr_multiplier=current_lr_multiplier
                 )
 
         if i < last_layer_index:
