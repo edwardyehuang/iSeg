@@ -119,6 +119,10 @@ def prepare_dataset(distribute_strategy, data, batch_size=16, val_image_count=0)
     # ds = ds.repeat()
     ds = ds.batch(batch_size, drop_remainder=False)
 
+    options = tf.data.Options()
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+    ds = ds.with_options(options)
+
     # ds = ds.prefetch(buffer_size=AUTOTUNE)
 
     ds = distribute_strategy.experimental_distribute_dataset(ds)
