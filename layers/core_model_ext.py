@@ -12,6 +12,7 @@ from iseg.backbones.feature_extractor import get_backbone
 from iseg.utils.common import resize_image
 from iseg.utils.keras_ops import capture_func
 from iseg.utils.keras3_utils import _N, is_keras3
+from iseg.utils.value_utils import values_to_list
 
 
 class SegManaged(SegFoundation):
@@ -218,8 +219,11 @@ class SegManaged(SegFoundation):
 
         backbone_inputs = image_tensor
 
+        if label is not None:
+            label = values_to_list(label)
+
         if self.label_as_inputs and self.label_as_backbone_inputs:
-            backbone_inputs = [backbone_inputs, label]
+            backbone_inputs = [backbone_inputs] + label
 
         endpoints = self.compute_backbone_results(backbone_inputs, training=training)
 
@@ -231,7 +235,7 @@ class SegManaged(SegFoundation):
             head_inputs += [image_tensor]
 
         if self.label_as_inputs and self.label_as_head_inputs:
-            head_inputs += [label]
+            head_inputs += label
 
         if len(head_inputs) == 1:
             head_inputs = head_inputs[0]
