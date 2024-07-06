@@ -328,7 +328,7 @@ class SegFoundation(SegBase):
             "class_weights":class_weights,
         }
 
-        loss = lambda post_func: catecrossentropy_ignore_label_loss(
+        default_ce_loss = lambda post_func: catecrossentropy_ignore_label_loss(
             post_compute_fn=post_func, 
             use_focal_loss=self.use_focal_loss,
             focal_loss_gamma=self.focal_loss_gamma,
@@ -337,22 +337,24 @@ class SegFoundation(SegBase):
             **kwargs,
         )
 
-        loss_dict = {self._index_to_output_key(0): loss(ohem_func)}
+        loss_dict = {self._index_to_output_key(0): default_ce_loss(ohem_func)}
 
         if self.custom_aux_loss_fns is None or len(self.custom_aux_loss_fns) == 0:
             for i in range(self.num_aux_loss):
-                loss_dict[self.__aux_index_to_output_key(i)] = loss(None)
+                loss_dict[self.__aux_index_to_output_key(i)] = default_ce_loss(None)
         else:
             assert (
                 len(self.custom_aux_loss_fns) == self.num_aux_loss
             ), "custom_aux_loss_fns must be None or empty, or has same length with num_aux_loss"
 
             for i in range(self.num_aux_loss):
-                loss_dict[self.__aux_index_to_output_key(i)] = (
-                    self.custom_aux_loss_fns[i](**common_kwargs, **kwargs)
-                    if self.custom_aux_loss_fns[i] is not None
-                    else loss(None)
-                )
+                if self.custom_aux_loss_fns[i] is not None:
+                    loss = self.custom_aux_loss_fns[i](**common_kwargs, **kwargs)
+                else:
+                    loss = default_ce_loss(None)
+
+                loss_dict[self.__aux_index_to_output_key(i)] = loss
+
 
         return loss_dict
 
