@@ -265,6 +265,10 @@ class SegFoundation(SegBase):
                 assert (len(label) == expected_num_outputs, 
                         f"""Expected {expected_num_outputs} labels, found {len(label)}, 
                         currently the num of labels must be equal to the num of losses (main + aux losses)""")
+                if isinstance(label, dict):
+                    label = label.values()
+                if isinstance(label, list):
+                    label = tuple(label)
             else:
                 label = tuple([label] * expected_num_outputs)
 
