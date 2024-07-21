@@ -134,18 +134,18 @@ def get_backbone(
     elif ss.CONVNEXT in name:
         build_dilated_convnext(backbone, output_stride=output_stride)
 
-    if weights_path is not None:
-        if "swin" in name or is_keras3(): # for keras 3
-            if label_shape is None:
-                backbone(tf.ones(image_shape))
-            else:
-                backbone((tf.ones(image_shape), tf.ones(label_shape)))
+    if "swin" in name or is_keras3(): # for keras 3
+        if label_shape is None:
+            backbone(tf.ones(image_shape))
         else:
-            if label_shape is None:
-                backbone.build(input_shape=image_shape)  # backward compatibility
-            else:
-                backbone((tf.ones(image_shape), tf.ones(label_shape)))
+            backbone((tf.ones(image_shape), tf.ones(label_shape)))
+    else:
+        if label_shape is None:
+            backbone.build(input_shape=image_shape)  # backward compatibility
+        else:
+            backbone((tf.ones(image_shape), tf.ones(label_shape)))
 
+    if weights_path is not None:
         if ".h5" in weights_path[-3:]:
             print(f"Load backbone weights {weights_path} as H5 format")
             # backbone.load_weights(weights_path, by_name=True) 

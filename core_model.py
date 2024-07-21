@@ -251,7 +251,7 @@ class SegFoundation(SegBase):
 
         self.model_class_weights = class_weights
 
-
+    @tf.autograph.experimental.do_not_convert
     def inputs_process(self, image, label):
 
         if self.label_as_inputs:
