@@ -14,9 +14,6 @@ from iseg.core_model import SegBase
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
 from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 
-from common_flags import FLAGS
-
-
 def evaluate(
     distribute_strategy,
     model,
