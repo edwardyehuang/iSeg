@@ -254,14 +254,28 @@ class SegFoundation(SegBase):
     @tf.autograph.experimental.do_not_convert
     def inputs_process(self, image, label):
 
+        is_label_collection = isinstance(label, (list, tuple, dict))
+
         if self.label_as_inputs:
-            image = (image, label)
+
+            if is_label_collection:
+                if isinstance(label, list):
+                    label = tuple(label)
+                if isinstance(label, tuple):
+                    image = (image, *label)
+
+                if isinstance(label, dict):
+                    label["image"] = image
+                    image = label
+                
+            else:
+                image = (image, label)
 
         if self.num_aux_loss > 0:
 
             expected_num_outputs = self.num_aux_loss + 1
 
-            if isinstance(label, (list, tuple, dict)):
+            if is_label_collection:
                 assert (len(label) == expected_num_outputs, 
                         f"""Expected {expected_num_outputs} labels, found {len(label)}, 
                         currently the num of labels must be equal to the num of losses (main + aux losses)""")

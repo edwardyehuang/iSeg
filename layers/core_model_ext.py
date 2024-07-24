@@ -40,6 +40,8 @@ class SegManaged(SegFoundation):
         use_custom_logits=False,
         logits_upsample_masks=None,
         resnet_multi_grids=[1, 2, 4],
+        dict_inputs_image_key="image",
+        backbone_outputs_dict_key="endpoints",
         **kwargs,
     ):
 
@@ -94,6 +96,9 @@ class SegManaged(SegFoundation):
             self.aux_logits_convs = self.build_aux_logits_conv(self.num_aux_loss, self.aux_metric_names)
 
         self.layers_for_multi_optimizers = None
+
+        self.dict_inputs_image_key = dict_inputs_image_key
+        self.backbone_outputs_dict_key = backbone_outputs_dict_key
 
 
     def build_aux_logits_conv (self, num_aux_loss, aux_metric_names=None):
@@ -207,39 +212,63 @@ class SegManaged(SegFoundation):
 
     def call(self, inputs, training=None):
 
+        return self._call_internal(inputs, training=training)
+    
+
+    @tf.autograph.experimental.do_not_convert
+    def _call_internal(self, inputs, training=None):
+
         x = inputs
         label = None
 
+        is_dict_inputs = isinstance(x, dict)
+
         if self.label_as_inputs:
-            x, label = x
+            if not is_dict_inputs:
+                x, label = x
+            else:
+                inputs_dict = x.copy()
+                x = inputs_dict[self.dict_inputs_image_key]
+                del inputs_dict[self.dict_inputs_image_key]
+                label = inputs_dict
 
         image_tensor = tf.identity(x, name="image_tensor")
 
-        inputs_size = tf.shape(image_tensor)[1:3]
+        if is_dict_inputs:
+            image_tensor = {self.dict_inputs_image_key: image_tensor}
 
-        backbone_inputs = image_tensor
+        inputs_size = tf.shape(image_tensor)[1:3]
 
         if label is not None:
             label = values_to_list(label)
 
-        if self.label_as_inputs and self.label_as_backbone_inputs:
-            backbone_inputs = [backbone_inputs] + label
+        backbone_inputs = self.build_sub_model_inputs(
+            image_tensor, 
+            label, 
+            with_label=self.label_as_inputs and self.label_as_backbone_inputs
+        )
 
+        backbone_inputs = self.extract_if_single_element(backbone_inputs)
         endpoints = self.compute_backbone_results(backbone_inputs, training=training)
+
+        if is_dict_inputs:
+            endpoints = {self.backbone_outputs_dict_key, endpoints}
+        else:
+            endpoints = [endpoints] # for backward compatibility
 
         # Compute head results
 
-        head_inputs = [endpoints]
+        head_inputs = self.build_sub_model_inputs(
+            endpoints, 
+            label, 
+            with_label=self.label_as_inputs and self.label_as_head_inputs
+        )
 
         if self.image_as_head_inputs:
-            head_inputs += [image_tensor]
+            # head_inputs += [image_tensor]
+            print("image_as_head_inputs is not implemented yet")
 
-        if self.label_as_inputs and self.label_as_head_inputs:
-            head_inputs += label
-
-        if len(head_inputs) == 1:
-            head_inputs = head_inputs[0]
-
+        head_inputs = self.extract_if_single_element(head_inputs)
         head_results = self.compute_head_results(head_inputs, training=training)
 
         # Handle logits
@@ -248,7 +277,45 @@ class SegManaged(SegFoundation):
         logits_list = self.compute_logits_upsample(logits_list, inputs_size=inputs_size)
 
         return self.compute_final_results(logits_list)
+    
 
+    def build_sub_model_inputs(
+        self, 
+        inputs, 
+        label=None,
+        with_label=False
+    ):
+        
+        if not with_label:
+            return inputs
+
+        is_dict_inputs = isinstance(inputs, dict)
+        is_dict_label = isinstance(label, dict)
+
+        assert is_dict_inputs == is_dict_label, "Inputs and label must be both dict or not dict"
+
+        if not is_dict_inputs:
+            inputs = values_to_list(inputs)
+            label = values_to_list(label)
+
+            return inputs + label
+        
+        inputs_dict = inputs.copy()
+        inputs_dict.extend(label)
+
+        return inputs_dict
+    
+
+    def extract_if_single_element(self, possible_collection):
+
+        if isinstance(possible_collection, (list, tuple, dict)) and len(possible_collection) == 1:
+            if isinstance(possible_collection, dict):
+                return list(possible_collection.values())[0]
+            
+            return possible_collection[0]
+        
+        return possible_collection
+        
     
     def multi_optimizers_layers(self):
         
