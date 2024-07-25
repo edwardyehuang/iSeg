@@ -233,14 +233,10 @@ class SegManaged(SegFoundation):
                 label = inputs_dict
 
         image_tensor = tf.identity(x, name="image_tensor")
+        inputs_size = tf.shape(image_tensor)[1:3]
 
         if is_dict_inputs:
             image_tensor = {self.dict_inputs_image_key: image_tensor}
-
-        inputs_size = tf.shape(image_tensor)[1:3]
-
-        if label is not None:
-            label = values_to_list(label)
 
         backbone_inputs = self.build_sub_model_inputs(
             image_tensor, 
@@ -252,7 +248,7 @@ class SegManaged(SegFoundation):
         endpoints = self.compute_backbone_results(backbone_inputs, training=training)
 
         if is_dict_inputs:
-            endpoints = {self.backbone_outputs_dict_key, endpoints}
+            endpoints = {self.backbone_outputs_dict_key: endpoints}
         else:
             endpoints = [endpoints] # for backward compatibility
 
@@ -301,7 +297,7 @@ class SegManaged(SegFoundation):
             return inputs + label
         
         inputs_dict = inputs.copy()
-        inputs_dict.extend(label)
+        inputs_dict.update(label)
 
         return inputs_dict
     
