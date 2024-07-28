@@ -265,8 +265,9 @@ class SegFoundation(SegBase):
                     image = (image, *label)
 
                 if isinstance(label, dict):
-                    label["image"] = image
-                    image = label
+                    _image = image
+                    image = label.copy()
+                    image["image"] = _image
                 
             else:
                 image = (image, label)
@@ -280,7 +281,8 @@ class SegFoundation(SegBase):
                         f"""Expected {expected_num_outputs} labels, found {len(label)}, 
                         currently the num of labels must be equal to the num of losses (main + aux losses)""")
                 if isinstance(label, dict):
-                    label = label.values()
+                    label = list(label.values())
+
                 if isinstance(label, list):
                     label = tuple(label)
             else:
