@@ -24,8 +24,11 @@ class AugmentationsPipeLine(object):
         self.name = name
         self.augments = augments
 
-        self.target_height = target_height if target_height > 0 else None
-        self.target_width = target_width if target_width > 0 else None
+        if self.target_height is not None:
+            self.target_height = target_height if target_height > 0 else None
+
+        if self.target_width is not None:
+            self.target_width = target_width if target_width > 0 else None
 
         self._printed_processed_augments = False
 
