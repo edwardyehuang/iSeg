@@ -8,7 +8,14 @@ from iseg.data_process.augments import *
 
 
 class AugmentationsPipeLine(object):
-    def __init__(self, target_height=None, target_width=None, augments=[], name=None) -> None:
+    def __init__(
+        self, 
+        target_height=None, 
+        target_width=None, 
+        augments=[],
+        perform_post_process=True,
+        name=None
+    ):
         super().__init__()
 
         if name is None:
@@ -21,6 +28,8 @@ class AugmentationsPipeLine(object):
         self.target_width = target_width if target_width > 0 else None
 
         self._printed_processed_augments = False
+
+        self.perform_post_process = perform_post_process
 
     def post_process(self, image, label):
 
@@ -60,7 +69,11 @@ class AugmentationsPipeLine(object):
             print(f"Processed augments = {processed_arugments}")
             self._printed_processed_augments = True
 
-        return self.post_process(*inputs)
+        if self.perform_post_process:
+            return self.post_process(*inputs)
+
+        return inputs
+    
 
     def __call__(self, ds):
 
