@@ -60,7 +60,7 @@ def get_distribution_strategy(
     if os.name == "nt" or "microsoft-standard" in uname().release:
         cross_device_ops = tf.distribute.HierarchicalCopyAllReduce()
     
-    if LooseVersion(tf.version.VERSION) >= LooseVersion("2.17.0"):
+    if LooseVersion(tf.version.VERSION) >= LooseVersion("2.19.0"):
         strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(
             communication=tf.distribute.experimental.CollectiveCommunication.RING
         )

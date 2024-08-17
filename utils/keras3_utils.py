@@ -62,4 +62,18 @@ class Keras3_Layer_Wrapper(keras.layers.Layer):
         
         name = replace_slash(name)
 
-        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+        if not is_keras3():
+            super().__init__(
+                trainable=trainable, 
+                name=name, 
+                dtype=dtype, 
+                dynamic=dynamic, 
+                **kwargs
+            )
+        else:
+            super().__init__(
+                trainable=trainable, 
+                name=name, 
+                dtype=dtype, 
+                **kwargs
+            )
