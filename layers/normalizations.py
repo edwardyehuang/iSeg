@@ -100,6 +100,9 @@ def normalization(
 
     elif method == SYNC_BATCH_NORM:
         name = name if name is not None else BATCH_NORM
+
+        print(f"Synchronized batch normalization for {name}")
+
         return SyncBatchNormalization(
             axis=axis,
             momentum=momentum,
