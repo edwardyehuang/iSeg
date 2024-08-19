@@ -27,7 +27,7 @@ from iseg.backbones.eva.eva import EVA02_large_patch14_448, EVA02_large_patch14_
 
 from iseg.utils.keras_ops import load_h5_weight
 
-from iseg.utils.keras3_utils import is_keras3
+from iseg.utils.keras3_utils import is_keras3, print_keras_version
 
 
 def get_backbone(
@@ -133,6 +133,8 @@ def get_backbone(
         build_atrous_mobilenetv2(backbone, output_stride=output_stride)
     elif ss.CONVNEXT in name:
         build_dilated_convnext(backbone, output_stride=output_stride)
+
+    print_keras_version()
 
     if "swin" in name or is_keras3(): # for keras 3
         if label_shape is None:

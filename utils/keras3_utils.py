@@ -15,6 +15,10 @@ def _N(name):
     return replace_slash(name)
 
 
+def print_keras_version():
+    print(f"Keras version: {keras.__version__}")
+
+
 def is_keras3():
     if LooseVersion(tf.version.VERSION) < LooseVersion("2.15.0"):
         return False
