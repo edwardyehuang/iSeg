@@ -174,6 +174,8 @@ class BlockType2(Keras3_Model_Wrapper):
 
     def call(self, inputs, training=None, **kwargs):
 
+        inputs = tf.identity(inputs, name="block_inputs")
+
         shortcut = inputs
 
         if self.conv_shortcut:
