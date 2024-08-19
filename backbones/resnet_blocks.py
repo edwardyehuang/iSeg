@@ -174,8 +174,6 @@ class BlockType2(Keras3_Model_Wrapper):
 
     def call(self, inputs, training=None, **kwargs):
 
-        inputs = tf.identity(inputs, name="block_inputs")
-
         shortcut = inputs
 
         if self.conv_shortcut:
@@ -201,7 +199,7 @@ class BlockType2(Keras3_Model_Wrapper):
         x = self.conv3_conv(x)
         x = self.conv3_bn(x, training=training)
 
-        x = tf.add(shortcut, x)
+        x = tf.add(tf.cast(shortcut, x.dtype), x)
         x = tf.nn.relu(x)
 
         return x
