@@ -139,11 +139,13 @@ def get_backbone(
             backbone(tf.ones(image_shape))
         else:
             backbone((tf.ones(image_shape), tf.ones(label_shape)))
+        print("Built backbone with real inputs")
     else:
         if label_shape is None:
             backbone.build(input_shape=image_shape)  # backward compatibility
         else:
             backbone((tf.ones(image_shape), tf.ones(label_shape)))
+        print("Built backbone with shape inputs")
 
     if weights_path is not None:
         if ".h5" in weights_path[-3:]:
