@@ -1,8 +1,11 @@
+import os
 from distutils.version import LooseVersion
 
 import tensorflow as tf
 
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.15.0"):
+    from tensorflow import keras
+elif os.environ.get("TF_USE_LEGACY_KERAS", "0") == "1":
     from tensorflow import keras
 else:
     import keras
