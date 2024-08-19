@@ -13,13 +13,10 @@ from iseg.utils.keras3_utils import is_keras3, is_keras2_15
 
 def get_tpu_strategy(name=None):
 
-    if LooseVersion(tf.version.VERSION) < LooseVersion("2.16.0"):
-        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(name)
-        tf.config.experimental_connect_to_cluster(cluster_resolver)
-        tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-    else:
-        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver.connect(name)
-        print("TPU Device:", cluster_resolver.master())
+    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(name)
+    tf.config.experimental_connect_to_cluster(cluster_resolver)
+    tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+    print("TPU Device:", cluster_resolver.master())
 
     if LooseVersion(tf.version.VERSION) < LooseVersion("2.4.0"):
         strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
