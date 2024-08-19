@@ -20,12 +20,18 @@ elif not is_keras3():
         synchronized=True
     )
 else:
+    SyncBatchNormalization = functools.partial(
+        tf.keras.layers.BatchNormalization, 
+        synchronized=True
+    )
 
+    '''
     from iseg.layers.keras3.bn import BatchNormalization_Patch
     SyncBatchNormalization = functools.partial(
         BatchNormalization_Patch,
         synchronized=True,
     )
+    '''
 
 
 from iseg.layers.groupnorm import GroupNormalization
