@@ -76,6 +76,8 @@ def normalization(
 
         if LooseVersion(tf.version.VERSION) >= LooseVersion("2.13.0"):
             kwargs["synchronized"] = False
+
+        print(f"No synchronized batch normalization for {name}")
             
         return tf.keras.layers.BatchNormalization(
             axis=axis,
