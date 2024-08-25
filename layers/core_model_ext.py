@@ -42,6 +42,7 @@ class SegManaged(SegFoundation):
         resnet_multi_grids=[1, 2, 4],
         dict_inputs_image_key="image",
         backbone_outputs_dict_key="endpoints",
+        head_results_direct_output=False,
         **kwargs,
     ):
 
@@ -99,6 +100,8 @@ class SegManaged(SegFoundation):
 
         self.dict_inputs_image_key = dict_inputs_image_key
         self.backbone_outputs_dict_key = backbone_outputs_dict_key
+
+        self.head_results_direct_output = head_results_direct_output
 
 
     def build_aux_logits_conv (self, num_aux_loss, aux_metric_names=None):
@@ -267,12 +270,17 @@ class SegManaged(SegFoundation):
         head_inputs = self.extract_if_single_element(head_inputs)
         head_results = self.compute_head_results(head_inputs, training=training)
 
+        if self.head_results_direct_output:
+            return head_results
+
         # Handle logits
 
         logits_list = self.compute_logits_results(head_results)
         logits_list = self.compute_logits_upsample(logits_list, inputs_size=inputs_size)
 
-        return self.compute_final_results(logits_list)
+        logits_list = self.compute_final_results(logits_list)
+
+        return logits_list
     
 
     def build_sub_model_inputs(
