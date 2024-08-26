@@ -232,6 +232,8 @@ class Eva (Keras3_Model_Wrapper):
 
         x = self.patch_embed(x)
 
+        patch_embedding = tf.identity(x, name="patch_embedding")
+
         batch_size, height, width, channels = get_tensor_shape(x)
 
         rope = self.rope([height, width])
@@ -246,7 +248,7 @@ class Eva (Keras3_Model_Wrapper):
         x = tf.reshape(x, [batch_size, height, width, channels])
 
         if self.return_endpoints:
-            x = [class_token, x]
+            x = [class_token, patch_embedding, x]
 
         return x
     

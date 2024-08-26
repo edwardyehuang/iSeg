@@ -265,7 +265,11 @@ class SegManaged(SegFoundation):
 
         if self.image_as_head_inputs:
             # head_inputs += [image_tensor]
-            print("image_as_head_inputs is not implemented yet")
+            head_inputs = self.build_sub_model_inputs(
+                head_inputs, 
+                image_tensor, 
+                with_label=True
+            )
 
         head_inputs = self.extract_if_single_element(head_inputs)
         head_results = self.compute_head_results(head_inputs, training=training)
