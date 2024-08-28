@@ -65,9 +65,6 @@ Weights can be downloaded in [here](backbones/README.md)
 - [x] Support for Windows WSL2
 - [x] Support for Apple M1 chip macOS
 
-### Future plan (Coming soon)
-- Support Keras core, seamlessly use Pytorch and JAX backend.
-- Added support for Panoptic segmentation and multimodality.
 
 ## Requirements
 
@@ -80,9 +77,9 @@ The following order can avoid many bugs.
 Make sure the NVIDIA and CUDA driver is the latest version.
 
 ```
-conda create -n tf215 python=3.9 tqdm matplotlib gitpython -c conda-forge
+conda create -n tf215 python=3.10 tqdm matplotlib gitpython -c conda-forge
 pip install --upgrade pip setuptools
-pip install --upgrade tensorrt
+pip install --no-cache-dir --extra-index-url https://pypi.nvidia.com tensorrt-libs==8.6.1
 pip install tensorflow[and-cuda]==2.15 ml-dtypes
 pip install tensorflow-text==2.15
 pip install keras-nlp==0.8.2
