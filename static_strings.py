@@ -95,6 +95,7 @@ INTERN_IMAGE_SMALL = "intern_image_small"
 INTERN_IMAGE_LARGE = "intern_image_large"
 INTERN_IMAGE_HUGE = "intern_image_huge"
 
+EVA02 = "eva02"
 EVA02_LARGE = "eva02_large"
 EVA02_LARGE_224 = "eva02_large_224"
 EVA02_TINY = "eva02_tiny"
