@@ -241,14 +241,25 @@ class Eva (Keras3_Model_Wrapper):
         x = tf.reshape(x, [batch_size, height * width, channels])
         x = self._pos_embed(x, height, width, training=training)
 
-        for block in self.blocks:
-            x = block([x, rope], training=training)
+        num_blocks = len(self.blocks)
+        max_index = num_blocks - 1
 
-        class_token, x = x[:, :1, :], x[:, 1:, :]
-        x = tf.reshape(x, [batch_size, height, width, channels])
+        endpoint_index_list = [max_index, max_index - 4, max_index - 6]
+        endpoints = []
+
+        for i in range(num_blocks):
+            x = self.blocks[i]([x, rope], training=training)
+
+            if i in endpoint_index_list:
+                _x = x[:, 1:, :]
+                _x = tf.reshape(_x, [batch_size, height, width, channels])
+                endpoints.append(_x)
+
+        class_token = x[:, :1, :]
 
         if self.return_endpoints:
-            x = [class_token, patch_embedding, x]
+            endpoints = [class_token, patch_embedding] + endpoints
+            return endpoints
 
         return x
     
