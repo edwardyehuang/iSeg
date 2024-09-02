@@ -244,16 +244,13 @@ class Eva (Keras3_Model_Wrapper):
         num_blocks = len(self.blocks)
         max_index = num_blocks - 1
 
-        endpoint_index_list = [max_index, max_index - 4, max_index - 6]
         endpoints = []
 
         for i in range(num_blocks):
             x = self.blocks[i]([x, rope], training=training)
-
-            if i in endpoint_index_list:
-                _x = x[:, 1:, :]
-                _x = tf.reshape(_x, [batch_size, height, width, channels])
-                endpoints.append(_x)
+            _x = x[:, 1:, :]
+            _x = tf.reshape(_x, [batch_size, height, width, channels])
+            endpoints.append(_x)
 
         class_token = x[:, :1, :]
 
