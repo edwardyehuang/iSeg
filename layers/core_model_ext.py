@@ -14,6 +14,8 @@ from iseg.utils.keras_ops import capture_func
 from iseg.utils.keras3_utils import _N, is_keras3
 from iseg.utils.value_utils import values_to_list
 
+import iseg.utils.common
+
 
 class SegManaged(SegFoundation):
     def __init__(
@@ -79,15 +81,19 @@ class SegManaged(SegFoundation):
 
         label_shape = None
 
+        align_corners = iseg.utils.common.DEFAULT_ALIGN_CORNERS
+
         if self.label_as_inputs and self.label_as_backbone_inputs:
-            label_shape = (1, 513, 513)
+            label_shape = (1, 513, 513) if align_corners else (1, 512, 512)
+
+        image_shape = (1, 513, 513, 3) if align_corners else (1, 512, 512, 3)
 
         self.backbone = get_backbone(
             self.backbone_name,
             output_stride=self.output_stride,
             weights_path=self.backbone_weights_path,
             return_endpoints=True,
-            image_shape=(1, 513, 513, 3),
+            image_shape=image_shape,
             label_shape=label_shape,
             resnet_multi_grids=resnet_multi_grids,
         )

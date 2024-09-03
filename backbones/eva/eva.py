@@ -21,6 +21,7 @@ class Eva (Keras3_Model_Wrapper):
     def __init__ (
         self,
         pretrain_img_size=224,
+        pretrain_patch_size=14,
         patch_size=16,
         embed_filters=768,
         depth=12,
@@ -43,7 +44,7 @@ class Eva (Keras3_Model_Wrapper):
         use_post_norm=False,
         dynamic_img_size=True,
         ref_feat_shape=None,
-        patch_padding="same",
+        patch_padding="valid",
         return_endpoints=False,
         trainable=True,
         name=None,
@@ -52,6 +53,7 @@ class Eva (Keras3_Model_Wrapper):
         super().__init__(trainable=trainable, name=name)
 
         self.pretrain_img_size = pretrain_img_size
+        self.pretrain_patch_size = pretrain_patch_size
 
         self.patch_size = patch_size
         self.embed_filters = embed_filters
@@ -93,12 +95,13 @@ class Eva (Keras3_Model_Wrapper):
 
         self.patch_embed : PatchEmbed = PatchEmbed(
             patch_size=self.patch_size,
+            weights_patch_size=self.pretrain_patch_size,
             embed_filters=self.embed_filters,
             padding=self.patch_padding,
         )
 
-        grid_size_h = self.pretrain_img_size // self.patch_size
-        grid_size_w = self.pretrain_img_size // self.patch_size
+        grid_size_h = self.pretrain_img_size // self.pretrain_patch_size
+        grid_size_w = self.pretrain_img_size // self.pretrain_patch_size
         grid_size = [grid_size_h, grid_size_w]
 
         self.grid_size = grid_size
@@ -266,7 +269,8 @@ def EVA02_large_patch14_448(return_endpoints=False):
 
     return Eva(
         pretrain_img_size=448,
-        patch_size=14,
+        pretrain_patch_size=14,
+        patch_size=16,
         embed_filters=1024,
         depth=24,
         num_heads=16,
@@ -290,7 +294,8 @@ def EVA02_large_patch14_224(return_endpoints=False):
 
     return Eva(
         pretrain_img_size=224,
-        patch_size=14,
+        pretrain_patch_size=14,
+        patch_size=16,
         embed_filters=1024,
         depth=24,
         num_heads=16,
@@ -314,7 +319,8 @@ def EVA02_tiny_patch_14_336(return_endpoints=False):
 
     return Eva(
         pretrain_img_size=336,
-        patch_size=14,
+        pretrain_patch_size=14,
+        patch_size=16,
         embed_filters=192,
         depth=12,
         num_heads=3,

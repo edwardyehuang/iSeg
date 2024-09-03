@@ -13,6 +13,9 @@ def default_if_not(value, default_value):
 
 def to_2d_tuple (x):
 
+    if x is None:
+        return None
+
     if isinstance(x, list):
         x = tuple(x)
     

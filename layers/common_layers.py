@@ -62,11 +62,20 @@ def extract_spatial_patches(x, size=4, use_mean_padding_value=False, padding_dir
 
 
 class PatchEmbed(Keras3_Model_Wrapper):
-    def __init__(self, patch_size=(4, 4), embed_filters=96, norm_layer=None, padding="SAME", name=None):
+    def __init__(
+        self, 
+        patch_size=(4, 4),
+        weights_patch_size=None, 
+        embed_filters=96, 
+        norm_layer=None, 
+        padding="SAME", 
+        name=None
+    ):
 
         super().__init__(name=name)
 
         self.patch_size = to_2d_tuple(patch_size)
+        self.weights_patch_size = to_2d_tuple(weights_patch_size)
         self.embed_filters = embed_filters
 
         self.norm_layer = norm_layer
@@ -76,13 +85,20 @@ class PatchEmbed(Keras3_Model_Wrapper):
 
     def build(self, input_shape):
 
+        weights_patch_size = self.weights_patch_size
+
+        if weights_patch_size is None:
+            weights_patch_size = self.patch_size
+
         self.proj = tf.keras.layers.Conv2D(
             self.embed_filters, 
-            kernel_size=self.patch_size, 
-            strides=self.patch_size, 
+            kernel_size=weights_patch_size,
+            strides=weights_patch_size,
             name=f"{self.name}/projection",
             padding=self.padding,
         )
+
+        self.proj.build(input_shape)
         
         if self.norm_layer is not None:
             self.norm = self.norm_layer(epsilon=1e-5, name=f"{self.name}/norm")
@@ -92,8 +108,17 @@ class PatchEmbed(Keras3_Model_Wrapper):
         super().build(input_shape)
 
     def call(self, x):
-
-        x = self.proj(x)
+        
+        if self.weights_patch_size is None:
+            x = self.proj(x)
+        else:
+            k = self.proj.kernel # [kh, kw, cin, cout]
+            k = tf.transpose(k, [2, 0, 1, 3])  # [cin, kh, kw, cout]
+            k = tf.image.resize(k, self.patch_size, method="bilinear")
+            k = tf.transpose(k, [1, 2, 0, 3]) # [kh, kw, cin, cout]
+            k = tf.cast(k, x.dtype)
+            x = tf.nn.conv2d(x, k, strides=self.patch_size, padding=self.padding.upper())
+            x = tf.nn.bias_add(x, self.proj.bias)
 
         if self.norm is not None:
             x = self.norm(x)
