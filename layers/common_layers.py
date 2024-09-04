@@ -107,9 +107,14 @@ class PatchEmbed(Keras3_Model_Wrapper):
 
         super().build(input_shape)
 
+
+    def _is_same_patch_size(self):
+        return self.patch_size[0] == self.weights_patch_size[0] and self.patch_size[1] == self.weights_patch_size[1]
+
+
     def call(self, x):
         
-        if self.weights_patch_size is None:
+        if self.weights_patch_size is None or self._is_same_patch_size():
             x = self.proj(x)
         else:
             k = self.proj.kernel # [kh, kw, cin, cout]

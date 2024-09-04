@@ -270,7 +270,7 @@ def EVA02_large_patch14_448(return_endpoints=False):
     return Eva(
         pretrain_img_size=448,
         pretrain_patch_size=14,
-        patch_size=16,
+        patch_size=14,
         embed_filters=1024,
         depth=24,
         num_heads=16,
@@ -295,7 +295,7 @@ def EVA02_large_patch14_224(return_endpoints=False):
     return Eva(
         pretrain_img_size=224,
         pretrain_patch_size=14,
-        patch_size=16,
+        patch_size=14,
         embed_filters=1024,
         depth=24,
         num_heads=16,
@@ -320,7 +320,7 @@ def EVA02_tiny_patch_14_336(return_endpoints=False):
     return Eva(
         pretrain_img_size=336,
         pretrain_patch_size=14,
-        patch_size=16,
+        patch_size=14,
         embed_filters=192,
         depth=12,
         num_heads=3,
