@@ -172,6 +172,8 @@ class Eva (Keras3_Model_Wrapper):
 
         batch_size, height, width, channels = get_tensor_shape(x)
 
+        x = tf.reshape(x, [batch_size, height * width, channels])
+
         pos_embed = self.position_embedding
 
         if self.use_class_token:
@@ -243,7 +245,7 @@ class Eva (Keras3_Model_Wrapper):
 
         rope = self.rope([height, width])
 
-        x = tf.reshape(x, [batch_size, height * width, channels])
+        # x = tf.reshape(x, [batch_size, height * width, channels])
         x = self._pos_embed(x, training=training)
 
         num_blocks = len(self.blocks)
