@@ -168,7 +168,9 @@ class Eva (Keras3_Model_Wrapper):
         super().build(input_shape)
 
 
-    def _pos_embed(self, x, height, width, training=None):
+    def _pos_embed(self, x, training=None):
+
+        batch_size, height, width, channels = get_tensor_shape(x)
 
         pos_embed = self.position_embedding
 
@@ -176,7 +178,7 @@ class Eva (Keras3_Model_Wrapper):
             class_token = tf.cast(self.class_token, x.dtype)
             class_token = tf.broadcast_to(
                 class_token, 
-                [tf.shape(x)[0], 1, x.shape[-1]]
+                [batch_size, 1, channels]
             )
             x = tf.concat([class_token, x], axis=1) # [N, 1 + HW, C]
 
@@ -242,10 +244,9 @@ class Eva (Keras3_Model_Wrapper):
         rope = self.rope([height, width])
 
         x = tf.reshape(x, [batch_size, height * width, channels])
-        x = self._pos_embed(x, height, width, training=training)
+        x = self._pos_embed(x, training=training)
 
         num_blocks = len(self.blocks)
-        max_index = num_blocks - 1
 
         endpoints = []
 
