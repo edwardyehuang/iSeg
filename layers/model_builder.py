@@ -175,6 +175,7 @@ class LnConvGelu(Keras3_Model_Wrapper):
         kernel_size=1,
         dilation_rate=(1, 1),
         use_ln=True,
+        ln_epsilon=1e-6,
         activation=tf.nn.gelu,
         conv_kernel_initializer="glorot_uniform",
         dropout_rate=0,
@@ -186,7 +187,7 @@ class LnConvGelu(Keras3_Model_Wrapper):
         super().__init__(trainable=trainable, name=name)
 
         self.ln = (
-            None if not use_ln else tf.keras.layers.LayerNormalization(trainable=trainable, name=f"{self.name}_ln")
+            None if not use_ln else tf.keras.layers.LayerNormalization(trainable=trainable, epsilon=ln_epsilon, name=f"{self.name}_ln")
         )
 
         self.conv = tf.keras.layers.Conv2D(
