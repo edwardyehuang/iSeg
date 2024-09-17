@@ -527,7 +527,7 @@ def keras_norm_preprocess(inputs, dtype=tf.float32):
     x = inputs
     x = keras.layers.Normalization(
         mean=[123.675, 116.28, 103.53],
-        variance=[58.395, 57.12, 57.375],
+        variance=[58.395 ** 2, 57.12 ** 2, 57.375 ** 2],
     )(x)
 
     return tf.cast(x, dtype=dtype)
