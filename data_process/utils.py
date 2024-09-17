@@ -5,6 +5,7 @@
 
 import iseg.static_strings as ss
 import tensorflow as tf
+import keras
 from tensorflow.python.framework import ops
 
 from iseg.utils import resize_image
@@ -503,14 +504,9 @@ def resolve_shape(tensor, rank=None, scope=None):
 
 def normalize_value_range(inputs, backbone_name=ss.RESNET103):
 
-    '''
-    if "resnet" in backbone_name and not is_resnet_beta(backbone_name):
-        # return preprocess_subtract_imagenet_mean(inputs)
-        raise NotImplementedError()
+    if "eva" in backbone_name.lower():
+        return keras_norm_preprocess(inputs)
 
-    else:
-        return preprocess_zero_mean_unit_range(inputs)
-    '''
     return preprocess_zero_mean_unit_range(inputs)
 
 
@@ -524,6 +520,17 @@ def preprocess_zero_mean_unit_range(inputs, dtype=tf.float32):
     preprocessed_inputs = (2.0 / 255.0) * tf.cast(inputs, tf.float32) - 1.0
 
     return tf.cast(preprocessed_inputs, dtype=dtype)
+
+
+def keras_norm_preprocess(inputs, dtype=tf.float32):
+
+    x = inputs
+    x = keras.layers.Normalization(
+        mean=[123.675, 116.28, 103.53],
+        variance=[58.395, 57.12, 57.375],
+    )(x)
+
+    return tf.cast(x, dtype=dtype)
 
 
 def preprocess_subtract_imagenet_mean(inputs, dtype=tf.float32):
@@ -544,5 +551,8 @@ def get_mean_pixel(backbone_name=ss.RESNET103):
     else:
         return [127.5, 127.5, 127.5]
     '''
+
+    if "eva" in backbone_name.lower():
+        return [123.675, 116.28, 103.53]
 
     return [127.5, 127.5, 127.5]
