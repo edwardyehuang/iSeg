@@ -318,6 +318,31 @@ def EVA02_large_patch14_224(return_endpoints=False):
     )
 
 
+def EVA02_large_patch16_224(return_endpoints=False):
+
+    return Eva(
+        pretrain_img_size=224,
+        pretrain_patch_size=16,
+        patch_size=16,
+        embed_filters=1024,
+        depth=24,
+        num_heads=16,
+        qkv_fused=False,
+        mlp_ratio=4 * 2 / 3,
+        swiglu_mlp=True,
+        scale_mlp=True,
+        scale_attention_inner=False,
+        drop_path_rate=0.3,
+        init_values=None,
+        use_class_token=True,
+        use_abs_pos_emb=True,
+        use_rot_pos_emb=True,
+        use_post_norm=False,
+        return_endpoints=return_endpoints,
+        name="eva02_large_patch16_224",
+    )
+
+
 def EVA02_tiny_patch_14_336(return_endpoints=False):
 
     return Eva(

@@ -97,8 +97,6 @@ class PatchEmbed(Keras3_Model_Wrapper):
             name=f"{self.name}/projection",
             padding=self.padding,
         )
-
-        self.proj.build(input_shape)
         
         if self.norm_layer is not None:
             self.norm = self.norm_layer(epsilon=1e-5, name=f"{self.name}/norm")
@@ -108,23 +106,9 @@ class PatchEmbed(Keras3_Model_Wrapper):
         super().build(input_shape)
 
 
-    def _is_same_patch_size(self):
-        return self.patch_size[0] == self.weights_patch_size[0] and self.patch_size[1] == self.weights_patch_size[1]
-
-
     def call(self, x):
         
-        if self.weights_patch_size is None or self._is_same_patch_size():
-            x = self.proj(x)
-        else:
-            k = self.proj.kernel # [kh, kw, cin, cout]
-            k = tf.transpose(k, [2, 0, 1, 3])  # [cin, kh, kw, cout]
-            k = tf.image.resize(k, self.patch_size, method="bilinear")
-            k = tf.transpose(k, [1, 2, 0, 3]) # [kh, kw, cin, cout]
-            k = tf.cast(k, x.dtype)
-            x = tf.nn.conv2d(x, k, strides=self.patch_size, padding=self.padding.upper())
-            x = tf.nn.bias_add(x, self.proj.bias)
-
+        x = self.proj(x)
         if self.norm is not None:
             x = self.norm(x)
 
