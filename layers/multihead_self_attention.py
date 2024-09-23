@@ -120,7 +120,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         x = tf.matmul(attention_map, value) # [N, heads, H*W, C//heads]
         x = tf.transpose(x, [0, 2, 1, 3]) # [N, H*W, heads, C//heads]
-        x = tf.reshape(x, [batch_size, height, width, x.shape[-1]]) # [N, H, W, C]
+        x = tf.reshape(x, [batch_size, height, width, x.shape[-1] * self.num_heads]) # [N, H, W, C]
 
         return x
 
