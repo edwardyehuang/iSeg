@@ -195,6 +195,7 @@ class SegFoundation(SegBase):
     def __init__(
         self,
         num_class=21,
+        custom_main_loss_fn=None,
         num_aux_loss=0,
         aux_loss_rate=0.4,
         aux_metric_names=None,
@@ -212,6 +213,8 @@ class SegFoundation(SegBase):
     ):
 
         super().__init__(num_class=num_class, **kwargs)
+
+        self.custom_main_loss_fn = custom_main_loss_fn
 
         assert num_aux_loss >= 0, f"num_aux_loss must >= 0, found {num_aux_loss}"
 
@@ -357,7 +360,10 @@ class SegFoundation(SegBase):
             **kwargs,
         )
 
-        loss_dict = {self._index_to_output_key(0): default_ce_loss(ohem_func)}
+        if self.custom_main_loss_fn is not None:
+            loss_dict = {self._index_to_output_key(0): self.custom_main_loss_fn(**common_kwargs, **kwargs)}
+        else:
+            loss_dict = {self._index_to_output_key(0): default_ce_loss(ohem_func)}
 
         if self.custom_aux_loss_fns is None or len(self.custom_aux_loss_fns) == 0:
             for i in range(self.num_aux_loss):

@@ -25,6 +25,7 @@ class SegManaged(SegFoundation):
         backbone_use_xla=False,
         output_stride=32,
         num_class=21,
+        custom_main_loss_fn=None,
         num_aux_loss=0,
         aux_loss_rate=0.4,
         aux_metric_names=None,
@@ -50,6 +51,7 @@ class SegManaged(SegFoundation):
 
         super().__init__(
             num_class=num_class,
+            custom_main_loss_fn=custom_main_loss_fn,
             num_aux_loss=num_aux_loss,
             aux_loss_rate=aux_loss_rate,
             aux_metric_names=aux_metric_names,
