@@ -45,7 +45,13 @@ def load_image_tensor_from_path(image_path, label_path=None):
     return image_tensor, label_tensor
 
 
-def simple_load_image(image_path, label_path=None, ignore_label=255):
+def simple_load_image(
+    image_path, 
+    label_path=None, 
+    ignore_label=255,
+    fit_downsample_rate=32,
+    pad_to_odd_shape=True,
+):
 
     image_tensor, label_tensor = load_image_tensor_from_path(image_path, label_path)
     image_tensor = tf.expand_dims(tf.cast(image_tensor, tf.float32), axis=0)  # [1, H, W, 3]
@@ -53,26 +59,39 @@ def simple_load_image(image_path, label_path=None, ignore_label=255):
     if label_tensor is not None:
         label_tensor = tf.expand_dims(label_tensor, axis=0) # [1, H, W, 1]
 
-    return simple_process_image(image_tensor, label_tensor, ignore_label=ignore_label)
+    return simple_process_image(
+        image_tensor, 
+        label_tensor, 
+        ignore_label=ignore_label,
+        fit_downsample_rate=fit_downsample_rate,
+        pad_to_odd_shape=pad_to_odd_shape,
+    )
 
 
-def simple_process_image (image_tensor, label_tensor=None, ignore_label=255):
+def simple_process_image (
+    image_tensor, 
+    label_tensor=None, 
+    ignore_label=255,
+    fit_downsample_rate=32,
+    pad_to_odd_shape=True,
+):
 
     image_size = tf.shape(image_tensor)[1:3]
 
-    pad_height = tf.cast(tf.math.ceil(image_size[0] / 32) * 32, tf.int32)
-    pad_width = tf.cast(tf.math.ceil(image_size[1] / 32) * 32, tf.int32)
+    pad_height = tf.cast(tf.math.ceil(image_size[0] / fit_downsample_rate) * fit_downsample_rate, tf.int32)
+    pad_width = tf.cast(tf.math.ceil(image_size[1] / fit_downsample_rate) * fit_downsample_rate, tf.int32)
 
-    zero = tf.constant(0, pad_height.dtype)
+    if pad_to_odd_shape:
+        zero = tf.constant(0, pad_height.dtype)
 
-    r_height = tf.math.floormod(pad_height, 2, name="height_mod")
-    r_width = tf.math.floormod(pad_width, 2, name="width_mod")
+        r_height = tf.math.floormod(pad_height, 2, name="height_mod")
+        r_width = tf.math.floormod(pad_width, 2, name="width_mod")
 
-    cond_height= tf.math.equal(r_height, zero, name="cond_height")
-    cond_width = tf.math.equal(r_width, zero, name="cond_width")
+        cond_height= tf.math.equal(r_height, zero, name="cond_height")
+        cond_width = tf.math.equal(r_width, zero, name="cond_width")
 
-    pad_height += tf.cast(cond_height, tf.int32) 
-    pad_width += tf.cast(cond_width, tf.int32)
+        pad_height += tf.cast(cond_height, tf.int32) 
+        pad_width += tf.cast(cond_width, tf.int32)
 
     pad_height = tf.identity(pad_height, name="target_height")
     pad_width = tf.identity(pad_width, name="target_width")
