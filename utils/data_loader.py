@@ -68,15 +68,13 @@ def simple_load_image(
     )
 
 
-def simple_process_image (
-    image_tensor, 
-    label_tensor=None, 
-    ignore_label=255,
+def get_simple_process_padding_size(
+    x,
     fit_downsample_rate=32,
     pad_to_odd_shape=True,
 ):
-
-    image_size = tf.shape(image_tensor)[1:3]
+    
+    image_size = tf.shape(x)[1:3]
 
     pad_height = tf.cast(tf.math.ceil(image_size[0] / fit_downsample_rate) * fit_downsample_rate, tf.int32)
     pad_width = tf.cast(tf.math.ceil(image_size[1] / fit_downsample_rate) * fit_downsample_rate, tf.int32)
@@ -95,6 +93,25 @@ def simple_process_image (
 
     pad_height = tf.identity(pad_height, name="target_height")
     pad_width = tf.identity(pad_width, name="target_width")
+
+    return pad_height, pad_width
+
+
+def simple_process_image (
+    image_tensor, 
+    label_tensor=None, 
+    ignore_label=255,
+    fit_downsample_rate=32,
+    pad_to_odd_shape=True,
+):
+
+    image_size = tf.shape(image_tensor)[1:3]
+
+    pad_height, pad_width = get_simple_process_padding_size(
+        image_tensor,
+        fit_downsample_rate=fit_downsample_rate,
+        pad_to_odd_shape=pad_to_odd_shape,
+    )
 
     from iseg.data_process.utils import pad_to_bounding_box, normalize_value_range
 
