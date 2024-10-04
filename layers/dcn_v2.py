@@ -63,19 +63,19 @@ class DCNv2(Keras3_Layer_Wrapper):
         
         #[kh, kw, ic, 3 * groups * kh, kw]--->3 * groups * kh * kw = oc [output channels]
         self.offset_kernel = self.add_weight(
-            name = 'offset_kernel',
-            shape = self.kernel_size + (input_channels, 3 * self.deformable_groups * self.kernel_size[0] * self.kernel_size[1]), 
-            initializer = 'zeros',
-            trainable = True,
-            dtype = 'float32'
+            name='offset_kernel',
+            shape=self.kernel_size + (input_channels, 3 * self.deformable_groups * self.kernel_size[0] * self.kernel_size[1]), 
+            initializer='zeros',
+            trainable=True,
+            dtype='float32'
         )
         
         self.offset_bias = self.add_weight(
-            name = 'offset_bias',
-            shape = (3 * self.kernel_size[0] * self.kernel_size[1] * self.deformable_groups,),
+            name='offset_bias',
+            shape=(3 * self.kernel_size[0] * self.kernel_size[1] * self.deformable_groups,),
             initializer='zeros',
-            trainable = True,
-            dtype = 'float32',
+            trainable=True,
+            dtype='float32',
         )
 
         self.ks = self.kernel_size[0] * self.kernel_size[1]
