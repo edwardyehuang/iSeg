@@ -62,7 +62,7 @@ class FeatureAlignment (Keras3_Model_Wrapper):
 
         feats_large, feats_small = inputs
 
-        feats_up = resize_image(feats_small, feats_large.shape[1:3])
+        feats_up = resize_image(feats_small, tf.shape(feats_large)[1:3])
 
         feats_arm = self.lateral_conv(feats_large, training=training)
         feats_up = tf.cast(feats_up, feats_arm.dtype)
