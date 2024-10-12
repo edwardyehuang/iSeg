@@ -172,13 +172,14 @@ class DCNv2(Keras3_Layer_Wrapper):
         map_sample = tf.gather_nd(x, grid) # [B, H, W, 9, 4, C]
         map_sample = tf.transpose(map_sample, [3, 0, 1, 2, 4, 5], name="mapsample.transpose") # [9, B, H, W, 4, C]
 
-        w = tf.reshape(w, [bs, ih, iw, self.ks, 4, 1]) # [B, H, W, 9, 4, 1]
-        w = tf.unstack(w, self.ks, axis=3) # [B, H, W, 4, 1] * 9
+        w = tf.reshape(w, [bs, ih, iw, self.ks, 4]) # [B, H, W, 9, 4]
+        w = tf.unstack(w, self.ks, axis=3) # [B, H, W, 4] * 9
                        
         map_bilinear = [None] * self.ks
 
         for i in range(self.ks):
-            _w = w[i] # [B, H, W, 1, 4]
+            _w = w[i] # [B, H, W, 4]
+            _w = tf.expand_dims(_w, axis=-2) # [B, H, W, 1, 4]
             _map_sample = map_sample[i] # [B, H, W, 4, C]
             _mask = mask[i] # [B, H, W, 1]
 
