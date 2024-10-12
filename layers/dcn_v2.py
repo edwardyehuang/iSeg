@@ -99,13 +99,17 @@ class DCNv2(Keras3_Layer_Wrapper):
 
         #[B, H, W, 18], [B, H, W, 9]
         oyox, mask = offset[..., :2 * self.ks], offset[..., 2 * self.ks:]
+
+        oyox = tf.reshape(oyox, [bs, ih, iw, self.ks, 2])
+
         mask = tf.nn.sigmoid(mask)
         #[H, W, 2]
         grid_yx = tf.stack(tf.meshgrid(tf.range(iw), tf.range(ih))[::-1], axis=-1)
         #[1, H, W, 9, 2]
         grid_yx = tf.reshape(grid_yx, [1, ih, iw, 1, 2]) + self.phw + self.patch_yx
         #[B, H, W, 9, 2]
-        grid_yx = tf.cast(grid_yx, oyox.dtype) + tf.reshape(oyox, [bs, ih, iw, -1, 2])
+        grid_yx = tf.cast(grid_yx, oyox.dtype) + oyox
+
         grid_iy0ix0 = tf.floor(grid_yx)
         grid_iy1ix1 = tf.clip_by_value(grid_iy0ix0 + 1, 0, tf.constant([ih+1, iw+1], dtype=grid_iy0ix0.dtype)) # 
 
@@ -113,7 +117,9 @@ class DCNv2(Keras3_Layer_Wrapper):
         grid_iy1, grid_ix1 = tf.split(grid_iy1ix1, 2, axis=4)
         grid_iy0ix0 = tf.clip_by_value(grid_iy0ix0, 0, tf.constant([ih+1, iw+1], dtype=grid_iy0ix0.dtype))
         grid_iy0, grid_ix0 = tf.split(grid_iy0ix0, 2, axis=4)
+
         grid_yx = tf.clip_by_value(grid_yx, 0, tf.constant([ih+1, iw+1], dtype=grid_yx.dtype))
+
         #[B, H, W, 9, 4, 1]
         batch_index = tf.tile(tf.reshape(tf.range(bs), [bs, 1, 1, 1, 1, 1]), [1, ih, iw, self.ks, 4, 1])
 
