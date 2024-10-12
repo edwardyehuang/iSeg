@@ -173,8 +173,8 @@ class DCNv2(Keras3_Layer_Wrapper):
         map_sample = tf.transpose(map_sample, [3, 0, 1, 2, 4, 5], name="mapsample.transpose") # [9, B, H, W, 4, C]
 
         w = tf.reshape(w, [bs, ih, iw, self.ks, 4, 1]) # [B, H, W, 9, 4, 1]
-        w = tf.transpose(w, [3, 0, 1, 2, 5, 4], name="w.transpose") # [9, B, H, W, 1, 4]
-
+        w = tf.unstack(w, self.ks, axis=3) # [B, H, W, 4, 1] * 9
+                       
         map_bilinear = [None] * self.ks
 
         for i in range(self.ks):
