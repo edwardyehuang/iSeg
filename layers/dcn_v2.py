@@ -153,6 +153,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         diff_grid_1 = tf.ensure_shape(diff_grid_1, [bs, ih, iw, self.ks, 2]) # [B, H, W, 9, 2]
 
         diff_grid_concat = tf.concat([diff_grid_0, diff_grid_1], axis=-1, name="diff.grid.concat") # [B, H, W, 9, 4]
+        diff_grid_concat = tf.ensure_shape(diff_grid_concat, [bs, ih, iw, self.ks, 4]) # [B, H, W, 9, 4]
 
         #[B, H, W, 9, 2, 2]
         delta = tf.reshape(diff_grid_concat, [bs, ih, iw, self.ks, 2, 2])
