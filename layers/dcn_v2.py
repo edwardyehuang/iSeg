@@ -1,7 +1,9 @@
 # This code is motified from https://github.com/RuaHU/keras_DCNv2
+# Now support full XLA JIT compilation
 
 
 import tensorflow as tf
+import keras
 
 from iseg.utils import get_tensor_shape
 
@@ -17,6 +19,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         kernel_regularizer=None,
         bias_regularizer=None,
         use_custom_offset=False,
+        activation=None,
         **kwargs
     ):
         
@@ -34,6 +37,8 @@ class DCNv2(Keras3_Layer_Wrapper):
         self.bias_regularizer = bias_regularizer
 
         self.use_custom_offset = use_custom_offset
+
+        self.activation = keras.activations.get(activation)
 
 
     def build(self, input_shape):
@@ -130,16 +135,6 @@ class DCNv2(Keras3_Layer_Wrapper):
             name="all.grid.concat0",
         ) # [B, H, W, 9, 8]
         
-
-        # Debug resgion:
-        '''
-        grid = tf.concat([grid_iy1ix1, grid_iy1], axis=-1, name="all_grid.concat.1") # [B, H, W, 9, 3]
-        grid = tf.concat([grid, grid_ix0], axis=-1, name="all_grid.concat.2") # [B, H, W, 9, 4]
-        grid = tf.concat([grid, grid_iy0], axis=-1, name="all_grid.concat.3") # [B, H, W, 9, 5]
-        grid = tf.concat([grid, grid_ix1], axis=-1, name="all_grid.concat.4") # [B, H, W, 9, 6]
-        grid = tf.concat([grid, grid_iy0ix0], axis=-1, name="all_grid.concat.5") # [B, H, W, 9, 8]
-        '''
-
         #[B, H, W, 9, 4, 2]
         grid = tf.reshape(grid, [bs, ih, iw, self.ks, 4, 2])
         #[B, H, W, 9, 4, 3]
@@ -199,6 +194,8 @@ class DCNv2(Keras3_Layer_Wrapper):
 
         if self.use_bias:
             output += tf.cast(self.bias, output.dtype)
+
+        output = self.activation(output)
 
         return output
         
