@@ -134,7 +134,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         mask = tf.transpose(mask, [3, 0, 1, 2, 4]) # [9, B, H, W, 1]
 
         map_sample = tf.gather_nd(x, grid) # [B, H, W, 9, 4, C]
-        map_sample = tf.transpose(mask, [3, 0, 1, 2, 4, 5]) # [9, B, H, W, 4, C]
+        map_sample = tf.transpose(map_sample, [3, 0, 1, 2, 4, 5]) # [9, B, H, W, 4, C]
 
         w = tf.reshape(w, [bs, ih, iw, self.ks, 4, 1]) # [B, H, W, 9, 4, 1]
         w = tf.transpose(w, [3, 0, 1, 2, 5, 4]) # [9, B, H, W, 1, 4]
