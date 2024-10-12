@@ -131,14 +131,29 @@ class DCNv2(Keras3_Layer_Wrapper):
         x = tf.pad(x, [[0, 0], [int(self.ph), int(self.ph)], [int(self.pw), int(self.pw)], [0, 0]])
         
         mask = tf.expand_dims(mask, axis=-1) # [B, H, W, 9, 1]
+        mask = tf.transpose(mask, [3, 0, 1, 2, 4]) # [9, B, H, W, 1]
+
         map_sample = tf.gather_nd(x, grid) # [B, H, W, 9, 4, C]
+        map_sample = tf.transpose(mask, [3, 0, 1, 2, 4, 5]) # [9, B, H, W, 4, C]
 
         w = tf.reshape(w, [bs, ih, iw, self.ks, 4, 1]) # [B, H, W, 9, 4, 1]
-        w = tf.transpose(w, [0, 1, 2, 3, 5, 4]) # [B, H, W, 9, 1, 4]
+        w = tf.transpose(w, [3, 0, 1, 2, 5, 4]) # [9, B, H, W, 1, 4]
 
-        map_bilinear = tf.matmul(w, map_sample) # [B, H, W, 9, 1, C]
-        map_bilinear = tf.squeeze(map_bilinear, axis=-2) # [B, H, W, 9, C]
-        map_bilinear = tf.multiply(map_bilinear, mask) # [B, H, W, 9, C]
+        map_bilinear = [None] * self.ks
+
+        for i in range(self.ks):
+            _w = w[i] # [B, H, W, 1, 4]
+            _map_sample = map_sample[i] # [B, H, W, 4, C]
+            _mask = mask[i] # [B, H, W, 1]
+
+            _map_bilinear = tf.matmul(_w, _map_sample) # [B, H, W, 1, C]
+            _map_bilinear = tf.squeeze(_map_bilinear, axis=-2)
+
+            _map_bilinear = tf.multiply(_map_bilinear, _mask) # [B, H, W, C]
+
+            map_bilinear[i] = _map_bilinear
+
+        map_bilinear = tf.stack(map_bilinear, axis=-1) # [B, H, W, C, 9]
 
         #[B, H, W, 9*C]
         map_all = tf.reshape(map_bilinear, [bs, ih, iw, -1])
