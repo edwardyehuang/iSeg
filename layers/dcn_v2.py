@@ -86,15 +86,11 @@ class DCNv2(Keras3_Layer_Wrapper):
         self.patch_yx = tf.reshape(self.patch_yx, [-1, 2])
 
         super().build(input_shape)
-        
-        
-    def call(self, inputs, training=None):
 
-        if self.use_custom_offset:
-            x, offset = tuple(inputs)
-        else:
-            x = offset = inputs
-        
+
+    @tf.function(jit_compile=True, autograph=False)
+    def _forward(self, x, offset):
+
         #x: [B, H, W, C]
         #offset: [B, H, W, ic] convx [kh, kw, ic, 3 * groups * kh * kw] ---> [B, H, W, 3 * groups * kh * kw]
         offset = tf.nn.conv2d(offset, self.offset_kernel, strides=self.stride, padding="SAME")
@@ -164,6 +160,18 @@ class DCNv2(Keras3_Layer_Wrapper):
             output += tf.cast(self.bias, output.dtype)
 
         return output
+        
+        
+    def call(self, inputs, training=None):
+
+        if self.use_custom_offset:
+            x, offset = tuple(inputs)
+        else:
+            x = offset = inputs
+
+        return self._forward(x, offset)
+        
+        
         
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.filters,)
