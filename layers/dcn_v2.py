@@ -128,7 +128,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         grid = tf.reshape(grid, [bs, ih, iw, self.ks, 4, 2])
         #[B, H, W, 9, 4, 3]
 
-        grid = tf.concat([batch_index, tf.cast(grid, tf.int32)], axis=-1, name="grid.concat.batch.index ")
+        grid = tf.concat([batch_index, tf.cast(grid, tf.int32)], axis=-1, name="grid.concat.batch.index")
         diff_grid_concat = tf.concat([grid_yx - grid_iy0ix0, grid_iy1ix1 - grid_yx], axis=-1, name="diff.grid.concat") # [B, H, W, 9, 4]
 
         #[B, H, W, 9, 2, 2]
