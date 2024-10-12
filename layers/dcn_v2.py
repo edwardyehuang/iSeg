@@ -130,14 +130,14 @@ class DCNv2(Keras3_Layer_Wrapper):
         #[B, H+2, W+2, C]
         x = tf.pad(x, [[0, 0], [int(self.ph), int(self.ph)], [int(self.pw), int(self.pw)], [0, 0]])
         
+        mask = tf.expand_dims(mask, axis=-1) # [B, H, W, 9, 1]
         map_sample = tf.gather_nd(x, grid) # [B, H, W, 9, 4, C]
 
         w = tf.reshape(w, [bs, ih, iw, self.ks, 4, 1]) # [B, H, W, 9, 4, 1]
-        map_bilinear = tf.multiply(w, map_sample) # [B, H, W, 9, 4, C]
-        map_bilinear = tf.reduce_sum(map_bilinear, axis=-2) # [B, H, W, 9, C]
+        w = tf.transpose(w, [0, 1, 2, 3, 5, 4]) # [B, H, W, 9, 1, 4]
 
-        mask = tf.expand_dims(mask, axis=-1) # [B, H, W, 9, 1]
-
+        map_bilinear = tf.matmul(w, map_sample) # [B, H, W, 9, 1, C]
+        map_bilinear = tf.squeeze(map_bilinear, axis=-2) # [B, H, W, 9, C]
         map_bilinear = tf.multiply(map_bilinear, mask) # [B, H, W, 9, C]
 
         #[B, H, W, 9*C]
