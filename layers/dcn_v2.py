@@ -155,9 +155,14 @@ class DCNv2(Keras3_Layer_Wrapper):
         diff_grid_concat = tf.stack([diff_grid_0_0, diff_grid_0_1, diff_grid_1_0, diff_grid_1_1], axis=-1, name="diff.grid.stack") # [B, H, W, 9, 4]
 
         #[B, H, W, 9, 2, 2]
-        delta = tf.reshape(diff_grid_concat, [bs, ih, iw, self.ks, 2, 2])
-        #[B, H, W, 9, 2, 1] * [B, H, W, 9, 1, 2] = [B, H, W, 9, 2, 2]
-        w = tf.expand_dims(delta[..., 0], axis=-1) * tf.expand_dims(delta[..., 1], axis=-2)
+        delta = tf.reshape(diff_grid_concat, [bs, ih, iw, self.ks, 2, 2]) # [B, H, W, 9, 2, 2]
+
+        w0, w1 = tf.unstack(delta, 2, axis=-1) # [B, H, W, 9, 2], [B, H, W, 9, 2]
+        w0 = tf.expand_dims(w0, axis=-1) # [B, H, W, 9, 2, 1]
+        w1 = tf.expand_dims(w1, axis=-2) # [B, H, W, 9, 1, 2]
+
+        w = w0 * w1 # [B, H, W, 9, 2, 2]
+
         #[B, H+2, W+2, C]
         x = tf.pad(x, [[0, 0], [int(self.ph), int(self.ph)], [int(self.pw), int(self.pw)], [0, 0]])
         
