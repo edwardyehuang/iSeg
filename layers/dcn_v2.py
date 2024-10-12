@@ -123,12 +123,21 @@ class DCNv2(Keras3_Layer_Wrapper):
         #[B, H, W, 9, 4, 1]
         batch_index = tf.tile(tf.reshape(tf.range(bs), [bs, 1, 1, 1, 1, 1]), [1, ih, iw, self.ks, 4, 1])
 
+        '''
         grid = tf.concat(
             [grid_iy1ix1, grid_iy1, grid_ix0, grid_iy0, grid_ix1, grid_iy0ix0], 
             axis=-1,
-            name="all.grid.concat",
+            name="all.grid.concat0",
         ) # [B, H, W, 9, 8]
+        '''
 
+        # Debug resgion:
+
+        grid = tf.concat([grid_iy1ix1, grid_iy1], axis=-1, name="all_grid.concat.1") # [B, H, W, 9, 3]
+        grid = tf.concat([grid, grid_ix0], axis=-1, name="all_grid.concat.2") # [B, H, W, 9, 4]
+        grid = tf.concat([grid, grid_iy0], axis=-1, name="all_grid.concat.3") # [B, H, W, 9, 5]
+        grid = tf.concat([grid, grid_ix1], axis=-1, name="all_grid.concat.4") # [B, H, W, 9, 6]
+        grid = tf.concat([grid, grid_iy0ix0], axis=-1, name="all_grid.concat.5") # [B, H, W, 9, 8]
 
         #[B, H, W, 9, 4, 2]
         grid = tf.reshape(grid, [bs, ih, iw, self.ks, 4, 2])
