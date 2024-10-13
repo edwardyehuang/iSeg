@@ -185,7 +185,7 @@ class DCNv2(Keras3_Layer_Wrapper):
 
             map_bilinear[i] = _map_bilinear
 
-        map_bilinear = tf.stack(map_bilinear, axis=-1) # [B, H, W, C, 9]
+        map_bilinear = tf.stack(map_bilinear, axis=-2) # [B, H, W, 9, C]
 
         #[B, H, W, 9*C]
         map_all = tf.reshape(map_bilinear, [bs, ih, iw, -1])
