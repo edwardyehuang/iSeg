@@ -20,4 +20,6 @@ class RandomHueAugment(DataAugmentationBase):
 
         image = tf.image.random_hue(image, self.max_delta)
 
+        image = tf.clip_by_value(image, clip_value_min=0.0, clip_value_max=256.0)
+
         return image, label
