@@ -12,3 +12,4 @@ from iseg.data_process.augments.random_brightness_augment import RandomBrightnes
 from iseg.data_process.augments.random_contrast_augment import RandomContrastAugment
 from iseg.data_process.augments.random_hue_augment import RandomHueAugment
 from iseg.data_process.augments.random_saturation_augment import RandomSaturationAugment
+from iseg.data_process.augments.random_photo_metric_distortions import RandomPhotoMetricDistortions

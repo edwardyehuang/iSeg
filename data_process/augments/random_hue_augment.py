@@ -6,19 +6,23 @@
 import tensorflow as tf
 import iseg.data_process.utils as dataprocess
 
-from iseg.data_process.augments.data_augment_base import DataAugmentationBase
+from iseg.data_process.augments.data_augment_base import DataAugmentationBase, random_execute_helper
 
 
 class RandomHueAugment(DataAugmentationBase):
-    def __init__(self, max_delta=0.1, name=None):
+    def __init__(self, max_delta=0.1, execute_prob=0.5, name=None):
 
         super().__init__(name=name)
 
         self.max_delta = max_delta
+        self.execute_prob = execute_prob
 
     def call(self, image, label):
 
-        image = tf.image.random_hue(image, self.max_delta)
+
+        image = random_execute_helper(
+            self.execute_prob, lambda: tf.image.random_hue(image, self.max_delta), lambda: image
+        )
 
         image = tf.clip_by_value(image, clip_value_min=0.0, clip_value_max=256.0)
 

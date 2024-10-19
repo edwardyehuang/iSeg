@@ -135,12 +135,8 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
                 augments.append(RandomBrightnessAugment(execute_prob=0.5))
 
             if photo_metric_distortions:
-                augments.append(RandomContrastAugment(0.5, 2.0, execute_prob=0.5))
-                augments.append(RandomSaturationAugment(0.75, 1.25, execute_prob=0.5))
-                augments.append(RandomHueAugment(0.1))
-
+                augments.append(RandomPhotoMetricDistortions())
             
-
         augments.append(PadAugment(crop_height, crop_width, pad_value, ignore_label))
 
         if training:
