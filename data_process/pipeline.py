@@ -129,18 +129,17 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
 
         pad_value = tf.reshape(mean_pixel, [1, 1, 3])
 
-        if training:
-
-            if random_brightness:
-                augments.append(RandomBrightnessAugment(execute_prob=0.5))
-
-            if photo_metric_distortions:
-                augments.append(RandomPhotoMetricDistortions())
-            
         augments.append(PadAugment(crop_height, crop_width, pad_value, ignore_label))
 
         if training:
             augments.append(RandomCropAugment(crop_height, crop_width))
             augments.append(RandomFlipAugment(prob_of_flip))
 
+            if random_brightness:
+                augments.append(RandomBrightnessAugment(execute_prob=0.5))
+
+            if photo_metric_distortions:
+                augments.append(RandomPhotoMetricDistortions())
+                
+            
         self.augments = augments
