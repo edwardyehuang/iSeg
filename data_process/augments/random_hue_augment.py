@@ -18,8 +18,7 @@ class RandomHueAugment(DataAugmentationBase):
         self.execute_prob = execute_prob
 
     def call(self, image, label):
-
-
+        
         image = random_execute_helper(
             self.execute_prob, lambda: tf.image.random_hue(image, self.max_delta), lambda: image
         )
