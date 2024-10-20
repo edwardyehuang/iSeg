@@ -134,8 +134,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
             if photo_metric_distortions:
                 augments.append(RandomPhotoMetricDistortions())
 
-        # pad_value = tf.reshape(mean_pixel, [1, 1, 3])
-        pad_value = tf.zeros([1, 1, 3], dtype=tf.float32)
+        pad_value = tf.reshape(mean_pixel, [1, 1, 3])
 
         augments.append(PadAugment(crop_height, crop_width, pad_value, ignore_label))
 

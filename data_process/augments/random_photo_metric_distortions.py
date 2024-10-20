@@ -17,7 +17,7 @@ class RandomPhotoMetricDistortions(DataAugmentationBase):
         super().__init__(name=name)
 
         self.random_contrast = RandomContrastAugment(0.5, 2.0, execute_prob=0.5)
-        self.random_saturation = RandomSaturationAugment(0.5, 1.5, execute_prob=0.5)
+        self.random_saturation = RandomSaturationAugment(0.75, 1.25, execute_prob=0.5)
         self.random_hue = RandomHueAugment(0.1, execute_prob=0.5)
 
     def call(self, image, label):
