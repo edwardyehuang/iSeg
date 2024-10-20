@@ -18,16 +18,11 @@ class RandomPhotoMetricDistortions(DataAugmentationBase):
 
         self.random_contrast = RandomContrastAugment(0.5, 2.0, execute_prob=0.5)
         self.random_saturation = RandomSaturationAugment(0.75, 1.25, execute_prob=0.5)
-        self.random_hue = RandomHueAugment(0.1, execute_prob=0.5)
+        self.random_hue = RandomHueAugment(0.1, execute_prob=1.0)
 
     def call(self, image, label):
 
-        image, label = random_execute_helper(
-            0.5,
-            lambda: self.contrast_first_forward(image, label),
-            lambda: self.contrast_last_forward(image, label),
-        )
-
+        image, label = self.contrast_first_forward(image, label)
         image = tf.clip_by_value(image, clip_value_min=0.0, clip_value_max=256.0)
 
         return image, label
