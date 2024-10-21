@@ -13,7 +13,7 @@ def decay_layers_lr (layers=[], weights=[], rate=0.99):
     num_layers = len(layers)
     last_layer_index = num_layers - 1
 
-    current_rate = rate
+    current_rate = 1.0
 
     for i in range(num_layers):
 
