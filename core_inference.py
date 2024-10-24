@@ -10,7 +10,7 @@ from iseg.utils.sliding_window_inference_utils import get_sliding_start_indexs
 
 def extract_seq_input_signatures (inputs):
 
-    if isinstance(tuple):
+    if isinstance(inputs, tuple):
         inputs = list(inputs)
     
     if not isinstance(inputs, list):
