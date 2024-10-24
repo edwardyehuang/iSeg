@@ -9,12 +9,17 @@ from iseg.utils.common import get_tensor_shape, smart_where, isinstance_all
 from iseg.utils.sliding_window_inference_utils import get_sliding_start_indexs
 
 
-@tf.function
 def internel_inference(inputs, model, training=None):
 
-    return model(inputs, training=training)
+    batch_size, height, width, channels = get_tensor_shape(inputs)
 
-@tf.function(autograph=False)
+    @tf.function(autograph=False, input_signature=[tf.TensorSpec(shape=[None, None, None, channels], dtype=inputs.dtype)])
+    def internal_model_call(inputs):
+        return model(inputs, training=training)
+
+    return internal_model_call(inputs)
+
+@tf.autograph.experimental.do_not_convert
 def inference_fn(inputs, model, num_class=21, training=False, sliding_window_crop_size=None):
 
     if sliding_window_crop_size is None:
