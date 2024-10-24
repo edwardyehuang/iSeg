@@ -23,7 +23,9 @@ def extract_seq_input_signatures (inputs):
         shapes = get_tensor_shape(x, return_list=True)
 
         if len(shapes) >= 3:
-            shapes[0], shapes[1], shapes[2] = None, None, None
+            shapes[0] = None
+            shapes[1] = None
+            shapes[2] = None
 
         input_signatures.append(tf.TensorSpec(shape=shapes, dtype=x.dtype))
 
@@ -33,9 +35,9 @@ def extract_seq_input_signatures (inputs):
 
 def internel_inference(inputs, model, training=None):
 
-    input_signatures = extract_seq_input_signatures(inputs)
+    # input_signatures = extract_seq_input_signatures(inputs)
 
-    @tf.function(autograph=False, input_signature=input_signatures)
+    @tf.function(autograph=False)
     def internal_model_call(inputs):
         return model(inputs, training=training)
 
