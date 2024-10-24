@@ -111,12 +111,19 @@ class DCNv2(Keras3_Layer_Wrapper):
         #[H, W, 2]
         grid_yx = tf.stack(tf.meshgrid(tf.range(iw), tf.range(ih))[::-1], axis=-1)
         #[1, H, W, 9, 2]
-        grid_yx = tf.reshape(grid_yx, [1, ih, iw, 1, 2]) + self.phw + self.patch_yx
+        grid_yx = tf.reshape(grid_yx, [1, ih, iw, 1, 2]) 
+        grid_yx = tf.add(grid_yx, self.phw, name="grid_yx.add.phw")
+        grid_yx = tf.add(grid_yx, self.patch_yx, name="grid_yx.add.patch_yx")
+
         #[B, H, W, 9, 2]
         grid_yx = tf.add(tf.cast(grid_yx, oyox.dtype), oyox, name="grid.add.oyox")
 
         grid_iy0ix0 = tf.floor(grid_yx)
-        grid_iy1ix1 = tf.clip_by_value(grid_iy0ix0 + tf.ones_like(grid_iy0ix0), 0, tf.constant([ih+1, iw+1], dtype=grid_iy0ix0.dtype)) # 
+        grid_iy1ix1 = tf.clip_by_value(
+            tf.add(grid_iy0ix0, tf.ones_like(grid_iy0ix0), name="grid_iy0ix0.add.ones"), 
+            0, 
+            tf.constant([ih+1, iw+1], dtype=grid_iy0ix0.dtype)
+        ) # 
 
         #[B, H, W, 9, 1] * 2
         grid_iy1, grid_ix1 = tf.split(grid_iy1ix1, 2, axis=4)
