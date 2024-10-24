@@ -93,7 +93,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         super().build(input_shape)
 
 
-    @tf.function(jit_compile=True, autograph=False)
+    # @tf.function(jit_compile=True, autograph=False)
     def _forward(self, x, offset):
 
         #x: [B, H, W, C]
