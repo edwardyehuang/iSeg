@@ -99,7 +99,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         #x: [B, H, W, C]
         #offset: [B, H, W, ic] convx [kh, kw, ic, 3 * groups * kh * kw] ---> [B, H, W, 3 * groups * kh * kw]
         offset = tf.nn.conv2d(offset, self.offset_kernel, strides=self.stride, padding="SAME")
-        offset += self.offset_bias
+        offset = tf.add(offset, self.offset_bias, name="offset.add.bias")
         bs, ih, iw, ic = get_tensor_shape(x)
 
         #[B, H, W, 18], [B, H, W, 9]
@@ -113,10 +113,10 @@ class DCNv2(Keras3_Layer_Wrapper):
         #[1, H, W, 9, 2]
         grid_yx = tf.reshape(grid_yx, [1, ih, iw, 1, 2]) + self.phw + self.patch_yx
         #[B, H, W, 9, 2]
-        grid_yx = tf.cast(grid_yx, oyox.dtype) + oyox
+        grid_yx = tf.add(tf.cast(grid_yx, oyox.dtype), oyox, name="grid.add.oyox")
 
         grid_iy0ix0 = tf.floor(grid_yx)
-        grid_iy1ix1 = tf.clip_by_value(grid_iy0ix0 + 1, 0, tf.constant([ih+1, iw+1], dtype=grid_iy0ix0.dtype)) # 
+        grid_iy1ix1 = tf.clip_by_value(grid_iy0ix0 + tf.ones_like(grid_iy0ix0), 0, tf.constant([ih+1, iw+1], dtype=grid_iy0ix0.dtype)) # 
 
         #[B, H, W, 9, 1] * 2
         grid_iy1, grid_ix1 = tf.split(grid_iy1ix1, 2, axis=4)
