@@ -105,6 +105,8 @@ class DCNv2(Keras3_Layer_Wrapper):
         ih1 = tf.add(ih, 1, name="ih.add.1")
         iw1 = tf.add(iw, 1, name="iw.add.1")
 
+        ih1_iw1 = tf.stack([ih1, iw1], axis=0)
+
         #[B, H, W, 18], [B, H, W, 9]
         oyox, mask = offset[..., :2 * self.ks], offset[..., 2 * self.ks:]
 
@@ -125,7 +127,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         grid_iy1ix1 = tf.clip_by_value(
             tf.add(grid_iy0ix0, tf.ones_like(grid_iy0ix0), name="grid_iy0ix0.add.ones"), 
             0, 
-            tf.constant([ih1, iw1], dtype=grid_iy0ix0.dtype)
+            tf.cast(ih1_iw1, dtype=grid_iy0ix0.dtype)
         ) # 
 
         #[B, H, W, 9, 1] * 2
