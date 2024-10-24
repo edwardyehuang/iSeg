@@ -8,12 +8,34 @@ import tensorflow as tf
 from iseg.utils.common import get_tensor_shape, smart_where, isinstance_all
 from iseg.utils.sliding_window_inference_utils import get_sliding_start_indexs
 
+def extract_seq_input_signatures (inputs):
+
+    if isinstance(tuple):
+        inputs = list(inputs)
+    
+    if not isinstance(inputs, list):
+        inputs = [inputs]
+
+    input_signatures = []
+
+    for x in inputs:
+
+        shapes = get_tensor_shape(x, return_list=True)
+
+        if len(shapes) >= 3:
+            shapes[0], shapes[1], shapes[2] = None, None, None
+
+        input_signatures.append(tf.TensorSpec(shape=shapes, dtype=x.dtype))
+
+
+    return input_signatures
+
 
 def internel_inference(inputs, model, training=None):
 
-    batch_size, height, width, channels = get_tensor_shape(inputs)
+    input_signatures = extract_seq_input_signatures(inputs)
 
-    @tf.function(autograph=False, input_signature=[tf.TensorSpec(shape=[None, None, None, channels], dtype=inputs.dtype)])
+    @tf.function(autograph=False, input_signature=input_signatures)
     def internal_model_call(inputs):
         return model(inputs, training=training)
 
