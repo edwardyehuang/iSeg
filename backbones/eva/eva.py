@@ -93,6 +93,8 @@ class Eva (Keras3_Model_Wrapper):
     
     def build(self, input_shape):
 
+        input_height, input_width = input_shape[1:3]
+
         self.patch_embed : PatchEmbed = PatchEmbed(
             patch_size=self.patch_size,
             weights_patch_size=self.pretrain_patch_size,
@@ -100,8 +102,8 @@ class Eva (Keras3_Model_Wrapper):
             padding=self.patch_padding,
         )
 
-        grid_size_h = self.pretrain_img_size // self.pretrain_patch_size
-        grid_size_w = self.pretrain_img_size // self.pretrain_patch_size
+        grid_size_h = input_height // self.pretrain_patch_size
+        grid_size_w = input_width // self.pretrain_patch_size
         grid_size = [grid_size_h, grid_size_w]
 
         self.grid_size = grid_size
@@ -124,6 +126,25 @@ class Eva (Keras3_Model_Wrapper):
                 initializer=tf.keras.initializers.Zeros(),
                 trainable=True,
             )
+
+            assign_op = self.position_embedding.assign
+
+            def assign_op_wrapper_fn(_self, value, use_locking=False, name=None, read_value=True):
+
+                value_shape = get_tensor_shape(value, return_list=True)
+
+                value = resample_absolute_position_embedding(
+                    position_embedding=value,
+                    target_size=(grid_size_h, grid_size_w),
+                    source_size=value_shape,
+                    num_prefix_tokens=num_prefix_tokens,
+                    method="bicubic",
+                )
+
+                return assign_op(_self, value, use_locking=use_locking, name=name, read_value=read_value)
+            
+            self.position_embedding.assign = assign_op_wrapper_fn
+
 
         self.pos_droppout = tf.keras.layers.Dropout(
             rate=self.pos_droppout_rate,
