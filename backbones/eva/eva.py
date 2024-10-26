@@ -133,6 +133,8 @@ class Eva (Keras3_Model_Wrapper):
 
                 value_shape = get_tensor_shape(value, return_list=True)
 
+                print(f"assign_op_wrapper_fn: value_shape={value_shape}")
+
                 value = resample_absolute_position_embedding(
                     position_embedding=value,
                     target_size=(grid_size_h, grid_size_w),
