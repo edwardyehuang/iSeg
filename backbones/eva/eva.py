@@ -109,6 +109,12 @@ class Eva (Keras3_Model_Wrapper):
         self.grid_size = grid_size
 
         num_patches =  grid_size_h * grid_size_w
+
+        p_grid_size_h = self.pretrain_img_size // self.pretrain_patch_size
+        p_grid_size_w = self.pretrain_img_size // self.pretrain_patch_size
+
+        p_num_patches =  p_grid_size_h * p_grid_size_w
+
         num_prefix_tokens = 1 if self.use_class_token else 0
 
         if self.use_class_token:
@@ -126,27 +132,31 @@ class Eva (Keras3_Model_Wrapper):
                 initializer=tf.keras.initializers.Zeros(),
                 trainable=True,
             )
-
+            
             assign_op = self.position_embedding.assign
 
-            def assign_op_wrapper_fn(_self, value, use_locking=False, name=None, read_value=True):
+            def assign_op_wrapper_fn(value, use_locking=False, name=None, read_value=True):
 
                 value_shape = get_tensor_shape(value, return_list=True)
 
                 print(f"assign_op_wrapper_fn: value_shape={value_shape}")
 
-                value = resample_absolute_position_embedding(
+                resized_value = resample_absolute_position_embedding(
                     position_embedding=value,
                     target_size=(grid_size_h, grid_size_w),
-                    source_size=value_shape,
+                    source_size=(p_grid_size_h, p_grid_size_w),
                     num_prefix_tokens=num_prefix_tokens,
                     method="bicubic",
                 )
 
-                return assign_op(_self, value, use_locking=use_locking, name=name, read_value=read_value)
+                return assign_op(resized_value, use_locking=use_locking, name=name, read_value=read_value)
             
             self.position_embedding.assign = assign_op_wrapper_fn
 
+            def position_embedding_shape_wrapper_fn():
+                return [1, p_num_patches + num_prefix_tokens, self.embed_filters]
+            
+            # self.position_embedding.shape = position_embedding_shape_wrapper_fn
 
         self.pos_droppout = tf.keras.layers.Dropout(
             rate=self.pos_droppout_rate,
