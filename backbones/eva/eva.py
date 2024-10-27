@@ -113,8 +113,6 @@ class Eva (Keras3_Model_Wrapper):
         p_grid_size_h = self.pretrain_img_size // self.pretrain_patch_size
         p_grid_size_w = self.pretrain_img_size // self.pretrain_patch_size
 
-        p_num_patches =  p_grid_size_h * p_grid_size_w
-
         num_prefix_tokens = 1 if self.use_class_token else 0
 
         if self.use_class_token:
@@ -153,10 +151,6 @@ class Eva (Keras3_Model_Wrapper):
             
             self.position_embedding.assign = assign_op_wrapper_fn
 
-            def position_embedding_shape_wrapper_fn():
-                return [1, p_num_patches + num_prefix_tokens, self.embed_filters]
-            
-            # self.position_embedding.shape = position_embedding_shape_wrapper_fn
 
         self.pos_droppout = tf.keras.layers.Dropout(
             rate=self.pos_droppout_rate,
