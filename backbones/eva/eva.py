@@ -236,11 +236,12 @@ class Eva (Keras3_Model_Wrapper):
         rate=0.99
     ):
 
-        layers =  [self.patch_embed] + list(self.blocks)
+        # layers =  [self.patch_embed] + list(self.blocks)
+        layers = list(self.blocks)
         layers.reverse()
 
         dacay_weights_names = [
-            self.position_embedding.name,
+        #    self.position_embedding.name,
             self.class_token.name,
         ]
 
