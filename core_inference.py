@@ -191,7 +191,7 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
 
     return (slices_list_result, paddings_list_result, inference_count_map)
 
-@tf.function(autograph=False)
+@tf.function(autograph=False, jit_compile=False)
 def inference_with_sliding_window(inputs, model, training=False, windows_size=(769, 769)):
 
     print("trace: inference_with_sliding_window")
