@@ -221,7 +221,7 @@ class Eva (Keras3_Model_Wrapper):
                     target_size=(height, width),
                     source_size=self.grid_size,
                     num_prefix_tokens=1 if self.use_class_token else 0,
-                    method="bilinear",
+                    method="bicubic",
                 )
 
             x += pos_embed
