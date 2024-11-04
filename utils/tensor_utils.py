@@ -23,11 +23,13 @@ def dynamic_padding_2d(x, paddings, constant_values=0):
 
     constant_values = tf.cast(constant_values, x.dtype)
 
-    top_pad = tf.ones([batch_size, top, output_width, channels], dtype=x.dtype, name="top_pad") * constant_values
-    bottom_pad = tf.ones([batch_size, bottom, output_width, channels], dtype=x.dtype, name="bottom_pad") * constant_values
+    base_one = tf.ones([batch_size, 1, 1, channels], dtype=x.dtype, name="base_one") * constant_values
 
-    left_pad = tf.ones([batch_size, height, left, channels], dtype=x.dtype, name="left_pad") * constant_values
-    right_pad = tf.ones([batch_size, height, right, channels], dtype=x.dtype, name="right_pad") * constant_values
+    top_pad = tf.image.resize(base_one, [top, output_width], method="nearest", name="top_pad")
+    bottom_pad = tf.image.resize(base_one, [bottom, output_width], method="nearest", name="bottom_pad")
+    
+    left_pad = tf.image.resize(base_one, [height, left], method="nearest", name="left_pad")
+    right_pad = tf.image.resize(base_one, [height, right], method="nearest", name="right_pad")
 
     x = tf.concat([left_pad, x, right_pad], axis=2) # [batch, height, width + left + right, channels]
     x = tf.concat([top_pad, x, bottom_pad], axis=1) # [batch, height + top + bottom, width + left + right, channels]
