@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from iseg.utils.common import get_tensor_shape, smart_where, isinstance_all
 from iseg.utils.sliding_window_inference_utils import get_sliding_start_indexs
+from iseg.utils.tensor_utils import dynamic_padding_2d
 
 def extract_seq_input_signatures (inputs):
 
@@ -165,8 +166,9 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
         pad_bottom = inputs_height - bottom
         pad_right = inputs_width - right
 
-        paddings = [[0, 0], [top, pad_bottom], [left, pad_right], [0, 0]]
-        _inference_count_map += tf.pad(cropped_onces, paddings)
+        paddings = [top, pad_bottom, left, pad_right]
+        # paddings = [[0, 0], [top, pad_bottom], [left, pad_right], [0, 0]]
+        _inference_count_map += dynamic_padding_2d(cropped_onces, paddings, constant_values=0)
 
         slice_indexs = [top, bottom, left, right]
 
@@ -227,7 +229,7 @@ def inference_with_sliding_window(inputs, model, training=False, windows_size=(7
 
         cropped_results = multi_results_handler(
             cropped_results, 
-            seg_map_handler=lambda x: tf.pad(x, paddings)
+            seg_map_handler=lambda x: dynamic_padding_2d(x, paddings, constant_values=0),
         )
 
         results = multi_results_add(results, cropped_results)
