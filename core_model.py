@@ -80,7 +80,7 @@ class SegBase(Keras3_Model_Wrapper):
 
         return results
 
-    @tf.function(autograph=False)
+    @tf.function(autograph=False, reduce_retracing=True)
     def inference_with_scale(
         self, 
         inputs, 
@@ -89,11 +89,12 @@ class SegBase(Keras3_Model_Wrapper):
         flip=False, 
         resize_method="bilinear"
     ):
+        
+        print("trace: inference_with_scale")
 
         inputs_size = get_tensor_shape(inputs, return_list=True)[1:3]
         
-        if flip:
-            inputs = tf.image.flip_left_right(inputs)
+        inputs = tf.cond(flip, lambda: tf.image.flip_left_right(inputs), lambda: inputs)
 
         sizes = get_scaled_size(inputs, scale_rate, pad_mode=1)
 
@@ -123,13 +124,14 @@ class SegBase(Keras3_Model_Wrapper):
         )
 
         logits = multi_results_handler(
-            logits, lambda x: tf.image.flip_left_right(x) if flip else x
+            logits, lambda x: tf.cond(flip, lambda: tf.image.flip_left_right(x), lambda: x)
         )
 
         logits = free_from_list_if_single(logits)
 
         return logits
 
+    @tf.autograph.experimental.do_not_convert
     def inference_with_multi_scales(
         self, 
         inputs, 
@@ -147,8 +149,10 @@ class SegBase(Keras3_Model_Wrapper):
 
         logits_sum_list = None
 
-        @tf.function(autograph=False)
+        @tf.function(autograph=False, reduce_retracing=True)
         def loop_body(image, scale_rate=1.0, inner_flip=False):
+
+            print("trace: inference_with_multi_scales, loop_body")
 
             logits_list = self.inference_with_scale(
                 image, 
@@ -159,18 +163,21 @@ class SegBase(Keras3_Model_Wrapper):
             )
 
             return convert_to_list_if_single(logits_list)
+        
+
+        false_tensor = tf.constant(False, dtype=tf.bool)
 
         logits_sum_list = loop_body(
             inputs, 
             tf.constant(scale_rates[0]), 
-            inner_flip=False
+            inner_flip=false_tensor
         )
 
         for i in range(1, num_rates):
             logits_list = loop_body(
                 inputs, 
                 tf.constant(scale_rates[i]), 
-                inner_flip=False
+                inner_flip=false_tensor
             )
             logits_sum_list = multi_results_add(logits_sum_list, logits_list)
 
@@ -179,7 +186,12 @@ class SegBase(Keras3_Model_Wrapper):
             logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.image.flip_left_right(x))
 
             for i in range(0, num_rates):
-                logits_list = loop_body(inputs, tf.constant(scale_rates[i]), inner_flip=False)
+                logits_list = loop_body(
+                    inputs, 
+                    tf.constant(scale_rates[i]), 
+                    inner_flip=false_tensor
+                )
+
                 logits_sum_list = multi_results_add(logits_sum_list, logits_list)
 
             logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.image.flip_left_right(x))

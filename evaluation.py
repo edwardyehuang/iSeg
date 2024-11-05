@@ -89,7 +89,7 @@ def evaluate(
     return mean_iou
 
 
-@tf.function
+@tf.function(autograph=False)
 def eval_step(ds_inputs, model: SegBase, scale_rates, flip, loss_func, loss_metrics, mertics, distribute_strategy):
     def step_fn(inputs):
         images, labels = inputs

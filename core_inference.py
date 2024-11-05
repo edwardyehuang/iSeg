@@ -38,11 +38,7 @@ def internel_inference(inputs, model, training=None):
 
     # input_signatures = extract_seq_input_signatures(inputs)
 
-    @tf.function(autograph=False)
-    def internal_model_call(inputs):
-        return model(inputs, training=training)
-
-    return internal_model_call(inputs)
+    return model(inputs, training=training)
 
 @tf.autograph.experimental.do_not_convert
 def inference_fn(inputs, model, num_class=21, training=False, sliding_window_crop_size=None):
@@ -130,6 +126,8 @@ def create_base_tensor_for_cropped_result(tensor, full_size):
 @tf.function(autograph=False)
 def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, inputs_width):
 
+    print("trace: get_sliding_window_slices_paddings_list")
+
     sliding_indexs_h = get_sliding_start_indexs(inputs_height, stride_h)  # [None]
     sliding_indexs_w = get_sliding_start_indexs(inputs_width, stride_w)  # [None]
 
@@ -191,10 +189,8 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
 
     return (slices_list_result, paddings_list_result, inference_count_map)
 
-@tf.function(autograph=False, jit_compile=False)
+@tf.autograph.experimental.do_not_convert
 def inference_with_sliding_window(inputs, model, training=False, windows_size=(769, 769)):
-
-    print("trace: inference_with_sliding_window")
 
     if windows_size is None:
         raise ValueError("Window size must not be None !!!!!!!!")
@@ -209,17 +205,29 @@ def inference_with_sliding_window(inputs, model, training=False, windows_size=(7
     )
 
     total_sliding_indexs_len = tf.shape(slices_list)[0]
-    
-    def loop_body(i, results=None):
+
+
+    @tf.function(autograph=False, reduce_retracing=True)
+    def window_body(i):
+
+        print("trace: inference_with_sliding_window window_body")
 
         slices_indexs = slices_list[i]
-        paddings = paddings_list[i]
 
         cropped_inputs = inputs[:, slices_indexs[0] : slices_indexs[1], slices_indexs[2] : slices_indexs[3], :]
 
         cropped_results = internel_inference(cropped_inputs, model, training=training)
 
         cropped_results = convert_to_list_if_single(cropped_results)
+
+        return cropped_results
+    
+
+    @tf.autograph.experimental.do_not_convert
+    def loop_body(i, results=None):
+
+        paddings = paddings_list[i]
+        cropped_results = window_body(i)
 
         if results is None:
             results = create_base_tensor_for_cropped_result(
