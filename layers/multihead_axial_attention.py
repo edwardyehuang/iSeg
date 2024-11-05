@@ -4,7 +4,7 @@ import math
 
 from iseg.initializers.shared_initializers import SharedInitializer
 from iseg.utils import get_tensor_shape
-from iseg.utils.keras_ops import replace_nan, replace_inf
+from iseg.utils.keras_ops import replace_nan, replace_inf, replace_nan_or_inf
 from iseg import check_numerics
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper, is_keras3
 
@@ -91,6 +91,9 @@ class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
     def compute_attetnion (self, query, key, value, training=None):
 
         batch_size, height, width, _ = get_tensor_shape(value)
+
+        query = replace_nan_or_inf(query, tf.keras.backend.epsilon())
+        key = replace_nan_or_inf(key, tf.keras.backend.epsilon())
 
         query = check_numerics(query, "query contains NaN/Inf", level=1)
         key = check_numerics(key, "keys contains NaN/Inf", level=1)
