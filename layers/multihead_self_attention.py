@@ -4,7 +4,7 @@ import math
 
 from iseg.initializers.shared_initializers import SharedInitializer
 from iseg.utils import get_tensor_shape
-from iseg.utils.keras_ops import replace_nan, replace_inf
+from iseg.utils.keras_ops import replace_nan, replace_inf, replace_nan_or_inf
 from iseg import check_numerics
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper, is_keras3
 
@@ -92,6 +92,9 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         batch_size, height, width, _ = get_tensor_shape(value)
 
+        query = replace_nan_or_inf(query, tf.keras.backend.epsilon())
+        key = replace_nan_or_inf(key, tf.keras.backend.epsilon())
+
         query = check_numerics(query, "query contains NaN/Inf", level=1)
         key = check_numerics(key, "keys contains NaN/Inf", level=1)
 
@@ -111,9 +114,8 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         attention_map = safed_softmax(attention_map) # [N, heads, H*W, H*W]
 
-        attention_map = replace_nan(attention_map, tf.keras.backend.epsilon())
-        attention_map = replace_inf(attention_map)
-
+        attention_map = replace_nan_or_inf(attention_map, nan_value=tf.keras.backend.epsilon())
+        
         attention_map = tf.clip_by_value(attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
 
         attention_map = check_numerics(attention_map, "softmax attention_map contains NaN/Inf", level=1) # [N, heads, H*W, H*W]
