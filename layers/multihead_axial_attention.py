@@ -149,6 +149,8 @@ class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
 
         x = tf.reshape(x, [batch_size, height, width, x.shape[-2] * self.num_heads])
 
+        x = replace_nan_or_inf(x, tf.keras.backend.epsilon())
+
         return x
 
 

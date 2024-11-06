@@ -124,6 +124,8 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         x = tf.transpose(x, [0, 2, 1, 3]) # [N, H*W, heads, C//heads]
         x = tf.reshape(x, [batch_size, height, width, x.shape[-1] * self.num_heads]) # [N, H, W, C]
 
+        x = replace_nan_or_inf(x, tf.keras.backend.epsilon())
+
         return x
 
 
