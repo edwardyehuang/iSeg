@@ -4,6 +4,7 @@
 # ===================================================================
 
 import tensorflow as tf
+import numpy as np
 
 from iseg.utils.train_utils import set_weights_lr_multiplier
 
@@ -11,13 +12,13 @@ from iseg.utils.train_utils import set_weights_lr_multiplier
 def decay_layers_lr (layers=[], weights=[], rate=0.99):
 
     num_layers = len(layers)
-    last_layer_index = num_layers - 1
 
-    current_rate = 1.0
+    rate_list = np.linspace(1.0, rate, num_layers)
 
     for i in range(num_layers):
 
         layer = layers[i]
+        current_rate = rate_list[i]
 
         if isinstance(layer, tuple):
             layer = list(layer)
@@ -42,9 +43,8 @@ def decay_layers_lr (layers=[], weights=[], rate=0.99):
                     lr_multiplier=current_lr_multiplier
                 )
 
-        if i < last_layer_index:
-            current_rate *= rate
-
+    
+    current_rate = rate_list[-1]
 
     for weight in weights:
 
