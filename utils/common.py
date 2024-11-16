@@ -13,7 +13,7 @@ import tensorflow as tf
 from distutils.version import LooseVersion
 
 DEFAULT_IMAGE_RESIZE_METHOD = "bilinear"
-DEFAULT_ALIGN_CORNERS = True
+DEFAULT_ALIGN_CORNERS = False
 
 
 def set_random_seed(seed=0):
