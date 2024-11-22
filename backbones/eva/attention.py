@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from iseg.utils import get_tensor_shape
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat, apply_rot_embed_cat
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
 LAYER_NORM_EPSILON = 1e-6
 
@@ -77,19 +77,19 @@ class EvaAttention (Keras3_Model_Wrapper):
             )
 
         else:
-            self.q_proj = tf.keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=f"{self.name}/q_proj")
-            self.k_proj = tf.keras.layers.Dense(all_head_filters, use_bias=False, name=f"{self.name}/k_proj")
-            self.v_proj = tf.keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=f"{self.name}/v_proj")
+            self.q_proj = tf.keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=_N(f"{self.name}/q_proj"))
+            self.k_proj = tf.keras.layers.Dense(all_head_filters, use_bias=False, name=_N(f"{self.name}/k_proj"))
+            self.v_proj = tf.keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=_N(f"{self.name}/v_proj"))
 
         self.attention_dropout = tf.keras.layers.Dropout(self.attention_dropout_rate, name="attention_dropout")
 
         if self.use_norm:
-            self.norm = tf.keras.layers.LayerNormalization(epsilon=LAYER_NORM_EPSILON, name=f"{self.name}/norm")
+            self.norm = tf.keras.layers.LayerNormalization(epsilon=LAYER_NORM_EPSILON, name=_N(f"{self.name}/norm"))
         else:
             self.norm = tf.identity
 
         self.projection_dropout = tf.keras.layers.Dropout(self.projection_dropout_rate, name="projection_dropout")
-        self.projection = tf.keras.layers.Dense(input_channels, use_bias=True, name=f"{self.name}/proj")
+        self.projection = tf.keras.layers.Dense(input_channels, use_bias=True, name=_N(f"{self.name}/proj"))
 
         super().build(input_shape)
 

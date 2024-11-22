@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
 LAYER_NORM_EPSILON = 1e-6
 
@@ -44,13 +44,13 @@ class SwiGLU (Keras3_Model_Wrapper):
         self.fc1_g = tf.keras.layers.Dense(
             hidden_filters,
             use_bias=self.use_bias,
-            name=f"{self.name}/fc1_g",
+            name=_N(f"{self.name}/fc1_g"),
         )
 
         self.fc1_x = tf.keras.layers.Dense(
             hidden_filters,
             use_bias=self.use_bias,
-            name=f"{self.name}/fc1_x",
+            name=_N(f"{self.name}/fc1_x"),
         )
 
         self.drop1 = tf.keras.layers.Dropout(
@@ -61,7 +61,7 @@ class SwiGLU (Keras3_Model_Wrapper):
         if self.use_norm:
             self.norm = tf.keras.layers.LayerNormalization(
                 epsilon=LAYER_NORM_EPSILON,
-                name=f"{self.name}/norm",
+                name=_N(f"{self.name}/norm"),
             )
         else:
             self.norm = tf.identity
@@ -69,7 +69,7 @@ class SwiGLU (Keras3_Model_Wrapper):
         self.fc2 = tf.keras.layers.Dense(
             output_filters,
             use_bias=self.use_bias,
-            name=f"{self.name}/fc2",
+            name=_N(f"{self.name}/fc2"),
         )
 
         self.drop2 = tf.keras.layers.Dropout(

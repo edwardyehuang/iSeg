@@ -6,7 +6,7 @@
 import tensorflow as tf
 
 from iseg.utils.sugars import to_2d_tuple
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
 
 def extract_spatial_patches(x, size=4, use_mean_padding_value=False, padding_direction=0, inverse_slice=False):
@@ -94,7 +94,7 @@ class PatchEmbed(Keras3_Model_Wrapper):
             self.embed_filters, 
             kernel_size=weights_patch_size,
             strides=weights_patch_size,
-            name=f"{self.name}/projection",
+            name=_N(f"{self.name}/projection"),
             padding=self.padding,
         )
         

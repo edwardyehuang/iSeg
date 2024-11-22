@@ -6,7 +6,7 @@
 import tensorflow as tf
 import math
 
-from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, is_keras3
 
 def pixel_freq_bands(
     num_bands,
@@ -180,6 +180,10 @@ class RotaryEmbeddingCat (Keras3_Layer_Wrapper):
         self.linear_bands = linear_bands
         self.feat_shape = feat_shape
         self.ref_feat_shape = ref_feat_shape
+
+        if is_keras3():
+            self._allow_non_tensor_positional_args = True
+
 
 
     def build(self, input_shape):

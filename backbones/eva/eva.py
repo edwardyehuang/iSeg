@@ -14,7 +14,7 @@ from iseg.backbones.utils.layerwise_decay import decay_layers_lr
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat
 from iseg.backbones.eva.block import EvaBlock
 
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, is_keras3
 
 class Eva (Keras3_Model_Wrapper):
 
@@ -147,7 +147,10 @@ class Eva (Keras3_Model_Wrapper):
                     method="bicubic",
                 )
 
-                return assign_op(resized_value, use_locking=use_locking, name=name, read_value=read_value)
+                if not is_keras3():
+                    return assign_op(resized_value, use_locking=use_locking, name=name, read_value=read_value)
+
+                return assign_op(resized_value)
             
             self.position_embedding.assign = assign_op_wrapper_fn
 

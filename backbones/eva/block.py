@@ -12,7 +12,7 @@ from iseg.backbones.eva.glumlp import GluMlp
 from iseg.backbones.eva.mlp import Mlp
 
 from iseg.utils.drops import drop_path
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
 LAYER_NORM_EPSILON = 1e-6
 
@@ -69,7 +69,7 @@ class EvaBlock (Keras3_Model_Wrapper):
 
         self.norm1 = tf.keras.layers.LayerNormalization(
             epsilon=LAYER_NORM_EPSILON,
-            name=f"{self.name}/norm1",
+            name=_N(f"{self.name}/norm1"),
         )
 
         self.attention = EvaAttention(
@@ -80,17 +80,17 @@ class EvaBlock (Keras3_Model_Wrapper):
             projection_dropout_rate=self.projection_dropout_rate,
             attention_head_filters=self.attention_head_filters,
             use_norm=self.scale_attention_inner,
-            name=f"{self.name}/attn",
+            name=_N(f"{self.name}/attn"),
         )
 
         self.norm2 = tf.keras.layers.LayerNormalization(
             epsilon=LAYER_NORM_EPSILON,
-            name=f"{self.name}/norm2",
+            name=_N(f"{self.name}/norm2"),
         )
         
         hidden_channels = int(input_channels * self.mlp_ratio)
 
-        mlp_name = f"{self.name}/mlp"
+        mlp_name = _N(f"{self.name}/mlp")
 
         if self.swiglu_mlp:
             if self.scale_mlp:

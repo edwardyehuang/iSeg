@@ -178,11 +178,16 @@ def load_weights_from_hdf5_group_by_name_v2(f, model, skip_mismatch=False):
     for k, name in enumerate(layer_names):
         g = f[name]
         weight_values = load_subset_weights_from_hdf5_group(g)
+
+        name = replace_slash(name)
+
         for layer in index.get(name, []):
             symbolic_weights = _legacy_weights(layer)
-            weight_values = preprocess_weights_for_loading(
-                layer, weight_values, original_keras_version, original_backend
-            )
+
+            if not is_keras3():
+                weight_values = preprocess_weights_for_loading(
+                    layer, weight_values, original_keras_version, original_backend
+                )
             if len(weight_values) != len(symbolic_weights):
                 if skip_mismatch:
                     logging.warning(
@@ -200,8 +205,9 @@ def load_weights_from_hdf5_group_by_name_v2(f, model, skip_mismatch=False):
                 )
             # Set values.
             for i in range(len(weight_values)):
-                expected_shape = backend.int_shape(symbolic_weights[i])
+                expected_shape = _get_weight_shape(symbolic_weights[i])
                 received_shape = weight_values[i].shape
+                
                 if expected_shape != received_shape:
                     if skip_mismatch:
                         logging.warning(
@@ -226,9 +232,14 @@ def load_weights_from_hdf5_group_by_name_v2(f, model, skip_mismatch=False):
                     )
 
     if "top_level_model_weights" in f:
-        symbolic_weights = (
-            model._trainable_weights + model._non_trainable_weights
-        )
+
+        if is_keras3():
+            symbolic_weights = (model._trainable_variables + model._non_trainable_variables)
+        else:
+            symbolic_weights = (
+                model._trainable_weights + model._non_trainable_weights
+            )
+        
         weight_values = load_subset_weights_from_hdf5_group(
             f["top_level_model_weights"]
         )
@@ -254,7 +265,7 @@ def load_weights_from_hdf5_group_by_name_v2(f, model, skip_mismatch=False):
 
                 current_symbolic_weight = symbolic_weights[i]
 
-                expected_shape = backend.int_shape(current_symbolic_weight)
+                expected_shape = _get_weight_shape(current_symbolic_weight)
                 received_shape = weight_values[i].shape
 
                 if "pos_embed" in current_symbolic_weight.name:
@@ -283,11 +294,12 @@ def load_weights_from_hdf5_group_by_name_v2(f, model, skip_mismatch=False):
                         (symbolic_weights[i], weight_values[i])
                     )
 
-    backend.batch_set_value(weight_value_tuples)
+    batch_set_value(weight_value_tuples)
 
-    # Perform any layer defined finalization of the layer state.
-    for layer in model._flatten_layers():
-        layer.finalize_state()
+    if not is_keras3():
+        # Perform any layer defined finalization of the layer state.
+        for layer in model._flatten_layers():
+            layer.finalize_state()
 
 
 def is_weights_mismatch(symbolic_weight, weight_value):
@@ -297,6 +309,13 @@ def is_weights_mismatch(symbolic_weight, weight_value):
     else:
         return symbolic_weight.shape != weight_value.shape
     
+def _get_weight_shape(weight):
+
+    if not is_keras3():
+        return backend.int_shape(weight)
+    else:
+        return weight.shape
+
 
 
 def dtype_numpy(x):
