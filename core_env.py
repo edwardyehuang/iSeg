@@ -20,6 +20,7 @@ def common_env_setup(
     random_seed=0,
     mixed_precision=True,
     use_deterministic=True,
+    num_op_parallelism_threads=-1,
     numpy_behavior=False,
 ):
     
@@ -38,6 +39,10 @@ def common_env_setup(
 
         if LooseVersion(tf.version.VERSION) >= LooseVersion("2.5.0"):
             os.environ["TF_CUDNN_USE_FRONTEND"] = "1"
+
+    if num_op_parallelism_threads is not None and num_op_parallelism_threads > 0:
+        tf.config.threading.set_inter_op_parallelism_threads(num_op_parallelism_threads)
+        tf.config.threading.set_intra_op_parallelism_threads(num_op_parallelism_threads)
 
     tf.config.run_functions_eagerly(run_eagerly)
 
