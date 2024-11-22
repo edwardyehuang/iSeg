@@ -8,8 +8,6 @@ if LooseVersion(tf.version.VERSION) < LooseVersion("2.15.0"):
 else:
     import keras
 
-REPLACE_SLASH = False
-
 from iseg.utils.slash_utils import replace_slash
 
 def _N(name):
