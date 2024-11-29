@@ -21,6 +21,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         use_custom_offset=False,
         activation=None,
         use_naive_forward=False,
+        use_jit_compile=True,
         **kwargs
     ):
         
@@ -42,6 +43,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         self.activation = keras.activations.get(activation)
 
         self.use_naive_forward = use_naive_forward
+        self.use_jit_compile = use_jit_compile
 
 
     def build(self, input_shape):
@@ -213,8 +215,11 @@ class DCNv2(Keras3_Layer_Wrapper):
 
         return output
     
-
     @tf.function(jit_compile=True, autograph=False)
+    def _xla_forward(self, x, offset):
+        self._forward(x, offset)
+    
+
     def _forward(self, x, offset):
 
         #x: [B, H, W, C]
@@ -343,6 +348,9 @@ class DCNv2(Keras3_Layer_Wrapper):
         if self.use_naive_forward:
             return self._naive_forward(x, offset)
         else:
+            if self.use_jit_compile:
+                return self._xla_forward(x, offset)
+            
             return self._forward(x, offset)
         
         
