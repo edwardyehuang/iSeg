@@ -217,7 +217,7 @@ class DCNv2(Keras3_Layer_Wrapper):
     
     @tf.function(jit_compile=True, autograph=False)
     def _xla_forward(self, x, offset):
-        self._forward(x, offset)
+        return self._forward(x, offset)
     
 
     def _forward(self, x, offset):
@@ -350,7 +350,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         else:
             if self.use_jit_compile:
                 return self._xla_forward(x, offset)
-            
+
             return self._forward(x, offset)
         
         
