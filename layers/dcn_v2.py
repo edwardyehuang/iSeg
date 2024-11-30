@@ -7,7 +7,7 @@ import keras
 
 from iseg.utils import get_tensor_shape
 
-from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, is_keras3
 
 class DCNv2(Keras3_Layer_Wrapper):
     def __init__(
@@ -43,6 +43,10 @@ class DCNv2(Keras3_Layer_Wrapper):
         self.activation = keras.activations.get(activation)
 
         self.use_naive_forward = use_naive_forward
+
+        if is_keras3():
+            use_jit_compile = False
+
         self.use_jit_compile = use_jit_compile
 
 
