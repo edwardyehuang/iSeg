@@ -181,14 +181,22 @@ class LnConvGelu(Keras3_Model_Wrapper):
         dropout_rate=0,
         trainable=True,
         use_bias=True,
+        groups=1,
         name=None,
     ):
 
         super().__init__(trainable=trainable, name=name)
 
-        self.ln = (
-            None if not use_ln else tf.keras.layers.LayerNormalization(trainable=trainable, epsilon=ln_epsilon, name=f"{self.name}_ln")
-        )
+        self.ln = None
+
+        if use_ln:
+            if groups == 1:
+                self.ln = tf.keras.layers.LayerNormalization(trainable=trainable, epsilon=ln_epsilon, name=f"{self.name}_ln")
+            elif groups > 1:
+                self.ln = tf.keras.layers.GroupNormalization(groups=groups, axis=-1, epsilon=ln_epsilon, trainable=trainable, name=f"{self.name}_ln")
+            else:
+                raise ValueError(f"Invalid groups value: {groups}")
+        
 
         self.conv = tf.keras.layers.Conv2D(
             filters,
