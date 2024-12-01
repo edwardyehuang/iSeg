@@ -43,10 +43,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         self.activation = keras.activations.get(activation)
 
         self.use_naive_forward = use_naive_forward
-
-        if is_keras3():
-            use_jit_compile = False
-
+        
         self.use_jit_compile = use_jit_compile
 
 
@@ -96,7 +93,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         self.ks = self.kernel_size[0] * self.kernel_size[1]
         self.ph, self.pw = (self.kernel_size[0] - 1) // 2, (self.kernel_size[1] - 1) // 2
 
-        with tf.init_scope():
+        with tf.init_scope(): # Building time constant tensor initialization in keras 3 must force eager execution
             self.phw = tf.constant([self.ph, self.pw], dtype = 'int32')
             self.patch_yx = tf.stack(tf.meshgrid(tf.range(-self.phw[1], self.phw[1] + 1), tf.range(-self.phw[0], self.phw[0] + 1))[::-1], axis = -1)
             self.patch_yx = tf.reshape(self.patch_yx, [-1, 2])
