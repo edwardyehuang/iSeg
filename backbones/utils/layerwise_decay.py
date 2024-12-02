@@ -13,12 +13,10 @@ def decay_layers_lr (layers=[], weights=[], rate=0.99):
 
     num_layers = len(layers)
 
-    rate_list = np.linspace(1.0, rate, num_layers)
-
     for i in range(num_layers):
 
         layer = layers[i]
-        current_rate = rate_list[i]
+        current_rate = rate ** (num_layers - i - 2)
 
         if isinstance(layer, tuple):
             layer = list(layer)
@@ -44,7 +42,7 @@ def decay_layers_lr (layers=[], weights=[], rate=0.99):
                 )
 
     
-    current_rate = rate_list[-1]
+    current_rate = rate ** (num_layers - 1)
 
     for weight in weights:
 
