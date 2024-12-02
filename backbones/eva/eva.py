@@ -241,7 +241,7 @@ class Eva (Keras3_Model_Wrapper):
 
         # layers =  [self.patch_embed] + list(self.blocks)
         layers = list(self.blocks)
-        layers.reverse()
+        # layers.reverse()
 
         dacay_weights_names = [
         #    self.position_embedding.name,
