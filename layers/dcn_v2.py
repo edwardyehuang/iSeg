@@ -43,6 +43,9 @@ class DCNv2(Keras3_Layer_Wrapper):
         self.activation = keras.activations.get(activation)
 
         self.use_naive_forward = use_naive_forward
+
+        if is_keras3():
+            self.use_jit_compile = False
         
         self.use_jit_compile = use_jit_compile
 
