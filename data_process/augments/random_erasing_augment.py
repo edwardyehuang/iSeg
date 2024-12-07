@@ -94,6 +94,7 @@ class RandomErasingAugment(DataAugmentationBase):
             lambda _i, _image, _label: _i < num_area,
             inner_loop,
             [0, image, label],
+            maximum_iterations=self.max_area_count,
         )
         
         return image, label

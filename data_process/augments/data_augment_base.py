@@ -25,8 +25,8 @@ class DataAugmentationBase(object):
 
 def random_execute_helper(execute_prob, fn0, fn1):
 
-    execute_prob = tf.constant(execute_prob)
+    execute_prob = tf.constant(execute_prob, name="execute_prob")
 
     prob = tf.random.uniform((), minval=0, maxval=1.0)
 
-    return tf.cond((execute_prob == 1.0) | (prob <= execute_prob), fn0, fn1)
+    return tf.cond((execute_prob == 1.0) | (prob <= execute_prob), fn0, fn1, name="random_execute_helper")
