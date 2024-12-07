@@ -109,7 +109,7 @@ class RandomErasingAugment(DataAugmentationBase):
 
             if self.use_fill_noise_color:
                 fill_color = tf.random.uniform(
-                    shape=[area_height, area_width, 3], minval=0, maxval=255, dtype=_image.dtype
+                    shape=[height, width, 3], minval=0, maxval=255, dtype=_image.dtype
                 )
 
                 print("use noise color as fill color in random erasing")
