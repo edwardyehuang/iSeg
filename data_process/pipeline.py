@@ -100,7 +100,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
         eval_crop_height=None,
         eval_crop_width=None,
         prob_of_flip=0.5,
-        prob_of_erase=0.25,
+        prob_of_erase=0.5,
         min_scale_factor=0.5,
         max_scale_factor=2.0,
         scale_factor_step_size=0.1,
@@ -148,7 +148,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
                 min_area_size=0,
                 max_area_size=0.25,
                 min_area_count=1,
-                max_area_count=3,
+                max_area_count=5,
                 ignore_label=ignore_label,
             ))
             
