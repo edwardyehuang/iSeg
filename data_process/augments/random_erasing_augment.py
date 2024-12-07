@@ -16,6 +16,8 @@ class RandomErasingAugment(DataAugmentationBase):
         max_area_size=0.25,
         min_area_count=1,
         max_area_count=3,
+        fill_constant_color=[0, 0, 0],
+        use_fill_noise_color=False,
         ignore_label=255,
         name=None,
     ):
@@ -37,7 +39,27 @@ class RandomErasingAugment(DataAugmentationBase):
         self.min_area_count = min_area_count
         self.max_area_count = max_area_count
 
+        self._fill_constant_color = self._process_fill_constant_color(fill_constant_color)
+        self.use_fill_noise_color = use_fill_noise_color
+
         self.ignore_label = ignore_label
+
+
+    def _process_fill_constant_color(self, color):
+
+        if color is None:
+            color = [0, 0, 0]
+
+        if isinstance(color, tuple):
+            color = list(color)
+
+        if not isinstance(color, list):
+            color = [color]
+
+        color = tf.convert_to_tensor(color, dtype=tf.float32)
+        color = tf.reshape(color, [1, 1, -1])
+
+        return color
 
 
     def call(self, image, label):
@@ -85,7 +107,17 @@ class RandomErasingAugment(DataAugmentationBase):
             area_mask = tf.cast(area_mask, tf.bool)
             area_mask = tf.expand_dims(area_mask, axis=-1)
 
-            _image = tf.where(area_mask, 0.0, _image)
+            if self.use_fill_noise_color:
+                fill_color = tf.random.uniform(
+                    shape=[area_height, area_width, 3], minval=0, maxval=255, dtype=_image.dtype
+                )
+
+                print("use noise color as fill color in random erasing")
+
+            else:
+                fill_color = tf.cast(self._fill_constant_color, _image.dtype)
+
+            _image = tf.where(area_mask, fill_color, _image)
             _label = tf.where(area_mask, self.ignore_label, _label)
 
             return _i + 1, _image, _label
