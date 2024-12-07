@@ -328,7 +328,7 @@ def get_random_scale(min_scale_factor, max_scale_factor, step_size):
     return shuffled_scale_factors[0]
 
 
-# @tf.function
+@tf.function
 def randomly_scale_image_and_label(image, label=None, scale=1.0):
     """Randomly scales image and label.
     Args:

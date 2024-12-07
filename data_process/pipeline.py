@@ -53,6 +53,7 @@ class AugmentationsPipeLine(object):
 
         return image, label
 
+    @tf.autograph.experimental.do_not_convert
     def process(self, *inputs):
 
         processed_arugments = []
@@ -99,6 +100,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
         eval_crop_height=None,
         eval_crop_width=None,
         prob_of_flip=0.5,
+        prob_of_erase=0.25,
         min_scale_factor=0.5,
         max_scale_factor=2.0,
         scale_factor_step_size=0.1,
@@ -141,5 +143,13 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
         if training:
             augments.append(RandomCropAugment(crop_height, crop_width))
             augments.append(RandomFlipAugment(prob_of_flip))
+            augments.append(RandomErasingAugment(
+                prob=prob_of_erase,
+                min_area_size=0,
+                max_area_size=0.25,
+                min_area_count=1,
+                max_area_count=3,
+                ignore_label=ignore_label,
+            ))
             
         self.augments = augments

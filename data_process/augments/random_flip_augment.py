@@ -16,6 +16,7 @@ class RandomFlipAugment(DataAugmentationBase):
 
         self.prob_of_flip = prob_of_flip
 
+    @tf.function
     def call(self, image, label, reversed_label=None):
 
         random_value = tf.random.uniform([])
