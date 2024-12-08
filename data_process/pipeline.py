@@ -149,7 +149,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
                 max_area_size=0.25,
                 min_area_count=1,
                 max_area_count=5,
-                use_fill_noise_color=False,
+                use_fill_noise_color=True,
                 ignore_label=ignore_label,
             ))
             
