@@ -146,7 +146,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
             augments.append(RandomErasingAugment(
                 prob=prob_of_erase,
                 min_area_size=0,
-                max_area_size=0.5,
+                max_area_size=0.25,
                 min_area_count=1,
                 max_area_count=5,
                 use_fill_noise_color=True,
