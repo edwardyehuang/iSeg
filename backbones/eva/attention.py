@@ -11,6 +11,15 @@ from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
 LAYER_NORM_EPSILON = 1e-6
 
+def safed_softmax (x):
+    t = x.dtype
+    x = tf.cast(x, tf.float32)
+    x = tf.nn.softmax(x)
+    x = tf.cast(x, t)
+
+    return x
+
+
 class EvaAttention (Keras3_Model_Wrapper):
 
     def __init__(
@@ -143,7 +152,7 @@ class EvaAttention (Keras3_Model_Wrapper):
         k = tf.transpose(k, [0, 1, 3, 2]) # [batch_size, num_heads, head_filters, hw]
 
         attention = tf.matmul(q, k) # [batch_size, num_heads, hw, hw]
-        attention = tf.nn.softmax(attention, axis=-1)
+        attention = safed_softmax(attention)
 
         attention = self.attention_dropout(attention, training=training)
         y = tf.matmul(attention, v) # [batch_size, num_heads, hw, head_filters]
