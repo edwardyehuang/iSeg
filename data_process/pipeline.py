@@ -144,7 +144,6 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
             augments.append(RandomCropAugment(crop_height, crop_width))
             augments.append(RandomFlipAugment(prob_of_flip))
 
-            '''
             augments.append(RandomErasingAugment(
                 prob=prob_of_erase,
                 min_area_size=0,
@@ -154,6 +153,5 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
                 use_fill_noise_color=True,
                 ignore_label=ignore_label,
             ))
-            '''
             
         self.augments = augments
