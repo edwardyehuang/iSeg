@@ -8,6 +8,7 @@ import tensorflow as tf
 from iseg.utils import get_tensor_shape
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat, apply_rot_embed_cat
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
+from iseg.utils.value_check import check_numerics
 
 LAYER_NORM_EPSILON = 1e-6
 
@@ -139,6 +140,11 @@ class EvaAttention (Keras3_Model_Wrapper):
             k = tf.transpose(k, [0, 2, 1, 3])
             v = tf.transpose(v, [0, 2, 1, 3]) # [batch_size, num_heads, hw, head_filters]
 
+        q = check_numerics(q, message="q contains nan or inf")
+        k = check_numerics(k, message="k contains nan or inf")
+        v = check_numerics(v, message="v contains nan or inf")
+
+
         if rope is not None:
             q0 = q[:, :, :1, :] # [batch_size, num_heads, 1, head_filters]
             q1 = apply_rot_embed_cat(q[:, :, 1:, :], rope)
@@ -152,10 +158,17 @@ class EvaAttention (Keras3_Model_Wrapper):
         k = tf.transpose(k, [0, 1, 3, 2]) # [batch_size, num_heads, head_filters, hw]
 
         attention = tf.matmul(q, k) # [batch_size, num_heads, hw, hw]
+
+        attention = check_numerics(attention, message="attention before softmax contains nan or inf")
+
         attention = safed_softmax(attention)
+
+        attention = check_numerics(attention, message="attention after softmax contains nan or inf")
 
         attention = self.attention_dropout(attention, training=training)
         y = tf.matmul(attention, v) # [batch_size, num_heads, hw, head_filters]
+
+        y = check_numerics(y, message="y contains nan or inf")
 
         y = tf.transpose(y, [0, 2, 1, 3]) # [batch_size, hw, num_heads, head_filters]
         y = tf.reshape(y, [batch_size, hw, channels]) # [batch_size, hw, channels]
@@ -163,5 +176,7 @@ class EvaAttention (Keras3_Model_Wrapper):
         y = self.norm(y)
         y = self.projection(y)
         y = self.projection_dropout(y, training=training)
+
+        y = check_numerics(y, message="y after projection contains nan or inf")
 
         return y
