@@ -22,6 +22,7 @@ def common_env_setup(
     use_deterministic=True,
     num_op_parallelism_threads=-1,
     numpy_behavior=False,
+    soft_device_placement=False,
 ):
     
     set_random_seed(random_seed)
@@ -43,6 +44,9 @@ def common_env_setup(
     if num_op_parallelism_threads is not None and num_op_parallelism_threads > 0:
         tf.config.threading.set_inter_op_parallelism_threads(num_op_parallelism_threads)
         tf.config.threading.set_intra_op_parallelism_threads(num_op_parallelism_threads)
+
+    if soft_device_placement:
+        tf.config.set_soft_device_placement(soft_device_placement)
 
     tf.config.run_functions_eagerly(run_eagerly)
 
