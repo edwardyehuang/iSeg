@@ -16,17 +16,28 @@ class RandomFlipAugment(DataAugmentationBase):
 
         self.prob_of_flip = prob_of_flip
 
-    @tf.function
+
     def call(self, image, label, reversed_label=None):
 
         random_value = tf.random.uniform([])
 
-        if label is not None and random_value <= self.prob_of_flip:
-            image = tf.image.flip_left_right(image)
+        return tf.cond(
+            random_value <= self.prob_of_flip,
+            lambda: self._execute_branch(image, label, reversed_label),
+            lambda: (image, label),
+        )
+    
+    
+    def _execute_branch(self, image, label, reversed_label):
 
+        image = tf.image.flip_left_right(image)
+
+        if label is not None:
             if reversed_label is not None:
                 label = reversed_label
             else:
                 label = tf.image.flip_left_right(label)
 
         return image, label
+
+
