@@ -126,7 +126,7 @@ def create_base_tensor_for_cropped_result(tensor, full_size):
 @tf.function(autograph=False)
 def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, inputs_width):
 
-    print("trace: get_sliding_window_slices_paddings_list")
+    # print("trace: get_sliding_window_slices_paddings_list")
 
     sliding_indexs_h = get_sliding_start_indexs(inputs_height, stride_h)  # [None]
     sliding_indexs_w = get_sliding_start_indexs(inputs_width, stride_w)  # [None]
@@ -210,7 +210,7 @@ def inference_with_sliding_window(inputs, model, training=False, windows_size=(7
     @tf.function(autograph=False, reduce_retracing=True)
     def window_body(i):
 
-        print("trace: inference_with_sliding_window window_body")
+        # print("trace: inference_with_sliding_window window_body")
 
         slices_indexs = slices_list[i]
 

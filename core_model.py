@@ -90,7 +90,7 @@ class SegBase(Keras3_Model_Wrapper):
         resize_method="bilinear"
     ):
         
-        print("trace: inference_with_scale")
+        # print("trace: inference_with_scale")
 
         inputs_size = get_tensor_shape(inputs, return_list=True)[1:3]
         
@@ -152,7 +152,7 @@ class SegBase(Keras3_Model_Wrapper):
         @tf.function(autograph=False, reduce_retracing=True)
         def loop_body(image, scale_rate=1.0, inner_flip=False):
 
-            print("trace: inference_with_multi_scales, loop_body")
+            # print("trace: inference_with_multi_scales, loop_body")
 
             logits_list = self.inference_with_scale(
                 image, 
