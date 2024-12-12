@@ -328,7 +328,6 @@ def get_random_scale(min_scale_factor, max_scale_factor, step_size):
     return shuffled_scale_factors[0]
 
 
-@tf.function
 def randomly_scale_image_and_label(image, label=None, scale=1.0):
     """Randomly scales image and label.
     Args:
@@ -338,9 +337,15 @@ def randomly_scale_image_and_label(image, label=None, scale=1.0):
     Returns:
         Scaled image and label.
     """
-    # No random scaling if scale == 1.
-    if scale == 1.0:
-        return image, label
+
+    return tf.cond(
+        scale == 1.0,
+        lambda: (image, label),
+        lambda: _randomly_scale_image_and_label_internal(image, label, scale),
+    )
+
+
+def _randomly_scale_image_and_label_internal(image, label=None, scale=1.0):
 
     image_shape = tf.shape(image)
     new_dim = tf.cast(tf.cast([image_shape[0], image_shape[1]], tf.float32) * scale, tf.int32)
@@ -353,6 +358,7 @@ def randomly_scale_image_and_label(image, label=None, scale=1.0):
         label = resize_image(label, new_dim, method="nearest")
 
     return image, label
+
 
 
 def resize_to_range(
