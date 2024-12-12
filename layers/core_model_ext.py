@@ -25,6 +25,7 @@ class SegManaged(SegFoundation):
         backbone_use_xla=False,
         output_stride=32,
         num_class=21,
+        build_input_size=(512, 512),
         custom_main_loss_fn=None,
         num_aux_loss=0,
         aux_loss_rate=0.4,
@@ -85,10 +86,18 @@ class SegManaged(SegFoundation):
 
         align_corners = iseg.utils.common.DEFAULT_ALIGN_CORNERS
 
-        if self.label_as_inputs and self.label_as_backbone_inputs:
-            label_shape = (1, 513, 513) if align_corners else (1, 512, 512)
+        build_input_size = list(build_input_size)
+        build_input_height = build_input_size[0]
+        build_input_width = build_input_size[1]
 
-        image_shape = (1, 513, 513, 3) if align_corners else (1, 512, 512, 3)
+        if align_corners:
+            build_input_height += 1
+            build_input_width += 1
+
+        if self.label_as_inputs and self.label_as_backbone_inputs:
+            label_shape = (1, build_input_height, build_input_width)
+
+        image_shape = (1, build_input_height, build_input_width, 3)
 
         self.backbone = get_backbone(
             self.backbone_name,
