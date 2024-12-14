@@ -10,6 +10,8 @@ import random
 import numpy as np
 import tensorflow as tf
 
+from iseg.utils.distribution_utils import list_gpus
+
 
 DEFAULT_IMAGE_RESIZE_METHOD = "bilinear"
 DEFAULT_ALIGN_CORNERS = False
@@ -30,7 +32,31 @@ def enable_mixed_precision(use_tpu=False):
     if use_tpu:
         tf.keras.mixed_precision.set_global_policy("mixed_bfloat16")
     else:
-        tf.keras.mixed_precision.set_global_policy("mixed_float16")
+
+        gpus = list_gpus()
+
+        support_bfloat16 = False
+
+        if gpus:
+
+            support_bfloat16 = True
+
+            try:
+                for gpu in gpus:
+                    details = tf.config.experimental.get_device_details(gpu)
+                    compute_capability = details["compute_capability"]
+
+                    support_bfloat16 = support_bfloat16 and compute_capability[0] >= 8
+
+            except RuntimeError as e:
+                print(e)
+
+        if support_bfloat16:
+            print("GPU supports mixed_bfloat16 !")
+            tf.keras.mixed_precision.set_global_policy("mixed_bfloat16")
+        else:
+            print("GPU does not support mixed_bfloat16, use mixed_float16 instead !")
+            tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
 
 def get_tensor_shape(x, return_list=False):
