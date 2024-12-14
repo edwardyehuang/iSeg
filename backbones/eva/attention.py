@@ -8,18 +8,10 @@ import tensorflow as tf
 from iseg.utils import get_tensor_shape
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat, apply_rot_embed_cat
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
-from iseg.utils.value_check import check_numerics
 from iseg.utils.keras_ops import replace_nan_or_inf
+from iseg.utils.op_utils import safed_softmax
 
 LAYER_NORM_EPSILON = 1e-6
-
-def safed_softmax (x):
-    t = x.dtype
-    x = tf.cast(x, tf.float32)
-    x = tf.nn.softmax(x)
-    x = tf.cast(x, t)
-
-    return x
 
 
 class EvaAttention (Keras3_Model_Wrapper):
@@ -162,7 +154,7 @@ class EvaAttention (Keras3_Model_Wrapper):
 
         attention = replace_nan_or_inf(attention, tf.keras.backend.epsilon())
 
-        attention = tf.nn.softmax(attention)
+        attention = safed_softmax(attention)
 
         attention = replace_nan_or_inf(attention, tf.keras.backend.epsilon())
 
