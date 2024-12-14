@@ -162,7 +162,7 @@ class EvaAttention (Keras3_Model_Wrapper):
 
         attention = replace_nan_or_inf(attention, tf.keras.backend.epsilon())
 
-        attention = safed_softmax(attention)
+        attention = tf.nn.softmax(attention)
 
         attention = replace_nan_or_inf(attention, tf.keras.backend.epsilon())
 
