@@ -10,7 +10,6 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from distutils.version import LooseVersion
 
 DEFAULT_IMAGE_RESIZE_METHOD = "bilinear"
 DEFAULT_ALIGN_CORNERS = False
@@ -27,17 +26,11 @@ def set_random_seed(seed=0):
 
 
 def enable_mixed_precision(use_tpu=False):
-
-    if LooseVersion(tf.version.VERSION) < LooseVersion("2.4.0"):
-        if use_tpu:
-            tf.keras.mixed_precision.experimental.set_policy("mixed_bfloat16")
-        else:
-            tf.keras.mixed_precision.experimental.set_policy("mixed_float16")
+    
+    if use_tpu:
+        tf.keras.mixed_precision.set_global_policy("mixed_bfloat16")
     else:
-        if use_tpu:
-            tf.keras.mixed_precision.set_global_policy("mixed_bfloat16")
-        else:
-            tf.keras.mixed_precision.set_global_policy("mixed_float16")
+        tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
 
 def get_tensor_shape(x, return_list=False):

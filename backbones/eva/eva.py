@@ -13,8 +13,8 @@ from iseg.backbones.utils.layerwise_decay import decay_layers_lr
 
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat
 from iseg.backbones.eva.block import EvaBlock
-
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper, is_keras3
+from iseg.utils.version_utils import is_keras3
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 class Eva (Keras3_Model_Wrapper):
 

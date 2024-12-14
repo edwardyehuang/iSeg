@@ -11,7 +11,8 @@ from iseg.core_model import SegFoundation
 from iseg.backbones.feature_extractor import get_backbone
 from iseg.utils.common import resize_image
 from iseg.utils.keras_ops import capture_func
-from iseg.utils.keras3_utils import _N, is_keras3
+from iseg.utils.version_utils import is_keras3
+from iseg.utils.keras3_utils import _N
 from iseg.utils.value_utils import values_to_list
 
 import iseg.utils.common

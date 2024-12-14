@@ -27,7 +27,7 @@ from iseg.backbones.eva.eva import EVA02_large_patch16_224, EVA02_large_patch14_
 
 from iseg.utils.keras_ops import load_h5_weight
 
-from iseg.utils.keras3_utils import is_keras3, print_keras_version
+from iseg.utils.version_utils import is_keras3, print_keras_version
 
 
 def get_backbone(

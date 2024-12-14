@@ -9,7 +9,6 @@ import os
 from distutils.version import LooseVersion
 from platform import uname
 
-from iseg.utils.keras3_utils import is_keras3, is_keras2_15
 
 def get_tpu_strategy(name=None):
 

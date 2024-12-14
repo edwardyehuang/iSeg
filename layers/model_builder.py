@@ -6,11 +6,10 @@
 import tensorflow as tf
 import iseg.static_strings as ss
 
-from iseg.core_model import SegFoundation
 from iseg.layers.normalizations import normalization
 from iseg.utils.common import resize_image
-from iseg.utils.common import get_tensor_shape as _get_tensor_shape
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper, is_keras3
+from iseg.utils.version_utils import is_keras3
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
 def get_training_value(training=None):

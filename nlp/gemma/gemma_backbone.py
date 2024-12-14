@@ -27,7 +27,7 @@ from iseg.nlp.gemma.gemma_decoder_block import GemmaDecoderBlock
 from iseg.nlp.gemma.gemma_presets import backbone_presets
 from iseg.nlp.gemma.rms_normalization import RMSNormalization
 
-from iseg.utils.keras3_utils import is_keras2_15, is_keras3
+from iseg.utils.version_utils import is_keras2_15, is_keras3
 
 @keras_nlp_export("keras_nlp.models.GemmaBackbone")
 class GemmaBackbone(Backbone):

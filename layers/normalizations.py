@@ -8,7 +8,7 @@ from distutils.version import LooseVersion
 
 import tensorflow as tf
 
-from iseg.utils.keras3_utils import is_keras3
+from iseg.utils.version_utils import is_keras3
 
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.11.0"):
     from iseg.layers.syncbn import SyncBatchNormalization

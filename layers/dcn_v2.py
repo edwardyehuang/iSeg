@@ -6,8 +6,8 @@ import tensorflow as tf
 import keras
 
 from iseg.utils import get_tensor_shape
-
-from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, is_keras3
+from iseg.utils.version_utils import is_keras3
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
 
 class DCNv2(Keras3_Layer_Wrapper):
     def __init__(

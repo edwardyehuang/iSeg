@@ -6,7 +6,8 @@ from iseg.initializers.shared_initializers import SharedInitializer
 from iseg.utils import get_tensor_shape
 from iseg.utils.keras_ops import replace_inf, replace_nan_or_inf
 from iseg import check_numerics
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper, is_keras3
+from iseg.utils.version_utils import is_keras3
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 def safed_softmax (x):
     t = x.dtype

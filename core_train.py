@@ -20,7 +20,7 @@ from iseg.optimizers.multi_optimizer import MultiOptimizer
 
 from iseg.utils.keras_ops import capture_func, get_all_layers_v2
 from iseg.utils.train_utils import exclude_no_weight_decay_layers_in_optimizer
-from iseg.utils.keras3_utils import is_keras3
+from iseg.utils.version_utils import is_keras3
 
 
 class CoreTrain(object):

@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from iseg.utils.slash_utils import replace_slash
-from iseg.utils.keras3_utils import is_keras3
+from iseg.utils.version_utils import is_keras3
 
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
     from keras.saving.hdf5_format import (
