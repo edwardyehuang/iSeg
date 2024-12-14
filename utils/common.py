@@ -10,6 +10,7 @@ import random
 import numpy as np
 import tensorflow as tf
 
+from iseg.utils.version_utils import is_keras3
 from iseg.utils.distribution_utils import list_gpus
 
 
@@ -31,6 +32,8 @@ def enable_mixed_precision(use_tpu=False):
     
     if use_tpu:
         tf.keras.mixed_precision.set_global_policy("mixed_bfloat16")
+    elif not is_keras3():
+        tf.keras.mixed_precision.set_global_policy("mixed_float16")
     else:
 
         gpus = list_gpus()
@@ -53,7 +56,7 @@ def enable_mixed_precision(use_tpu=False):
 
         if support_bfloat16:
             print("GPU supports mixed_bfloat16 !")
-            tf.keras.mixed_precision.set_global_policy("mixed_float16")
+            tf.keras.mixed_precision.set_global_policy("mixed_bfloat16")
         else:
             print("GPU does not support mixed_bfloat16, use mixed_float16 instead !")
             tf.keras.mixed_precision.set_global_policy("mixed_float16")
