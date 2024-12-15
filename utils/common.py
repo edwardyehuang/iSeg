@@ -49,7 +49,7 @@ def enable_mixed_precision(use_tpu=False):
                     compute_capability = details["compute_capability"]
 
                     support_bfloat16 = support_bfloat16 and compute_capability[0] >= 8
-                    support_bfloat16 = support_bfloat16 and (not "A800" in device_name)
+                    # support_bfloat16 = support_bfloat16 and (not "A800" in device_name)
 
             except RuntimeError as e:
                 print(e)
