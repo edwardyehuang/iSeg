@@ -32,8 +32,6 @@ def enable_mixed_precision(use_tpu=False):
     
     if use_tpu:
         tf.keras.mixed_precision.set_global_policy("mixed_bfloat16")
-    # elif not is_keras3():
-    #    tf.keras.mixed_precision.set_global_policy("mixed_float16")
     else:
 
         gpus = list_gpus()
