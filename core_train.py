@@ -56,6 +56,7 @@ class CoreTrain(object):
         batch_size=1, 
         epoch_steps=1000, 
         initial_epoch=0,
+        jit_compile=None,
     ):
 
         model = self.model_helper.model
@@ -117,6 +118,7 @@ class CoreTrain(object):
             metrics=metrics, 
             loss=losses, 
             loss_weights=losses_weights,
+            jit_compile=jit_compile,
         )
 
         if initial_epoch != -1:
@@ -139,6 +141,7 @@ class CoreTrain(object):
         tensorboard_dir="tensorboard",
         use_profiler=False,
         verbose=1,
+        jit_compile=None,
     ):
 
         if eval_batch_size is None:
@@ -152,6 +155,7 @@ class CoreTrain(object):
                 batch_size=batch_size,
                 epoch_steps=epoch_steps,
                 initial_epoch=initial_epoch,
+                jit_compile=jit_compile,
             )
 
         if initial_epoch == -1:
