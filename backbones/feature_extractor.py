@@ -110,7 +110,7 @@ def get_backbone(
         ss.INTERN_IMAGE_SMALL: intern_image_small,
         ss.INTERN_IMAGE_HUGE: intern_image_huge,
         ss.EVA02_LARGE: EVA02_large_patch16_224,
-        ss.EVA02_LARGE_224 : EVA02_large_patch14_224,
+        ss.EVA02_LARGE_P14 : EVA02_large_patch14_224,
         ss.EVA02_TINY: EVA02_tiny_patch_14_336,
         ss.EVA02_LARGE_COCO: EVA02_large_patch16_512_COCO,
         ss.PLACEHOLDER: PlaceHolder,

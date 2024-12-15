@@ -23,7 +23,6 @@ class SegManaged(SegFoundation):
         self,
         backbone_name=ss.RESNET50,
         backbone_weights_path=None,
-        backbone_use_xla=False,
         output_stride=32,
         num_class=21,
         build_input_size=(512, 512),
@@ -70,7 +69,6 @@ class SegManaged(SegFoundation):
 
         self.backbone_name = backbone_name
         self.backbone_weights_path = backbone_weights_path
-        self.backbone_use_xla = backbone_use_xla
         self.output_stride = output_stride
 
         self.label_as_backbone_inputs = label_as_backbone_inputs
@@ -138,17 +136,9 @@ class SegManaged(SegFoundation):
 
         return aux_logits_convs
     
-    @tf.function(jit_compile=True, autograph=False)
-    def compute_backbone_results_xla (self, backbone_inputs, training=None):
-
-        return self.backbone(backbone_inputs, training=training)
-    
 
     def compute_backbone_results (self, backbone_inputs, training=None):
-        
-        if self.backbone_use_xla:
-            return self.compute_backbone_results_xla(backbone_inputs, training=training)
-        
+
         return self.backbone(backbone_inputs, training=training)
         
 
