@@ -9,13 +9,7 @@ from iseg import check_numerics
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
-def safed_softmax (x):
-    t = x.dtype
-    x = tf.cast(x, tf.float32)
-    x = tf.nn.softmax(x)
-    x = tf.cast(x, t)
-
-    return x
+from iseg.utils.op_utils import safed_softmax
 
 
 class MultiHeadAxialAttentionLayer (Keras3_Model_Wrapper):
