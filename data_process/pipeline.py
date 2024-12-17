@@ -106,6 +106,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
         scale_factor_step_size=0.1,
         random_brightness=False,
         photo_metric_distortions=False,
+        random_erase=True,
         name=None,
     ):
 
@@ -144,14 +145,15 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
             augments.append(RandomCropAugment(crop_height, crop_width))
             augments.append(RandomFlipAugment(prob_of_flip))
 
-            augments.append(RandomErasingAugment(
-                prob=prob_of_erase,
-                min_area_size=0,
-                max_area_size=0.25,
-                min_area_count=1,
-                max_area_count=5,
-                use_fill_noise_color=True,
-                ignore_label=ignore_label,
-            ))
+            if random_erase:
+                augments.append(RandomErasingAugment(
+                    prob=prob_of_erase,
+                    min_area_size=0,
+                    max_area_size=0.25,
+                    min_area_count=1,
+                    max_area_count=5,
+                    use_fill_noise_color=True,
+                    ignore_label=ignore_label,
+                ))
             
         self.augments = augments
