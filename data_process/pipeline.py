@@ -146,6 +146,9 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
             augments.append(RandomFlipAugment(prob_of_flip))
 
             if random_erase:
+
+                print("Using random erase augment")
+
                 augments.append(RandomErasingAugment(
                     prob=prob_of_erase,
                     min_area_size=0,
