@@ -27,6 +27,7 @@ def get_optimizer(
     sgd_momentum_rate=0.9,
     adamw_weight_decay=0.0001,
     clipnorm=None,
+    clipvalue=None,
 ):
 
     kwargs = {
@@ -43,6 +44,7 @@ def get_optimizer(
         "sgd_momentum_rate": sgd_momentum_rate,
         "adamw_weight_decay": adamw_weight_decay,
         "clipnorm": clipnorm,
+        "clipvalue": clipvalue,
     }
 
     print("Optimizer info : **********************")
@@ -117,6 +119,7 @@ def __get_optimizer(
     sgd_momentum_rate=0.9,
     adamw_weight_decay=0.0001,
     clipnorm=None,
+    clipvalue=None,
 ):
 
     learning_rate = initial_lr
@@ -168,13 +171,13 @@ def __get_optimizer(
                 raise ValueError(f"Unsupported optimizer {optimizer}")
         else:
             if optimizer == "sgd":
-                _optimizer = modern_optimizers.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate, clipnorm=clipnorm)
+                _optimizer = modern_optimizers.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate, clipnorm=clipnorm, clipvalue=clipvalue)
             elif optimizer == "adam":
-                _optimizer = modern_optimizers.AdamW(weight_decay=0., learning_rate=learning_rate, amsgrad=False, clipnorm=clipnorm)
+                _optimizer = modern_optimizers.AdamW(weight_decay=0., learning_rate=learning_rate, amsgrad=False, clipnorm=clipnorm, clipvalue=clipvalue)
             elif optimizer == "amsgrad":
-                _optimizer = modern_optimizers.AdamW(weight_decay=0., learning_rate=learning_rate, amsgrad=True, clipnorm=clipnorm)
+                _optimizer = modern_optimizers.AdamW(weight_decay=0., learning_rate=learning_rate, amsgrad=True, clipnorm=clipnorm, clipvalue=clipvalue)
             elif optimizer == "adamw":
-                _optimizer = modern_optimizers.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate, clipnorm=clipnorm)
+                _optimizer = modern_optimizers.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate, clipnorm=clipnorm, clipvalue=clipvalue)
             else:
                 raise ValueError(f"Unsupported optimizer {optimizer}")
         return _optimizer
