@@ -437,20 +437,22 @@ def resize_to_range(
         # Ensure that both output sides are multiples of factor plus one.
         if factor is not None:
             new_size += (factor - (new_size - 1) % factor) % factor
-        new_tensor_list.append(tf.compat.v1.image.resize(image, new_size, method=method, align_corners=True))
+        new_tensor_list.append(resize_image(image, new_size, method=method))
         if label is not None:
             if label_layout_is_chw:
                 # Input label has shape [channel, height, width].
                 resized_label = tf.expand_dims(label, 3)
-                resized_label = tf.compat.v1.image.resize(
-                    resized_label, new_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=True
+                resized_label = resize_image(
+                    resized_label, new_size, method="nearest"
                 )
+
                 resized_label = tf.squeeze(resized_label, 3)
             else:
                 # Input label has shape [height, width, channel].
-                resized_label = tf.compat.v1.image.resize(
-                    label, new_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=True
+                resized_label = resize_image(
+                    label, new_size, method="nearest"
                 )
+
             new_tensor_list.append(resized_label)
         else:
             new_tensor_list.append(None)
