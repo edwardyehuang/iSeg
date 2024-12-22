@@ -34,7 +34,13 @@ def load_image_tensor_from_path(image_path, label_path=None):
 
     image_data = tf.io.read_file(image_path)
 
-    image_tensor = tf.image.decode_jpeg(image_data, channels=3)
+    image_tensor = tf.image.decode_jpeg(
+        image_data, 
+        channels=3, 
+        dct_method="INTEGER_ACCURATE", 
+        try_recover_truncated=True
+    )
+    
     image_tensor = tf.cast(image_tensor, tf.float32)
 
     label_tensor = None
