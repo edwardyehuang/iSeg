@@ -93,8 +93,8 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
         training=False,
         mean_pixel=[127.5, 127.5, 127.5],
         ignore_label=255,
-        min_resize_value=None,
-        max_resize_value=None,
+        max_resize_height=None,
+        max_resize_width=None,
         crop_height=513,
         crop_width=513,
         eval_crop_height=None,
@@ -124,8 +124,8 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
 
         augments = []
 
-        if max_resize_value or min_resize_value:
-            augments.append(ResizeAugment(min_resize_value, max_resize_value))
+        if max_resize_height or max_resize_width:
+            augments.append(ResizeAugment(max_resize_height, max_resize_width))
 
         if training:
             augments.append(RandomScaleAugment(min_scale_factor, max_scale_factor, scale_factor_step_size))
