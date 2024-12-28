@@ -101,6 +101,7 @@ EVA02_LARGE_P14 = "eva02_large_p14"
 EVA02_TINY = "eva02_tiny"
 
 EVA02_LARGE_COCO = "eva02_large_coco"
+EVA02_LARGE_MV = "eva02_large_mv"
 
 VIT_B_SAM = "vit_base_sam"
 
