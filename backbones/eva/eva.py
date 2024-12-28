@@ -16,6 +16,8 @@ from iseg.backbones.eva.block import EvaBlock
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
+from iseg.utils.value_utils import values_to_tuple
+
 class Eva (Keras3_Model_Wrapper):
 
     def __init__ (
@@ -110,8 +112,10 @@ class Eva (Keras3_Model_Wrapper):
 
         num_patches =  grid_size_h * grid_size_w
 
-        p_grid_size_h = self.pretrain_img_size // self.pretrain_patch_size
-        p_grid_size_w = self.pretrain_img_size // self.pretrain_patch_size
+        pretrain_img_size_h, pretrain_img_size_w = values_to_tuple(self.pretrain_img_size)
+
+        p_grid_size_h = pretrain_img_size_h // self.pretrain_patch_size
+        p_grid_size_w = pretrain_img_size_w // self.pretrain_patch_size
 
         num_prefix_tokens = 1 if self.use_class_token else 0
 
@@ -397,6 +401,32 @@ def EVA02_large_patch16_512_COCO(return_endpoints=False):
         return_endpoints=return_endpoints,
         name="eva02_large_patch16_512_coco",
     )
+
+
+def EVA02_large_patch16_512_MV(return_endpoints=False):
+
+    return Eva(
+        pretrain_img_size=(512, 1024),
+        pretrain_patch_size=16,
+        patch_size=16,
+        embed_filters=1024,
+        depth=24,
+        num_heads=16,
+        qkv_fused=False,
+        mlp_ratio=4 * 2 / 3,
+        swiglu_mlp=True,
+        scale_mlp=True,
+        scale_attention_inner=False,
+        drop_path_rate=0.3,
+        init_values=None,
+        use_class_token=True,
+        use_abs_pos_emb=True,
+        use_rot_pos_emb=True,
+        use_post_norm=False,
+        return_endpoints=return_endpoints,
+        name="eva02_large_patch16_512_coco",
+    )
+
 
 
 
