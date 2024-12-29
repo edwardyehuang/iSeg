@@ -16,7 +16,7 @@ from iseg.backbones.eva.block import EvaBlock
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
-from iseg.utils.value_utils import values_to_tuple
+from iseg.utils.value_utils import values_to_tuple_2d
 
 class Eva (Keras3_Model_Wrapper):
 
@@ -112,7 +112,7 @@ class Eva (Keras3_Model_Wrapper):
 
         num_patches =  grid_size_h * grid_size_w
 
-        pretrain_img_size_h, pretrain_img_size_w = values_to_tuple(self.pretrain_img_size)
+        pretrain_img_size_h, pretrain_img_size_w = values_to_tuple_2d(self.pretrain_img_size)
 
         p_grid_size_h = pretrain_img_size_h // self.pretrain_patch_size
         p_grid_size_w = pretrain_img_size_w // self.pretrain_patch_size
