@@ -14,3 +14,4 @@ from iseg.data_process.augments.random_hue_augment import RandomHueAugment
 from iseg.data_process.augments.random_saturation_augment import RandomSaturationAugment
 from iseg.data_process.augments.random_photo_metric_distortions import RandomPhotoMetricDistortions
 from iseg.data_process.augments.random_erasing_augment import RandomErasingAugment
+from iseg.data_process.augments.random_jepg_quality_augment import RandomJEPGQualityAugment

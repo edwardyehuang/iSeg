@@ -107,6 +107,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
         random_brightness=False,
         photo_metric_distortions=False,
         random_erase=True,
+        random_jepg_quality=False,
         name=None,
     ):
 
@@ -158,5 +159,9 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
                     use_fill_noise_color=True,
                     ignore_label=ignore_label,
                 ))
+
+            if random_jepg_quality:
+                augments.append(RandomJEPGQualityAugment())
+
             
         self.augments = augments
