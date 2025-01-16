@@ -10,7 +10,7 @@ import numpy as np
 
 from PIL import Image
 
-from iseg.data_process.utils import pad_to_bounding_box, resize_to_range, normalize_value_range
+from iseg.data_process.utils import pad_to_bounding_box, get_mean_pixel, normalize_value_range
 from iseg.core_inference import *
 
 from iseg.core_model import SegBase
@@ -21,6 +21,7 @@ from tqdm import tqdm
 def predict_with_dir(
     distribute_strategy : tf.distribute.Strategy,
     batch_size : int,
+    backbone_name,
     model,
     num_class : int,
     input_dir : str,
@@ -52,7 +53,8 @@ def predict_with_dir(
         ds = tf.data.Dataset.from_tensor_slices(paths)
 
         ds = ds.map(
-            data_process(crop_height, crop_width), num_parallel_calls=tf.data.experimental.AUTOTUNE
+            data_process(crop_height, crop_width, backbone_name), 
+            num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
 
         ds = ds.repeat()
@@ -162,7 +164,7 @@ def get_data_paths(
     return paths, names
 
 
-def data_process (crop_height, crop_width):
+def data_process (crop_height, crop_width, backbone_name):
 
     def inner_fn (file_path, filename_wo_ext):
 
@@ -175,11 +177,14 @@ def data_process (crop_height, crop_width):
             0, 
             crop_height, 
             crop_width, 
-            pad_value=[127.5, 127.5, 127.5]
+            pad_value=get_mean_pixel(backbone_name),
         
         )
 
-        image_tensor = normalize_value_range(image_tensor)
+        image_tensor = normalize_value_range(
+            image_tensor, 
+            backbone_name=backbone_name
+        )
 
         return image_tensor, image_size, filename_wo_ext
     

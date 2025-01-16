@@ -510,7 +510,7 @@ def resolve_shape(tensor, rank=None, scope=None):
         return shape
 
 
-def normalize_value_range(inputs, backbone_name=ss.RESNET103):
+def normalize_value_range(inputs, backbone_name:str):
 
     if "eva" in backbone_name.lower():
         return keras_norm_preprocess(inputs)
@@ -551,7 +551,7 @@ def preprocess_subtract_imagenet_mean(inputs, dtype=tf.float32):
     return tf.cast(inputs - mean_rgb_extended, dtype=dtype)
 
 
-def get_mean_pixel(backbone_name=ss.RESNET103):
+def get_mean_pixel(backbone_name:str):
 
     '''
     if "resnet" in backbone_name and not is_resnet_beta(backbone_name):
