@@ -129,7 +129,12 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
             augments.append(ResizeAugment(max_resize_height, max_resize_width))
 
         if training:
-            augments.append(RandomScaleAugment(min_scale_factor, max_scale_factor, scale_factor_step_size))
+            augments.append(RandomScaleAugment(
+                min_scale_factor, 
+                max_scale_factor, 
+                scale_factor_step_size,
+                break_aspect_ratio=True,
+            ))
 
         if training:
             if random_brightness:

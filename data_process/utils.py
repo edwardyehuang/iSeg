@@ -328,27 +328,37 @@ def get_random_scale(min_scale_factor, max_scale_factor, step_size):
     return shuffled_scale_factors[0]
 
 
-def randomly_scale_image_and_label(image, label=None, scale=1.0):
+def randomly_scale_image_and_label(image, label=None, scale_h=1.0, scale_w=1.0):
     """Randomly scales image and label.
     Args:
         image: Image with shape [height, width, 3].
         label: Label with shape [height, width, 1].
-        scale: The value to scale image and label.
+        scale_h: The height value to scale image and label.
+        scale_w: The width value to scale image and label.
     Returns:
         Scaled image and label.
     """
 
     return tf.cond(
-        scale == 1.0,
+        tf.math.logical_and(tf.math.equal(scale_h, 1.0), tf.math.equal(scale_w, 1.0)),
         lambda: (image, label),
-        lambda: _randomly_scale_image_and_label_internal(image, label, scale),
+        lambda: _randomly_scale_image_and_label_internal(
+            image, 
+            label,
+            scale_h=scale_h, 
+            scale_w=scale_w
+        ),
     )
 
 
-def _randomly_scale_image_and_label_internal(image, label=None, scale=1.0):
+def _randomly_scale_image_and_label_internal(image, label=None, scale_h=1.0, scale_w=1.0):
 
     image_shape = tf.shape(image)
-    new_dim = tf.cast(tf.cast([image_shape[0], image_shape[1]], tf.float32) * scale, tf.int32)
+
+    new_height = tf.cast(tf.cast(image_shape[0], tf.float32) * scale_h, tf.int32)
+    new_width = tf.cast(tf.cast(image_shape[1], tf.float32) * scale_w, tf.int32)
+
+    new_dim = (new_height, new_width)
 
     # Need squeeze and expand_dims because image interpolation takes
     # 4D tensors as input.
