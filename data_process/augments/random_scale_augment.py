@@ -35,10 +35,10 @@ class RandomScaleAugment(DataAugmentationBase):
 
         if self.break_aspect_ratio:
             scale_list = [scale_h - self.scale_factor_step_size, scale_h, scale_h + self.scale_factor_step_size]
-            scale_list = tf.random.shuffle(scale_list)
 
-            scale_h = scale_list[0]
-            scale_w = scale_list[1]
+            scale_list = tf.random.shuffle(scale_list)
+            scale_h = tf.random.shuffle(scale_list)[0]
+            scale_w = tf.random.shuffle(scale_list)[0]
 
             scale_h = tf.clip_by_value(scale_h, self.min_scale_factor, self.max_scale_factor)
             scale_w = tf.clip_by_value(scale_w, self.min_scale_factor, self.max_scale_factor)
