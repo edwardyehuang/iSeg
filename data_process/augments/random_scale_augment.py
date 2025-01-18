@@ -34,9 +34,15 @@ class RandomScaleAugment(DataAugmentationBase):
         scale_h = dataprocess.get_random_scale(self.min_scale_factor, self.max_scale_factor, self.scale_factor_step_size)
 
         if self.break_aspect_ratio:
-            scale_w_list = [scale_h - self.scale_factor_step_size, scale_h, scale_h + self.scale_factor_step_size]
-            scale_w = tf.random.shuffle(scale_w_list)[0]
+            scale_list = [scale_h - self.scale_factor_step_size, scale_h, scale_h + self.scale_factor_step_size]
+            scale_list = tf.random.shuffle(scale_list)
+
+            scale_h = scale_list[0]
+            scale_w = scale_list[1]
+
+            scale_h = tf.clip_by_value(scale_h, self.min_scale_factor, self.max_scale_factor)
             scale_w = tf.clip_by_value(scale_w, self.min_scale_factor, self.max_scale_factor)
+
 
         image, label = dataprocess.randomly_scale_image_and_label(image, label, scale_h, scale_w)
         image.set_shape([None, None, 3])
