@@ -42,6 +42,8 @@ class RandomScaleAugment(DataAugmentationBase):
 
             scale_h = tf.clip_by_value(scale_h, self.min_scale_factor, self.max_scale_factor)
             scale_w = tf.clip_by_value(scale_w, self.min_scale_factor, self.max_scale_factor)
+        else:
+            scale_w = scale_h
 
 
         image, label = dataprocess.randomly_scale_image_and_label(image, label, scale_h, scale_w)

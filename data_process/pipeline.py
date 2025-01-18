@@ -133,7 +133,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
                 min_scale_factor, 
                 max_scale_factor, 
                 scale_factor_step_size,
-                break_aspect_ratio=True,
+                break_aspect_ratio=False,
             ))
 
         if training:
