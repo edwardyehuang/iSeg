@@ -155,7 +155,7 @@ def get_data_paths(
 
             filename_wo_ext = os.path.splitext(filename)[0]
 
-            if image_sets is not None and str.encode(filename_wo_ext) not in image_sets:
+            if image_sets is not None and filename_wo_ext not in image_sets:
                 continue
 
             paths.append(file_path)
