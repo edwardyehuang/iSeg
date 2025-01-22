@@ -4,6 +4,7 @@
 # ================================================================
 
 import tensorflow as tf
+import keras
 import iseg.static_strings as ss
 
 from iseg.layers.normalizations import normalization
@@ -173,7 +174,8 @@ class NormConvAct(Keras3_Model_Wrapper):
         filters=256,
         kernel_size=1,
         dilation_rate=(1, 1),
-        use_ln=True,
+        use_norm=True,
+        norm_type=ss.LN,
         ln_epsilon=1e-6,
         activation=tf.nn.gelu,
         conv_kernel_initializer="glorot_uniform",
@@ -188,13 +190,19 @@ class NormConvAct(Keras3_Model_Wrapper):
 
         self.ln = None
 
-        if use_ln:
-            if groups == 1:
-                self.ln = tf.keras.layers.LayerNormalization(trainable=trainable, epsilon=ln_epsilon, name=f"{self.name}_ln")
-            elif groups > 1:
-                self.ln = tf.keras.layers.GroupNormalization(groups=groups, axis=-1, epsilon=ln_epsilon, trainable=trainable, name=f"{self.name}_ln")
+        if use_norm:
+            
+            if norm_type == ss.BN:
+                self.ln = keras.layers.BatchNormalization(trainable=trainable, epsilon=ln_epsilon, synchronized=True, name=f"{self.name}_bn")
+            elif norm_type == ss.LN or norm_type == ss.GN:
+                if groups == 1:
+                    self.ln = keras.layers.LayerNormalization(trainable=trainable, epsilon=ln_epsilon, name=f"{self.name}_ln")
+                elif groups > 1:
+                    self.ln = keras.layers.GroupNormalization(groups=groups, axis=-1, epsilon=ln_epsilon, trainable=trainable, name=f"{self.name}_ln")
+                else:
+                    raise ValueError(f"Invalid groups value: {groups}")
             else:
-                raise ValueError(f"Invalid groups value: {groups}")
+                raise ValueError(f"Invalid norm_type: {norm_type}")
         
 
         self.conv = tf.keras.layers.Conv2D(

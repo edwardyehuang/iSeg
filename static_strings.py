@@ -3,6 +3,10 @@
 # Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
 # ================================================================
 
+# norm types
+BN = "bn"
+LN = "ln"
+GN = "gn"
 
 VOC2012 = "voc2012"
 VOC2012TEST = "voc2012test"
