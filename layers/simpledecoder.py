@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from iseg.utils import resize_image
-from iseg.layers.model_builder import ConvBnRelu
+from iseg.layers.model_builder import ConvNormAct
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
@@ -12,10 +12,10 @@ class SimpleDecoder(Keras3_Model_Wrapper):
 
         self.low_level_filters = low_level_filters
 
-        self.low_level_entry_conv = ConvBnRelu(self.low_level_filters, (1, 1), name="low_level_entry_conv")
+        self.low_level_entry_conv = ConvNormAct(self.low_level_filters, (1, 1), name="low_level_entry_conv")
 
-        self.finetune_conv0 = ConvBnRelu(mlp_filters, (3, 3), name="finetune_conv0")
-        self.finetune_conv1 = ConvBnRelu(mlp_filters, (3, 3), name="finetune_conv1")
+        self.finetune_conv0 = ConvNormAct(mlp_filters, (3, 3), name="finetune_conv0")
+        self.finetune_conv1 = ConvNormAct(mlp_filters, (3, 3), name="finetune_conv1")
 
 
     def call(self, inputs, training=None, **kwargs):

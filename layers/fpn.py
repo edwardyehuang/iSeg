@@ -6,7 +6,7 @@
 # The copyright of FPN belongs to "Feature Pyramid Networks for Object Detection", CVPR 2017
 
 import tensorflow as tf
-from iseg.layers.model_builder import ConvBnRelu
+from iseg.layers.model_builder import ConvNormAct
 from iseg.utils.common import resize_image
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
@@ -24,7 +24,7 @@ class FeaturePyramidNetwork(Keras3_Model_Wrapper):
         self.skip_convs = []
 
         for i in range(len(feature_map_shapes) - 1):
-            skip_conv = ConvBnRelu(self.skip_conv_filters, name=f"skip_conv_filters{i}")
+            skip_conv = ConvNormAct(self.skip_conv_filters, name=f"skip_conv_filters{i}")
             self.skip_convs += [skip_conv]
 
     def call(self, inputs, training=None):
@@ -66,7 +66,7 @@ class SemanticPyramidNetworkBlock_V1(Keras3_Model_Wrapper):
             cell = SemanticPyramidNetworkCell_v1(self.filters, name=f"cell_{i}")
             self.cells.append(cell)
 
-        self.merge_conv = ConvBnRelu(len(feature_map_shapes) * self.filters, (3, 3), name="merge_conv")
+        self.merge_conv = ConvNormAct(len(feature_map_shapes) * self.filters, (3, 3), name="merge_conv")
 
     def call(self, inputs, training=None):
 
@@ -89,8 +89,8 @@ class SemanticPyramidNetworkCell_v1(Keras3_Model_Wrapper):
 
     def build(self, input_shape):
 
-        self.conv0 = ConvBnRelu(self.filters, (3, 3), name="linear_conv0")
-        self.conv1 = ConvBnRelu(self.filters, (3, 3), name="linear_conv1")
+        self.conv0 = ConvNormAct(self.filters, (3, 3), name="linear_conv0")
+        self.conv1 = ConvNormAct(self.filters, (3, 3), name="linear_conv1")
 
     def call(self, inputs, training=None):
 
@@ -119,10 +119,10 @@ class SemanticPyramidNetworkBlock_V2(Keras3_Model_Wrapper):
             num_convs = 1 if i == 0 else i
 
             for j in range(num_convs):
-                conv = ConvBnRelu(self.filters, (3, 3), name=f"s_{i}_conv_{j}")
+                conv = ConvNormAct(self.filters, (3, 3), name=f"s_{i}_conv_{j}")
                 self.convs.append(conv)
 
-        self.end_conv = ConvBnRelu(self.filters, name="end_conv")
+        self.end_conv = ConvNormAct(self.filters, name="end_conv")
 
     def call(self, inputs, training=None):
 

@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from iseg.layers.model_builder import ImageLevelBlock, ConvBnRelu
+from iseg.layers.model_builder import ImageLevelBlock, ConvNormAct
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 
@@ -32,7 +32,7 @@ class AtrousSpatialPyramidPooling(Keras3_Model_Wrapper):
             )
 
         if self.use_pixel_level:
-            self.pixel_level_block = ConvBnRelu(
+            self.pixel_level_block = ConvNormAct(
                 self.filters, (1, 1), name="pixel_level_block"
             )
 
@@ -43,7 +43,7 @@ class AtrousSpatialPyramidPooling(Keras3_Model_Wrapper):
             rate = rate * self.dilation_rates_multiplier
 
             self.asp_convs.append(
-                ConvBnRelu(
+                ConvNormAct(
                     self.filters, 
                     (3, 3), 
                     dilation_rate=rate, 

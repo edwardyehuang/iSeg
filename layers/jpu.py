@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from iseg.layers.normalizations import normalization
 
-from iseg.layers.model_builder import ConvBnRelu
+from iseg.layers.model_builder import ConvNormAct
 from iseg.utils.common import resize_image
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
@@ -31,7 +31,7 @@ class JointPyramidUpsampling(Keras3_Model_Wrapper):
         base_filters = self.width
 
         self.endpoints_convs = [
-            ConvBnRelu(base_filters, (3, 3), trainable=self.trainable, name=f"endpoint_conv_{i}") 
+            ConvNormAct(base_filters, (3, 3), trainable=self.trainable, name=f"endpoint_conv_{i}") 
             for i in range(3)
         ]
 
@@ -54,7 +54,7 @@ class JointPyramidUpsampling(Keras3_Model_Wrapper):
         ]
 
         self.end_pointwise_convs = [
-            ConvBnRelu(base_filters, trainable=self.trainable, name=f"end_pointwise_convs_{r}") 
+            ConvNormAct(base_filters, trainable=self.trainable, name=f"end_pointwise_convs_{r}") 
             for r in dilation_rates
         ]
 

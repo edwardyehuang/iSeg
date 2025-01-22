@@ -26,7 +26,7 @@ def get_training_value(training=None):
     return training
 
 
-class ConvBnRelu(Keras3_Model_Wrapper):
+class ConvNormAct(Keras3_Model_Wrapper):
     def __init__(
         self,
         filters=256,
@@ -45,7 +45,7 @@ class ConvBnRelu(Keras3_Model_Wrapper):
         name=None,
     ):
 
-        super(ConvBnRelu, self).__init__(trainable=trainable, name=name if name is not None else "ConvBnRelu")
+        super(ConvNormAct, self).__init__(trainable=trainable, name=name if name is not None else "ConvBnRelu")
 
         self.conv = conv_func(
             filters,
@@ -142,7 +142,7 @@ class SepConvBnReLU (Keras3_Model_Wrapper):
             self.depthwise_bn = normalization(name="depthwise_bn")
 
         if self.apply_pointwise:
-            self.pointwise_conv = ConvBnRelu(
+            self.pointwise_conv = ConvNormAct(
                 filters,
                 use_bn=apply_pointwise_bn, 
                 activation=activation, 
@@ -167,7 +167,7 @@ class SepConvBnReLU (Keras3_Model_Wrapper):
 
 
 
-class LnConvGelu(Keras3_Model_Wrapper):
+class NormConvAct(Keras3_Model_Wrapper):
     def __init__(
         self,
         filters=256,
@@ -240,7 +240,7 @@ class ImageLevelBlock(Keras3_Model_Wrapper):
     def __init__(self, filters=256, pooling_axis=(1, 2), name=None):
         super(ImageLevelBlock, self).__init__(name="ImageLevelBlock" if name is None else name)
 
-        self.convbnrelu = ConvBnRelu(filters, (1, 1), name="conv")
+        self.convbnrelu = ConvNormAct(filters, (1, 1), name="conv")
         self.pooling_axis = pooling_axis
 
     def call(self, inputs, training=None):
@@ -270,7 +270,7 @@ class CommonEndBlock(Keras3_Model_Wrapper):
 
     def build(self, input_shape):
 
-        self.end_conv = ConvBnRelu(self.filters, dropout_rate=self.dropout_rate, name="end_conv")
+        self.end_conv = ConvNormAct(self.filters, dropout_rate=self.dropout_rate, name="end_conv")
         self.logits_conv = tf.keras.layers.Conv2D(self.num_class, (1, 1), name="logits_conv")
 
     def call(self, inputs, training=False):
