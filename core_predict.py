@@ -69,7 +69,7 @@ def predict_with_dir(
         ds = distribute_strategy.experimental_distribute_dataset(ds)
         # ds = ds.prefetch(buffer_size = tf.data.experimental.AUTOTUNE)
 
-        @tf.function(autograph=False)
+        @tf.function(autograph=True)
         def step_fn(image_tensor):
 
             curent_dtype = tf.keras.backend.floatx()
