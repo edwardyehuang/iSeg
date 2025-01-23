@@ -94,7 +94,7 @@ def predict_with_dir(
                 image_tensor,
             )
         
-        @tf.function(autograph=False)
+        @tf.function(autograph=True)
         def run_fn (image_tensor):
             return distribute_strategy.run(step_fn, args=(image_tensor,))
         
