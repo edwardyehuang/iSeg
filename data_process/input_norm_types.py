@@ -3,7 +3,7 @@ from enum import Enum
 
 class InputNormTypes(Enum):
 
-    None = 0
+    NONE = 0
 
     ZERO_MEAN = 1
     
