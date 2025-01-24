@@ -16,18 +16,26 @@ from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_la
 from iseg.losses.ohem import get_ohem_fn
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.data_process.input_norm_types import InputNormTypes
 
 
 
 class SegBase(Keras3_Model_Wrapper):
 
-    def __init__(self, num_class=21, **kwargs):
+    def __init__(
+        self, 
+        num_class=21, 
+        input_norm_type=InputNormTypes.ZERO_MEAN,
+        **kwargs
+    ):
 
         super().__init__(**kwargs)
 
         self.num_class = num_class
         self.inference_sliding_window_size = None
 
+        self.input_norm_type = input_norm_type
+        
 
     def build(self, input_shape):
             
@@ -208,6 +216,7 @@ class SegFoundation(SegBase):
     def __init__(
         self,
         num_class=21,
+        input_norm_type=InputNormTypes.ZERO_MEAN,
         custom_main_loss_fn=None,
         num_aux_loss=0,
         aux_loss_rate=0.4,
@@ -225,7 +234,11 @@ class SegFoundation(SegBase):
         **kwargs,
     ):
 
-        super().__init__(num_class=num_class, **kwargs)
+        super().__init__(
+            num_class=num_class,
+            input_norm_type=input_norm_type,
+            **kwargs
+        )
 
         self.custom_main_loss_fn = custom_main_loss_fn
 

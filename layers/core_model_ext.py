@@ -15,6 +15,8 @@ from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import _N
 from iseg.utils.value_utils import values_to_list
 
+from iseg.data_process.input_norm_types import InputNormTypes
+
 import iseg.utils.common
 
 
@@ -25,6 +27,7 @@ class SegManaged(SegFoundation):
         backbone_weights_path=None,
         output_stride=32,
         num_class=21,
+        input_norm_type=InputNormTypes.ZERO_MEAN,
         build_input_size=(512, 512),
         custom_main_loss_fn=None,
         num_aux_loss=0,
@@ -52,6 +55,7 @@ class SegManaged(SegFoundation):
 
         super().__init__(
             num_class=num_class,
+            input_norm_type=input_norm_type,
             custom_main_loss_fn=custom_main_loss_fn,
             num_aux_loss=num_aux_loss,
             aux_loss_rate=aux_loss_rate,

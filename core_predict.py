@@ -25,8 +25,8 @@ def predict_with_dir(
     model,
     num_class : int,
     input_dir : str,
-    crop_height=513,
-    crop_width=513,
+    crop_height=512,
+    crop_width=512,
     image_count=0,
     image_sets=None,
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
@@ -58,6 +58,11 @@ def predict_with_dir(
         )
 
         ds = ds.repeat()
+
+        num_takes = image_count + image_count % batch_size
+
+        print(f"num_takes: {num_takes}")
+
         ds = ds.take(image_count + image_count % batch_size)
         ds = ds.batch(batch_size, drop_remainder=True)
 
@@ -67,7 +72,7 @@ def predict_with_dir(
 
         ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         ds = distribute_strategy.experimental_distribute_dataset(ds)
-        # ds = ds.prefetch(buffer_size = tf.data.experimental.AUTOTUNE)
+        ds = ds.prefetch(buffer_size = tf.data.experimental.AUTOTUNE)
 
         @tf.function(autograph=False)
         def step_fn(image_tensor):
