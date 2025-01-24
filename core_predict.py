@@ -52,6 +52,8 @@ def predict_with_dir(
         paths = get_data_paths(input_dir, image_sets)
         ds = tf.data.Dataset.from_tensor_slices(paths)
 
+        image_count = len(paths[0])
+
         ds = ds.map(
             data_process(crop_height, crop_width, backbone_name), 
             num_parallel_calls=tf.data.experimental.AUTOTUNE
@@ -103,7 +105,7 @@ def predict_with_dir(
             return distribute_strategy.run(step_fn, args=(image_tensor,))
         
 
-        with tqdm(total=len(paths[0])) as pbar:
+        with tqdm(total=image_count) as pbar:
 
             for image_tensor, output_size, output_name in ds:
                 
