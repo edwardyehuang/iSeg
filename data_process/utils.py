@@ -520,57 +520,5 @@ def resolve_shape(tensor, rank=None, scope=None):
         return shape
 
 
-def normalize_value_range(inputs, backbone_name:str):
-
-    if "eva" in backbone_name.lower():
-        return keras_norm_preprocess(inputs)
-
-    return preprocess_zero_mean_unit_range(inputs)
-
-
 def is_resnet_beta(backbone_name):
     return backbone_name == ss.RESNET52 or backbone_name == ss.RESNET103
-
-
-def preprocess_zero_mean_unit_range(inputs, dtype=tf.float32):
-    """Map image values from [0, 255] to [-1, 1]."""
-
-    preprocessed_inputs = (2.0 / 255.0) * tf.cast(inputs, tf.float32) - 1.0
-
-    return tf.cast(preprocessed_inputs, dtype=dtype)
-
-
-def keras_norm_preprocess(inputs, dtype=tf.float32):
-
-    x = inputs
-    x = keras.layers.Normalization(
-        mean=[123.675, 116.28, 103.53],
-        variance=[58.395 ** 2, 57.12 ** 2, 57.375 ** 2],
-    )(x)
-
-    return tf.cast(x, dtype=dtype)
-
-
-def preprocess_subtract_imagenet_mean(inputs, dtype=tf.float32):
-    """Subtract Imagenet mean RGB value."""
-    mean_rgb = tf.reshape([123.15, 115.90, 103.06], [1, 1, 1, 3])
-    num_channels = tf.shape(inputs)[-1]
-    # We set mean pixel as 0 for the non-RGB channels.
-    mean_rgb_extended = tf.concat([mean_rgb, tf.zeros([1, 1, 1, num_channels - 3])], axis=3)
-
-    return tf.cast(inputs - mean_rgb_extended, dtype=dtype)
-
-
-def get_mean_pixel(backbone_name:str):
-
-    '''
-    if "resnet" in backbone_name and not is_resnet_beta(backbone_name):
-        return [123.15, 115.90, 103.06]
-    else:
-        return [127.5, 127.5, 127.5]
-    '''
-
-    if "eva" in backbone_name.lower():
-        return [123.675, 116.28, 103.53]
-
-    return [127.5, 127.5, 127.5]

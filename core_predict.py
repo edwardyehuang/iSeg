@@ -10,7 +10,10 @@ import numpy as np
 
 from PIL import Image
 
-from iseg.data_process.utils import pad_to_bounding_box, get_mean_pixel, normalize_value_range
+from iseg.data_process.utils import pad_to_bounding_box
+from iseg.data_process.input_norm_types import InputNormTypes
+from iseg.data_process.input_norm import normalize_input_value_range
+from iseg.data_process.mean_pixel import get_mean_pixel
 from iseg.core_inference import *
 
 from iseg.core_model import SegBase
@@ -55,7 +58,7 @@ def predict_with_dir(
         image_count = len(paths[0])
 
         ds = ds.map(
-            data_process(crop_height, crop_width, backbone_name), 
+            data_process(crop_height, crop_width, model.input_norm_dtype), 
             num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
 
@@ -170,7 +173,11 @@ def get_data_paths(
     return paths, names
 
 
-def data_process (crop_height, crop_width, backbone_name):
+def data_process (
+    crop_height, 
+    crop_width, 
+    input_norm_type=InputNormTypes.ZERO_MEAN
+):
 
     def inner_fn (file_path, filename_wo_ext):
 
@@ -183,13 +190,13 @@ def data_process (crop_height, crop_width, backbone_name):
             0, 
             crop_height, 
             crop_width, 
-            pad_value=get_mean_pixel(backbone_name),
+            pad_value=get_mean_pixel(input_norm_type),
         
         )
 
-        image_tensor = normalize_value_range(
+        image_tensor = normalize_input_value_range(
             image_tensor, 
-            backbone_name=backbone_name
+            input_norm_type=input_norm_type,
         )
 
         return image_tensor, image_size, filename_wo_ext

@@ -3,6 +3,9 @@ import tensorflow as tf
 from PIL import Image
 
 from iseg.data_process.augments.pad_to_odd_augment import pad_to_odd
+from iseg.data_process.input_norm_types import InputNormTypes
+from iseg.data_process.input_norm import normalize_input_value_range
+from iseg.data_process.mean_pixel import get_mean_pixel
 
 
 def load_label_to_tensor(label_path):
@@ -109,6 +112,7 @@ def simple_process_image (
     ignore_label=255,
     fit_downsample_rate=32,
     pad_to_odd_shape=True,
+    input_norm_type=InputNormTypes.ZERO_MEAN,
 ):
 
     image_size = tf.shape(image_tensor)[1:3]
@@ -119,10 +123,12 @@ def simple_process_image (
         pad_to_odd_shape=pad_to_odd_shape,
     )
 
-    from iseg.data_process.utils import pad_to_bounding_box, normalize_value_range
+    from iseg.data_process.utils import pad_to_bounding_box
 
-    pad_image_tensor = pad_to_bounding_box(image_tensor, 0, 0, pad_height, pad_width, pad_value=[127.5, 127.5, 127.5])
-    pad_image_tensor = normalize_value_range(pad_image_tensor)
+    mean_pixel = get_mean_pixel(input_norm_type)
+
+    pad_image_tensor = pad_to_bounding_box(image_tensor, 0, 0, pad_height, pad_width, pad_value=mean_pixel)
+    pad_image_tensor = normalize_input_value_range(pad_image_tensor, input_norm_type=input_norm_type)
 
     if label_tensor is not None:
         label_tensor = pad_to_bounding_box(label_tensor, 0, 0, pad_height, pad_width, pad_value=ignore_label)
