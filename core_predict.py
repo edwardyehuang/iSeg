@@ -24,9 +24,7 @@ from tqdm import tqdm
 def predict_with_dir(
     distribute_strategy : tf.distribute.Strategy,
     batch_size : int,
-    backbone_name,
     model,
-    num_class : int,
     input_dir : str,
     crop_height=512,
     crop_width=512,
