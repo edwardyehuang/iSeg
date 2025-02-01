@@ -31,14 +31,29 @@ class PadAugment(DataAugmentationBase):
         target_height = image_height + tf.maximum(self.target_height - image_height, 0)
         target_width = image_width + tf.maximum(self.target_width - image_width, 0)
 
-        image = dataprocess.pad_to_bounding_box(
-            image, 0, 0, target_height, target_width, pad_value=self.image_pad_value
+        tf.debugging.assert_greater_equal(target_height, image_height)
+        tf.debugging.assert_greater_equal(target_width, image_width)
+
+        tf.debugging.assert_greater_equal(target_height, self.target_height)
+        tf.debugging.assert_greater_equal(target_width, self.target_width)
+
+        image = self.pad_to_bounding_box(
+            image, target_height, target_width, pad_value=self.image_pad_value
         )
 
         if label is not None:
 
-            label = dataprocess.pad_to_bounding_box(
-                label, 0, 0, target_height, target_width, pad_value=self.label_pad_value
+            label = self.pad_to_bounding_box(
+                label, target_height, target_width, pad_value=self.label_pad_value
             )
 
         return image, label
+    
+
+    def pad_to_bounding_box(self, x, target_height, target_width, pad_value):
+        
+        x -= pad_value
+        x = tf.image.pad_to_bounding_box(x, 0, 0, target_height, target_width)
+        x += pad_value
+
+        return x

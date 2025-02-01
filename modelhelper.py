@@ -51,7 +51,11 @@ class ModelHelper:
         self.model = model
 
         self.ckpt = tf.train.Checkpoint(model=self.model)
-        self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, checkpoint_dir, max_to_keep=max_to_keep)
+
+        if checkpoint_dir is not None:
+            self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, checkpoint_dir, max_to_keep=max_to_keep)
+        else:
+            self.ckpt_manager = None
 
     def set_optimizer(self, optimizer):
 
@@ -67,6 +71,9 @@ class ModelHelper:
 
     def restore_checkpoint(self):
 
+        if self.ckpt_manager is None:
+            return None
+
         last_checkpoint = self.ckpt_manager.latest_checkpoint
 
         if last_checkpoint is not None:
@@ -79,6 +86,10 @@ class ModelHelper:
         return self.ckpt_manager.save()
 
     def list_latest_ckpt_vars(self):
+
+        if self.ckpt_manager is None:
+            return None
+
         last_checkpoint = self.ckpt_manager.latest_checkpoint
 
         return tf.train.list_variables(last_checkpoint)

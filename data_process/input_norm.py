@@ -1,6 +1,13 @@
+import tensorflow as tf
 import keras
 
 from iseg.data_process.input_norm_types import InputNormTypes
+
+
+KERAS_NORM_FUNC = keras.layers.Normalization(
+    mean=[123.675, 116.28, 103.53],
+    variance=[58.395 ** 2, 57.12 ** 2, 57.375 ** 2],
+)
 
 
 def preprocess_zero_mean_unit_range(inputs):
@@ -11,13 +18,11 @@ def preprocess_zero_mean_unit_range(inputs):
     return keras.backend.cast(preprocessed_inputs, dtype=inputs.dtype)
 
 
+@tf.autograph.experimental.do_not_convert
 def keras_norm_preprocess(inputs):
 
     x = inputs
-    x = keras.layers.Normalization(
-        mean=[123.675, 116.28, 103.53],
-        variance=[58.395 ** 2, 57.12 ** 2, 57.375 ** 2],
-    )(x)
+    x = KERAS_NORM_FUNC(x)
 
     return keras.backend.cast(x, dtype=inputs.dtype)
 
