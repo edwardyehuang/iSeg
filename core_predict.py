@@ -56,7 +56,7 @@ def predict_with_dir(
         image_count = len(paths[0])
 
         ds = ds.map(
-            data_process(crop_height, crop_width, model.input_norm_dtype), 
+            data_process(crop_height, crop_width, model.input_norm_type), 
             num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
 
