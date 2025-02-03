@@ -67,24 +67,24 @@ def evaluate(
                     )
                 )
 
-    mean_loss = loss_metrics.result()
-    mean_iou = iou_metrics.result()
-    
-    print("-----------------------------------------------")
+        mean_loss = loss_metrics.result()
+        mean_iou = iou_metrics.result()
+        
+        print("-----------------------------------------------")
 
-    print(f"Mean loss on val set : {mean_loss.numpy()}")
-    print(f"Mean IoU on val set : {mean_iou.numpy()}")
+        print(f"Mean loss on val set : {mean_loss.numpy()}")
+        print(f"Mean IoU on val set : {mean_iou.numpy()}")
 
-    print("-----------------------------------------------")
+        print("-----------------------------------------------")
 
-    print(f"Per-class IoU on val set :")
+        print(f"Per-class IoU on val set :")
 
-    pre_class_iou =  iou_metrics.metric.per_class_result()
+        pre_class_iou =  iou_metrics.metric.per_class_result()
 
-    print(pre_class_iou)
+        print(pre_class_iou)
 
-    loss_metrics.reset_states()
-    iou_metrics.reset_states()
+        loss_metrics.reset_states()
+        iou_metrics.reset_states()
 
     return mean_iou
 
