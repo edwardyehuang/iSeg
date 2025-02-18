@@ -230,8 +230,11 @@ class DCNv2(Keras3_Layer_Wrapper):
 
         #x: [B, H, W, C]
         #offset: [B, H, W, ic] convx [kh, kw, ic, 3 * groups * kh * kw] ---> [B, H, W, 3 * groups * kh * kw]
-        offset = tf.nn.conv2d(offset, self.offset_kernel, strides=self.stride, padding="SAME")
-        offset = tf.add(offset, self.offset_bias, name="offset.add.bias")
+
+        offset_kernel = tf.cast(self.offset_kernel, offset.dtype)
+        offset_bias = tf.cast(self.offset_bias, offset.dtype)
+        offset = tf.nn.conv2d(offset, offset_kernel, strides=self.stride, padding="SAME")
+        offset = tf.add(offset, offset_bias, name="offset.add.bias")
         bs, ih, iw, ic = get_tensor_shape(x)
 
         ih1 = tf.add(ih, 1, name="ih.add.1")
@@ -334,7 +337,10 @@ class DCNv2(Keras3_Layer_Wrapper):
         #[B, H, W, 9*C]
         map_all = tf.reshape(map_bilinear, [bs, ih, iw, -1])
         #[B, H, W, OC]
-        output = tf.nn.conv2d(map_all, tf.reshape(self.kernel, [1, 1, -1, self.filters]), strides=self.stride, padding='SAME')
+
+        final_kernel = tf.cast(self.kernel, map_all.dtype)
+        final_kernel = tf.reshape(final_kernel, [1, 1, -1, self.filters])
+        output = tf.nn.conv2d(map_all, final_kernel, strides=self.stride, padding='SAME')
 
         if self.use_bias:
             output = tf.add(output, tf.cast(self.bias, output.dtype), name="output.add.bias")
