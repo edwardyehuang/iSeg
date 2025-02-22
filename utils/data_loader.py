@@ -60,6 +60,7 @@ def simple_load_image(
     ignore_label=255,
     fit_downsample_rate=32,
     pad_to_odd_shape=True,
+    input_norm_type=InputNormTypes.ZERO_MEAN,
 ):
 
     image_tensor, label_tensor = load_image_tensor_from_path(image_path, label_path)
@@ -74,6 +75,7 @@ def simple_load_image(
         ignore_label=ignore_label,
         fit_downsample_rate=fit_downsample_rate,
         pad_to_odd_shape=pad_to_odd_shape,
+        input_norm_type=input_norm_type,
     )
 
 
