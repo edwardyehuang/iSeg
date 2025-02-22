@@ -59,7 +59,7 @@ def simple_load_image(
     label_path=None, 
     ignore_label=255,
     fit_downsample_rate=32,
-    pad_to_odd_shape=True,
+    pad_to_odd_shape=False,
     input_norm_type=InputNormTypes.ZERO_MEAN,
 ):
 
