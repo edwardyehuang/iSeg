@@ -68,6 +68,7 @@ class PatchEmbed(Keras3_Model_Wrapper):
         weights_patch_size=None, 
         embed_filters=96, 
         norm_layer=None, 
+        strides=None,
         padding="SAME", 
         name=None
     ):
@@ -80,6 +81,7 @@ class PatchEmbed(Keras3_Model_Wrapper):
 
         self.norm_layer = norm_layer
 
+        self.strides = strides
         self.padding = padding
 
 
@@ -90,10 +92,13 @@ class PatchEmbed(Keras3_Model_Wrapper):
         if weights_patch_size is None:
             weights_patch_size = self.patch_size
 
+        if self.strides is None:
+            self.strides = weights_patch_size
+
         self.proj = tf.keras.layers.Conv2D(
             self.embed_filters, 
             kernel_size=weights_patch_size,
-            strides=weights_patch_size,
+            strides=self.strides,
             name=_N(f"{self.name}/projection"),
             padding=self.padding,
         )
