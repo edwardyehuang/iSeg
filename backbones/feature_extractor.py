@@ -32,6 +32,7 @@ from iseg.utils.version_utils import is_keras3, print_keras_version
 
 def get_backbone(
     name=ss.RESNET50,
+    custom_backbone_fn=None,
     output_stride=32,
     resnet_multi_grids=[1, 2, 4],
     resnet_slim=True,
@@ -122,7 +123,10 @@ def get_backbone(
     if not name in backbone_dicts:
         raise ValueError(f"Backbone {name} currently not supported")
 
-    backbone : tf.keras.Model = backbone_dicts[name](**general_kwargs)
+    if custom_backbone_fn is not None:
+        backbone = custom_backbone_fn(**general_kwargs)
+    else:
+        backbone : tf.keras.Model = backbone_dicts[name](**general_kwargs)
 
     if ss.RESNET in name:
         build_atrous_resnet(backbone, output_stride=output_stride)
