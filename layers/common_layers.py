@@ -111,9 +111,9 @@ class PatchEmbed(Keras3_Model_Wrapper):
         super().build(input_shape)
 
 
-    def call(self, x):
+    def call(self, inputs):
         
-        x = self.proj(x)
+        x = self.proj(inputs)
         if self.norm is not None:
             x = self.norm(x)
 
