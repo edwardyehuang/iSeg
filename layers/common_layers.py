@@ -81,7 +81,7 @@ class PatchEmbed(Keras3_Model_Wrapper):
 
         self.norm_layer = norm_layer
 
-        self.strides = strides
+        self.strides = None if strides is None else to_2d_tuple(strides)
         self.padding = padding
 
 
