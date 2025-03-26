@@ -1,15 +1,12 @@
 import tensorflow as tf 
 import keras
 
-from iseg.utils.version_utils import is_keras3
-
-if not is_keras3():
-    from keras.src.utils.losses_utils import ReductionV2
-
 from iseg.utils.common import get_tensor_shape
 from iseg.utils.value_check import check_numerics
 
-class MaskLoss (keras.losses.Loss):
+from iseg.losses.seg_loss_base import SegLossBase
+
+class MaskLoss (SegLossBase):
     
     def __init__(
         self,
@@ -30,23 +27,16 @@ class MaskLoss (keras.losses.Loss):
         apply_class_balancing=False,
         name=None,
     ):
-        
-        if isinstance(reduction, bool):
-            if is_keras3():
-                reduction = "sum_over_batch_size" if not reduction else None
-            else:
-                reduction = ReductionV2.AUTO if not reduction else ReductionV2.NONE
 
         super().__init__(
-            name=name,
+            num_class=num_class,
+            ignore_label=ignore_label,
+            batch_size=batch_size,
             reduction=reduction,
+            from_logits=from_logits,
+            class_weights=class_weights,
+            name=name,
         )
-
-        self.num_class = num_class
-        self.ignore_label = ignore_label
-        self.batch_size = batch_size
-        self.from_logits = from_logits
-        self.class_weights = class_weights
 
         self.use_sigmoid_loss = use_sigmoid_loss
         self.use_dice_loss = use_dice_loss
