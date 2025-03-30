@@ -6,6 +6,7 @@
 # This code is motified from offical TensorFlow repo, may be deleted in future (since a bug is fixed)
 
 import tensorflow as tf
+import keras
 import numpy as np
 
 from iseg.metrics.confusion_matrix import confusion_matrix
@@ -51,7 +52,12 @@ def get_per_class_miou (cm, dtype=tf.float32):
 
     return iou, num_valid_entries
 
-import keras
+
+def per_class_miou_to_mean_miou(iou, num_valid_entries):
+
+    return tf.math.divide_no_nan(tf.reduce_sum(iou, name="mean_iou"), num_valid_entries)
+
+
 
 class MeanIOU(keras.metrics.Metric):
     def __init__(self, num_classes, name=None, dtype=None):
@@ -103,7 +109,7 @@ class MeanIOU(keras.metrics.Metric):
         
         iou, num_valid_entries = self.per_class_result()
 
-        return tf.math.divide_no_nan(tf.reduce_sum(iou, name="mean_iou"), num_valid_entries)
+        return per_class_miou_to_mean_miou(iou, num_valid_entries)
     
 
     def per_class_result (self):

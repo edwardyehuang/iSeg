@@ -120,12 +120,12 @@ class RandomErasingAugment(DataAugmentationBase):
             _image = tf.where(area_mask, fill_color, _image)
             _label = tf.where(area_mask, self.ignore_label, _label)
 
-            return _i + 1, _image, _label
+            return [_i + 1, _image, _label]
         
         _, image, label = tf.while_loop(
             lambda _i, _image, _label: _i < num_area,
             inner_loop,
-            [0, image, label],
+            [tf.constant(0, tf.int32), image, label],
             maximum_iterations=self.max_area_count,
         )
         

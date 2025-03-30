@@ -6,6 +6,33 @@
 import tensorflow as tf
 
 
+def process_seg_metric_inputs(
+    y_true, 
+    y_pred,
+    num_class=21,
+    ignore_label=255,
+):
+    
+    y_true = tf.cast(y_true, tf.dtypes.int32)
+
+    y_pred = tf.reshape(y_pred, shape=[-1, num_class])  # [NHW, C]
+    y_pred = tf.argmax(y_pred, axis=-1)
+
+    y_true = tf.reshape(y_true, shape=[-1])  # [NHW]
+
+    not_ignore_mask = tf.math.not_equal(y_true, ignore_label)
+    not_ignore_mask = tf.cast(not_ignore_mask, tf.dtypes.float32)
+
+    if ignore_label == 0:
+        y_true -= 1
+        y_true = tf.where(tf.equal(y_true, -1), tf.zeros_like(y_true), y_true)
+    else:
+        y_true = tf.where(tf.equal(y_true, ignore_label), tf.zeros_like(y_true), y_true)
+
+    return y_true, y_pred, not_ignore_mask
+
+
+
 class SegMetricWrapper(tf.keras.metrics.Metric):
     def __init__(self, metric, num_class=21, ignore_label=255, name=None):
         super(SegMetricWrapper, self).__init__(name=name)
@@ -28,21 +55,13 @@ class SegMetricWrapper(tf.keras.metrics.Metric):
         for pre_compute_fn in self._pre_compute_fn_list:
             y_true, y_pred = pre_compute_fn(y_true, y_pred)
 
-        y_true = tf.cast(y_true, tf.dtypes.int32)
 
-        y_pred = tf.reshape(y_pred, shape=[-1, self.num_class])  # [NHW, C]
-        y_pred = tf.argmax(y_pred, axis=-1)
-
-        y_true = tf.reshape(y_true, shape=[-1])  # [NHW]
-
-        not_ignore_mask = tf.math.not_equal(y_true, self.ignore_label)
-        not_ignore_mask = tf.cast(not_ignore_mask, tf.dtypes.float32)
-
-        if self.ignore_label == 0:
-            y_true -= 1
-            y_true = tf.where(tf.equal(y_true, -1), tf.zeros_like(y_true), y_true)
-        else:
-            y_true = tf.where(tf.equal(y_true, self.ignore_label), tf.zeros_like(y_true), y_true)
+        y_true, y_pred, not_ignore_mask = process_seg_metric_inputs(
+            y_true=y_true,
+            y_pred=y_pred,
+            num_class=self.num_class,
+            ignore_label=self.ignore_label,
+        )
 
         self.metric.update_state(y_true, y_pred, not_ignore_mask)
 
