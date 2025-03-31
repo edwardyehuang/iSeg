@@ -11,12 +11,16 @@ def process_seg_metric_inputs(
     y_pred,
     num_class=21,
     ignore_label=255,
+    use_class_prob_as_pred=True,
 ):
     
     y_true = tf.cast(y_true, tf.dtypes.int32)
 
-    y_pred = tf.reshape(y_pred, shape=[-1, num_class])  # [NHW, C]
-    y_pred = tf.argmax(y_pred, axis=-1)
+    if use_class_prob_as_pred:
+        y_pred = tf.reshape(y_pred, shape=[-1, num_class])  # [NHW, C]
+        y_pred = tf.argmax(y_pred, axis=-1)
+    else:
+        y_pred = tf.reshape(y_pred, shape=[-1]) # [NHW]
 
     y_true = tf.reshape(y_true, shape=[-1])  # [NHW]
 
@@ -35,7 +39,7 @@ def process_seg_metric_inputs(
 
 class SegMetricWrapper(tf.keras.metrics.Metric):
     def __init__(self, metric, num_class=21, ignore_label=255, name=None):
-        super(SegMetricWrapper, self).__init__(name=name)
+        super().__init__(name=name)
 
         self.metric = metric
         self.num_class = num_class
