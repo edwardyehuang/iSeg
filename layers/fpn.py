@@ -10,6 +10,8 @@ from iseg.layers.model_builder import ConvNormAct
 from iseg.utils.common import resize_image
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
+from iseg.utils.keras_ops import replace_nan_or_inf
+
 
 class FeaturePyramidNetwork(Keras3_Model_Wrapper):
     def __init__(self, skip_conv_filters=256, name=None):
@@ -38,6 +40,7 @@ class FeaturePyramidNetwork(Keras3_Model_Wrapper):
         for i in range(len(self.skip_convs) - 1, -1, -1):
 
             skip_feature = feature_map_list[i]
+            skip_feature = replace_nan_or_inf(skip_feature, 0.0)
             skip_feature = self.skip_convs[i](skip_feature, training=training)
 
             x = resize_image(x, size=tf.shape(skip_feature)[1:3], name=f"upsample_{i}")
