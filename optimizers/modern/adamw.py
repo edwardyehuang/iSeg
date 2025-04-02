@@ -6,6 +6,7 @@ if LooseVersion(tf.version.VERSION) < LooseVersion("2.14.0"):
 else:
     _ADAMW = tf.keras.optimizers.AdamW
 
+from iseg.utils.keras_ops import replace_nan
 
 class AdamW_EXT (_ADAMW):
 
@@ -56,3 +57,18 @@ class AdamW_EXT (_ADAMW):
                 v_hat.assign(tf.maximum(v_hat, v))
                 v = v_hat
             variable.assign_sub((m * alpha) / (tf.sqrt(v) + self.epsilon))
+
+
+    
+    def _clip_gradients(self, grads):
+
+        clipped_grads = []
+
+        for g in grads:
+            g = replace_nan(g, tf.cast(0.0, g.dtype))
+            clipped_grads.append(g)
+
+        
+        grads = super()._clip_gradients(clipped_grads)
+
+        return grads
