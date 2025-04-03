@@ -17,4 +17,5 @@ def check_numerics(tensor, message, level=1, name=None):
 
 
 def set_check_numerics_level(level):
+    global __check_level
     __check_level = level
