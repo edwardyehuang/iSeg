@@ -61,9 +61,16 @@ def evaluate(
                 processed_count += batch_size
 
                 pbar.update(batch_size)
+
+                loss_result = loss_metrics.result().numpy()
+
+                iou_result = iou_metrics.result()
+                # iou_result = tf.squeeze(iou_result)
+                iou_result = iou_result.numpy()
+
                 pbar.set_description(
                     "Processed : {:}, current loss = {:4f}, current IOU = {:.2f} %".format(
-                        processed_count, loss_metrics.result(), iou_metrics.result().numpy() * 100
+                        processed_count, loss_result, iou_result * 100
                     )
                 )
 

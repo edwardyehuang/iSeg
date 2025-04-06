@@ -35,20 +35,23 @@ def get_class_confusion_matrix (y_true, y_pred, num_class=21, sample_weight=None
 
 
 
-def get_per_class_miou (cm, dtype=tf.float32):
+def get_per_class_miou (cm, dtype=tf.float32, row_axis=-2, col_axis=-1):
 
     """Compute the mean intersection-over-union via the confusion matrix."""
-    sum_over_row = tf.cast(tf.reduce_sum(cm, axis=0), dtype=dtype)
-    sum_over_col = tf.cast(tf.reduce_sum(cm, axis=1), dtype=dtype)
-    true_positives = tf.cast(tf.linalg.tensor_diag_part(cm), dtype=dtype)
+    sum_over_row = tf.cast(tf.reduce_sum(cm, axis=row_axis), dtype=dtype) # [..., num_classes]
+    sum_over_col = tf.cast(tf.reduce_sum(cm, axis=col_axis), dtype=dtype) # [..., num_classes]
+    true_positives = tf.cast(tf.linalg.diag_part(cm), dtype=dtype) # [..., num_classes]
 
     # sum_over_row + sum_over_col =
     #     2 * true_positives + false_positives + false_negatives.
-    denominator = sum_over_row + sum_over_col - true_positives
+    denominator = sum_over_row + sum_over_col - true_positives # [..., num_classes]
 
-    num_valid_entries = tf.reduce_sum(tf.cast(tf.not_equal(denominator, 0), dtype=dtype))
+    num_valid_entries = tf.reduce_sum(
+        tf.cast(tf.not_equal(denominator, 0), dtype=dtype), 
+        axis=-1,
+    ) # [...]
 
-    iou = tf.math.divide_no_nan(true_positives, denominator)
+    iou = tf.math.divide_no_nan(true_positives, denominator)  # [..., num_classes]
 
     return iou, num_valid_entries
 
@@ -105,11 +108,14 @@ class MeanIOU(keras.metrics.Metric):
 
         return self.total_cm.assign_add(current_cm)
 
+    @tf.autograph.experimental.do_not_convert
     def result(self):
         
         iou, num_valid_entries = self.per_class_result()
 
-        return per_class_miou_to_mean_miou(iou, num_valid_entries)
+        iou = per_class_miou_to_mean_miou(iou, num_valid_entries)
+
+        return iou
     
 
     def per_class_result (self):
