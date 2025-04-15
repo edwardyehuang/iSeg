@@ -147,7 +147,12 @@ class MaskLoss (SegLossBase):
         # compute dice loss
 
         if self.use_dice_loss:
-            dice_loss = dice(y_true_one_hot, y_pred, from_logits=self.from_logits, weighted_mask=valid_mask) # [batch]
+            dice_loss = dice(
+                y_true_one_hot, 
+                y_pred, 
+                from_logits=self.from_logits, 
+                weighted_mask=tf.expand_dims(valid_mask, axis=1) # [batch, 1, h * w]
+            ) # [batch]
             dice_loss = tf.expand_dims(dice_loss, axis=-1) # [batch, 1]
             dice_loss *= self.dice_loss_coefficient
             dice_loss += tf.zeros([batch_size, height * width], dtype=dice_loss.dtype) # [batch, h * w]
@@ -208,7 +213,6 @@ def dice(y_true, y_pred, from_logits=False, weighted_mask=None):
 
     if weighted_mask is not None:
         weighted_mask = tf.cast(weighted_mask, y_pred.dtype)
-        weighted_mask = tf.expand_dims(weighted_mask, axis=1) # [batch, 1, h * w]
         y_pred *= weighted_mask
         y_true *= weighted_mask
 
