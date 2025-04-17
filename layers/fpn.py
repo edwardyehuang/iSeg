@@ -14,8 +14,16 @@ from iseg.utils.keras_ops import replace_nan_or_inf
 
 
 class FeaturePyramidNetwork(Keras3_Model_Wrapper):
-    def __init__(self, skip_conv_filters=256, name=None):
-        super().__init__(name=name)
+    def __init__(
+        self, 
+        skip_conv_filters=256,
+        trainable=True,
+        name=None
+    ):
+        super().__init__(
+            name=name,
+            trainable=trainable,
+        )
 
         self.skip_conv_filters = skip_conv_filters
 
@@ -105,8 +113,13 @@ class SemanticPyramidNetworkCell_v1(Keras3_Model_Wrapper):
 
 
 class SemanticPyramidNetworkBlock_V2(Keras3_Model_Wrapper):
-    def __init__(self, filters=128, name=None):
-        super().__init__(name=name)
+    def __init__(
+        self, 
+        filters=128, 
+        trainable=True,
+        name=None
+    ):
+        super().__init__(name=name, trainable=trainable)
 
         self.filters = filters
 
