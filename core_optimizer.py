@@ -6,6 +6,8 @@
 from distutils.version import LooseVersion
 import tensorflow as tf
 
+import keras
+
 import iseg.optimizers.legacy as legacy_optimizers
 import iseg.optimizers.modern as modern_optimizers
 
@@ -143,15 +145,18 @@ def __get_optimizer(
         _initial_lr = learning_rate
         warmup_target = None
 
+        alpha = float(end_learning_rate) / float(learning_rate)
+
         if warmup_steps > 0:
             _initial_lr = warmup_lr
             warmup_target = learning_rate
-
-        learning_rate = CosineDecay(
-            _initial_lr, 
-            steps,
-            warmup_target=warmup_target,
+            
+        learning_rate = keras.optimizers.schedules.CosineDecay(
+            initial_learning_rate=_initial_lr,
+            decay_steps=steps,
+            alpha=alpha,
             warmup_steps=warmup_steps,
+            warmup_target=warmup_target,
         )
 
 
