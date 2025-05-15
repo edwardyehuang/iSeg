@@ -37,21 +37,25 @@ def load_image_tensor_from_path(image_path, label_path=None):
 
     image_data = tf.io.read_file(image_path)
 
-    image_tensor = tf.image.decode_jpeg(
-        image_data, 
-        channels=3, 
-        dct_method="INTEGER_ACCURATE", 
-        try_recover_truncated=True
-    )
-    
-    image_tensor = tf.cast(image_tensor, tf.float32)
+    try:
+        image_tensor = tf.image.decode_jpeg(
+            image_data, 
+            channels=3, 
+            dct_method="INTEGER_ACCURATE", 
+            try_recover_truncated=True
+        )
 
-    label_tensor = None
+        image_tensor = tf.cast(image_tensor, tf.float32)
 
-    if label_path is not None:
-        label_tensor = load_label_to_tensor(label_path)
+        label_tensor = None
 
-    return image_tensor, label_tensor
+        if label_path is not None:
+            label_tensor = load_label_to_tensor(label_path)
+
+        return image_tensor, label_tensor
+
+    except:
+        raise ValueError(f"Error: {image_path} is not a valid JPEG image.")
 
 
 def simple_load_image(
