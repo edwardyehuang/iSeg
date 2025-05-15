@@ -46,6 +46,7 @@ class SegManaged(SegFoundation):
         label_as_head_inputs=False,
         image_as_head_inputs=False,
         use_custom_logits=False,
+        logits_conv_postfix=None,
         logits_upsample_masks=None,
         resnet_multi_grids=[1, 2, 4],
         dict_inputs_image_key="image",
@@ -115,7 +116,13 @@ class SegManaged(SegFoundation):
         )
 
         if not self.use_custom_logits:
-            self.logits_conv = tf.keras.layers.Conv2D(self.num_class, (1, 1), name=_N(f"{self.name}/logits_conv"))
+
+            logits_conv_name = "logits_conv"
+
+            if logits_conv_postfix is not None:
+                logits_conv_name = f"{logits_conv_name}_{logits_conv_postfix}"
+
+            self.logits_conv = tf.keras.layers.Conv2D(self.num_class, (1, 1), name=_N(f"{self.name}/{logits_conv_name}"))
             self.aux_logits_convs = self.build_aux_logits_conv(self.num_aux_loss, self.aux_metric_names)
 
         self.layers_for_multi_optimizers = None
