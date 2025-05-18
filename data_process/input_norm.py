@@ -22,9 +22,9 @@ KERAS_NORM_FUNC_INVERT.build((None, None, 3))
 def preprocess_zero_mean_unit_range(inputs):
     """Map image values from [0, 255] to [-1, 1]."""
 
-    preprocessed_inputs = (2.0 / 255.0) * keras.backend.cast(inputs, "float32") - 1.0
+    preprocessed_inputs = (2.0 / 255.0) * tf.cast(inputs, "float32") - 1.0
 
-    return keras.backend.cast(preprocessed_inputs, dtype=inputs.dtype)
+    return tf.cast(preprocessed_inputs, dtype=inputs.dtype)
 
 
 @tf.autograph.experimental.do_not_convert
@@ -33,7 +33,7 @@ def keras_norm_preprocess(inputs):
     x = inputs
     x = KERAS_NORM_FUNC(x)
 
-    return keras.backend.cast(x, dtype=inputs.dtype)
+    return tf.cast(x, dtype=inputs.dtype)
 
 
 @tf.autograph.experimental.do_not_convert
