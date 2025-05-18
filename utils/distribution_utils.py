@@ -22,6 +22,8 @@ def get_tpu_strategy(name=None):
     else:
         strategy = tf.distribute.TPUStrategy(cluster_resolver)
 
+    print(f"TPU devices: {strategy.extended.worker_devices}")
+
     return strategy
 
 
@@ -45,6 +47,8 @@ def get_distribution_strategy(
     if use_tpu:
         if tpu_name == "colab":
             tpu_name = None
+
+        print(f"Use TPU strategy with name={tpu_name}")
 
         return get_tpu_strategy(tpu_name)
     
