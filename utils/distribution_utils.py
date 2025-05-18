@@ -12,6 +12,9 @@ from platform import uname
 
 def get_tpu_strategy(name=None):
 
+    if LooseVersion(tf.version.VERSION) >= LooseVersion("2.19.0"):
+        name = None
+
     cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(name)
 
     print("Connecting to TPU cluster ...")
