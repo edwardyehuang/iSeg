@@ -11,7 +11,7 @@ import numpy as np
 from iseg.utils.drops import drop_path
 from iseg.backbones.utils.layerwise_decay import decay_layers_lr
 
-from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, Keras3_Model_Wrapper, _N
 
 
 class GlobalResponseNormlizationLayer(Keras3_Layer_Wrapper):
@@ -69,13 +69,13 @@ class Block(Keras3_Model_Wrapper):
         self.drop_path_prob = drop_path_prob
         self.filters = filters
 
-        self.dwconv = tf.keras.layers.DepthwiseConv2D(kernel_size=7, padding="same", name=f"{self.name}/dwconv")
+        self.dwconv = tf.keras.layers.DepthwiseConv2D(kernel_size=7, padding="same", name=_N(f"{self.name}/dwconv"))
 
-        self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6, name=f"{self.name}/norm")
+        self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6, name=_N(f"{self.name}/norm"))
 
-        self.pwconv1 = tf.keras.layers.Dense(units=4 * filters, name=f"{self.name}/pwconv1")
-        self.grn = GlobalResponseNormlizationLayer(trainable=self.trainable, name=f"{self.name}/grn")
-        self.pwconv2 = tf.keras.layers.Dense(units=filters, name=f"{self.name}/pwconv2")
+        self.pwconv1 = tf.keras.layers.Dense(units=4 * filters, name=_N(f"{self.name}/pwconv1"))
+        self.grn = GlobalResponseNormlizationLayer(trainable=self.trainable, name=_N(f"{self.name}/grn"))
+        self.pwconv2 = tf.keras.layers.Dense(units=filters, name=_N(f"{self.name}/pwconv2"))
 
     def build(self, input_shape):
 
@@ -105,9 +105,9 @@ class DownSampleLayer(Keras3_Model_Wrapper):
         self.swap = swap
         names = ["1", "0"] if swap else ["0", "1"]
 
-        self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6, name=f"{self.name}/{names[0]}")
+        self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6, name=_N(f"{self.name}/{names[0]}"))
         self.conv = tf.keras.layers.Conv2D(
-            filters=filters, kernel_size=strides, strides=strides, padding="same", name=f"{self.name}/{names[1]}"
+            filters=filters, kernel_size=strides, strides=strides, padding="same", name=_N(f"{self.name}/{names[1]}")
         )
 
     def build(self, input_shape):

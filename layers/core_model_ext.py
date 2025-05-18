@@ -157,6 +157,12 @@ class SegManaged(SegFoundation):
 
     def compute_head_results (self, head_inputs, training=None):
 
+        #  replace None in head_inputs with 0
+
+        for i in range(len(head_inputs)):
+            if head_inputs[i] is None:
+                head_inputs[i] = tf.zeros_like((), dtype=tf.float32)
+
         head_results = self.head(head_inputs, training=training)
 
         if isinstance(head_results, tuple):

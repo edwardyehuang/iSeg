@@ -9,12 +9,15 @@ KERAS_NORM_FUNC = keras.layers.Normalization(
     variance=[58.395 ** 2, 57.12 ** 2, 57.375 ** 2],
 )
 
+KERAS_NORM_FUNC.build((None, None, 3))
+
 KERAS_NORM_FUNC_INVERT = keras.layers.Normalization(
     mean=[123.675, 116.28, 103.53],
     variance=[58.395 ** 2, 57.12 ** 2, 57.375 ** 2],
     invert=True,
 )
 
+KERAS_NORM_FUNC_INVERT.build((None, None, 3))
 
 def preprocess_zero_mean_unit_range(inputs):
     """Map image values from [0, 255] to [-1, 1]."""
