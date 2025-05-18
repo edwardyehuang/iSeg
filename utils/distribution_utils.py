@@ -13,16 +13,24 @@ from platform import uname
 def get_tpu_strategy(name=None):
 
     cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(name)
+
+    print("Connecting to TPU cluster ...")
+
     tf.config.experimental_connect_to_cluster(cluster_resolver)
+    
+    print("Initializing TPU system ...")
+
     tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
     print("TPU Device:", cluster_resolver.master())
+
+    print("Creating TPU strategy ...")
 
     if LooseVersion(tf.version.VERSION) < LooseVersion("2.4.0"):
         strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
     else:
         strategy = tf.distribute.TPUStrategy(cluster_resolver)
 
-    print(f"TPU devices: {strategy.extended.worker_devices}")
+    print(f"TPU worker_devices: {strategy.extended.worker_devices}")
 
     return strategy
 
