@@ -29,9 +29,12 @@ def common_env_setup(
 
     tf.get_logger().setLevel(0)
 
+    use_tpu = tpu_name is not None
+
+    print(f"Using TPU: {use_tpu}")
     print(f"use_deterministic = {use_deterministic}")
 
-    if use_deterministic:
+    if use_deterministic and not use_tpu:
         if LooseVersion(tf.version.VERSION) < LooseVersion("2.8.0"):
             os.environ["TF_DETERMINISTIC_OPS"] = "1"
             os.environ["TF_DISABLE_SEGMENT_REDUCTION_OP_DETERMINISM_EXCEPTIONS"] = "1"  # For 2.5.0+
@@ -56,7 +59,7 @@ def common_env_setup(
     strategy = get_distribution_strategy(
         gpu_memory_growth, 
         cuda_visible_devices, 
-        tpu_name is not None, 
+        use_tpu, 
         tpu_name
     )
 
