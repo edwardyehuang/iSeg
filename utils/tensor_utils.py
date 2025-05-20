@@ -41,3 +41,15 @@ def dynamic_padding_2d(x, paddings, constant_values=0):
 
     return x
 
+
+
+def get_stable_float_dtype():
+    """
+    Returns the stable float dtype for the current strategy.
+    """
+    if tf.distribute.has_strategy():
+        strategy = tf.distribute.get_strategy()
+        if isinstance(strategy, tf.distribute.TPUStrategy):
+            return tf.bfloat16
+        
+    return tf.float32
