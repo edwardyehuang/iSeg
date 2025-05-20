@@ -53,3 +53,9 @@ def get_stable_float_dtype():
             return tf.bfloat16
         
     return tf.float32
+
+
+
+def get_stable_float_dtype_for_loss():
+
+    return tf.float32
