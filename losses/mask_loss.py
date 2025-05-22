@@ -3,6 +3,7 @@ import keras
 
 from iseg.utils.common import get_tensor_shape
 from iseg.utils.value_check import check_numerics
+from iseg.utils.keras_ops import replace_nan_or_inf
 
 from iseg.losses.seg_loss_base import SegLossBase
 
@@ -139,8 +140,9 @@ class MaskLoss (SegLossBase):
                     axis=1
                 )
 
+            sigmoid_loss = replace_nan_or_inf(sigmoid_loss, 0.0)
             sigmoid_loss = check_numerics(sigmoid_loss, message="sigmoid_loss contains nan or inf")
-
+            
             sigmoid_loss *= self.sigmoid_loss_coefficient
             loss_list.append(sigmoid_loss)
 
@@ -156,7 +158,9 @@ class MaskLoss (SegLossBase):
             dice_loss = tf.expand_dims(dice_loss, axis=-1) # [batch, 1]
             dice_loss *= self.dice_loss_coefficient
             dice_loss += tf.zeros([batch_size, height * width], dtype=dice_loss.dtype) # [batch, h * w]
+            dice_loss = replace_nan_or_inf(dice_loss, 0.0)
             dice_loss = check_numerics(dice_loss, message="dice_loss contains nan or inf")
+            
             loss_list.append(dice_loss)
 
         # compute ce loss
@@ -178,6 +182,7 @@ class MaskLoss (SegLossBase):
                 )
 
             ce_loss = tf.reshape(ce_loss, [batch_size, -1]) # [batch, h * w]
+            ce_loss = replace_nan_or_inf(ce_loss, 0.0)
             ce_loss = check_numerics(ce_loss, message="ce_loss contains nan or inf")
             ce_loss *= self.ce_loss_coefficient
             loss_list.append(ce_loss)
