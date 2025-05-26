@@ -141,6 +141,7 @@ class CoreTrain(object):
         tensorboard_dir="tensorboard",
         use_profiler=False,
         verbose=1,
+        validation_freq=1,
         jit_compile=None,
     ):
 
@@ -198,6 +199,7 @@ class CoreTrain(object):
             steps_per_epoch=epoch_steps,
             validation_steps=val_steps,
             verbose=verbose,
+            validation_freq=validation_freq,
         )
 
     def __get_default_metrics(self, num_class, ignore_label):
