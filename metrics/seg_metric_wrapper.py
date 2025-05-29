@@ -16,6 +16,14 @@ def process_seg_metric_inputs(
     
     y_true = tf.cast(y_true, tf.dtypes.int32)
 
+    # resize y_true to match y_pred shape
+    if len(y_pred.shape) == 4:
+        if len(y_true.shape) == 3:
+            y_true = tf.expand_dims(y_true, axis=-1)
+
+        y_true = tf.image.resize(y_true, size=tf.shape(y_pred)[1:3], method="nearest")
+
+
     if use_class_prob_as_pred:
         y_pred = tf.reshape(y_pred, shape=[-1, num_class])  # [NHW, C]
         y_pred = tf.argmax(y_pred, axis=-1)
