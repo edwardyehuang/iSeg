@@ -136,7 +136,6 @@ class MaskLoss (SegLossBase):
                     y_true_one_hot, 
                     y_pred, 
                     from_logits=self.from_logits, 
-                    apply_class_balancing=self.apply_class_balancing,
                     axis=1
                 )
 
