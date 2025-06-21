@@ -76,26 +76,25 @@ def predict_with_dir(
         ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         ds = distribute_strategy.experimental_distribute_dataset(ds)
 
+        curent_dtype = tf.keras.backend.floatx()
+
+        if compiled_image_predict_func is None:
+
+            compiled_image_predict_func = tf.function(
+                image_predict_func, 
+                autograph=False,
+                reduce_retracing=True,
+            ).get_concrete_function(
+                model,
+                tf.TensorSpec([None, None, None, 3], curent_dtype),
+                scale_rates,
+                flip,
+            )
+
         @tf.function(autograph=False)
         def step_fn(image_tensor):
 
-            curent_dtype = tf.keras.backend.floatx()
             image_tensor = tf.cast(image_tensor, curent_dtype)
-
-            nonlocal compiled_image_predict_func
-            if compiled_image_predict_func is None:
-
-                compiled_image_predict_func = tf.function(
-                    image_predict_func, 
-                    autograph=False,
-                    reduce_retracing=True,
-                ).get_concrete_function(
-                    model,
-                    tf.TensorSpec([None, None, None, 3], curent_dtype),
-                    scale_rates,
-                    flip,
-                )
-
 
             return compiled_image_predict_func(
                 image_tensor,
