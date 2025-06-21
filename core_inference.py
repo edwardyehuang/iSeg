@@ -115,7 +115,7 @@ def multi_results_handler(multi_inputs, seg_map_handler, others_handler=None):
 def multi_results_add(v0, v1):
     return [a + b for a, b in zip(v0, v1)]
 
-@tf.function(autograph=True, jit_compile=True)
+@tf.function(autograph=True)
 def create_base_tensor_for_cropped_result(tensor, full_size):
     def seg_map_handler(x):
         tensor_shape = tf.shape(x)
@@ -189,6 +189,25 @@ def get_sliding_window_slices_paddings_list(stride_h, stride_w, inputs_height, i
 
     return (slices_list_result, paddings_list_result, inference_count_map)
 
+
+
+@tf.function(autograph=False, reduce_retracing=True)
+def sliding_window_body(i, inputs, model, slices_list, training=False):
+
+    # print("trace: inference_with_sliding_window window_body")
+
+    slices_indexs = slices_list[i]
+
+    cropped_inputs = inputs[:, slices_indexs[0] : slices_indexs[1], slices_indexs[2] : slices_indexs[3], :]
+
+    cropped_results = internel_inference(cropped_inputs, model, training=training)
+
+    cropped_results = convert_to_list_if_single(cropped_results)
+
+    return cropped_results
+
+
+
 @tf.autograph.experimental.do_not_convert
 def inference_with_sliding_window(inputs, model, training=False, windows_size=(769, 769)):
 
@@ -206,28 +225,12 @@ def inference_with_sliding_window(inputs, model, training=False, windows_size=(7
 
     total_sliding_indexs_len = tf.shape(slices_list)[0]
 
-
-    @tf.function(autograph=False, reduce_retracing=True)
-    def window_body(i):
-
-        # print("trace: inference_with_sliding_window window_body")
-
-        slices_indexs = slices_list[i]
-
-        cropped_inputs = inputs[:, slices_indexs[0] : slices_indexs[1], slices_indexs[2] : slices_indexs[3], :]
-
-        cropped_results = internel_inference(cropped_inputs, model, training=training)
-
-        cropped_results = convert_to_list_if_single(cropped_results)
-
-        return cropped_results
     
-
-    @tf.autograph.experimental.do_not_convert
+    @tf.function(autograph=False, reduce_retracing=True)
     def loop_body(i, results=None):
 
         paddings = paddings_list[i]
-        cropped_results = window_body(i)
+        cropped_results = sliding_window_body(i, inputs, model, slices_list, training=training)
 
         if results is None:
             results = create_base_tensor_for_cropped_result(
