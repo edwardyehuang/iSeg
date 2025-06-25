@@ -22,7 +22,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         bias_regularizer=None,
         use_custom_offset=False,
         activation=None,
-        use_jit_compile=True,
+        use_jit_compile=False,
         **kwargs
     ):
         
