@@ -4,6 +4,7 @@
 # ================================================================
 
 import os
+import time
 
 import tensorflow as tf
 import numpy as np
@@ -94,21 +95,39 @@ def predict_with_dir(
         @tf.function(
             autograph=False, 
             reduce_retracing=True, 
-            input_signature=[tf.TensorSpec([None, None, None, 3], curent_dtype)]
+            # input_signature=[tf.TensorSpec([None, None, None, 3], curent_dtype)]
         )
         def step_fn(image_tensor):
 
             print("Tracing step_fn with image_tensor shape: ", image_tensor.shape)
+            start_time = time.time()
 
             image_tensor = tf.cast(image_tensor, curent_dtype)
 
-            return compiled_image_predict_func(
+            result = compiled_image_predict_func(
                 image_tensor,
             )
+
+            print(f"End tracing step_fn with image_tensor shape: {image_tensor.shape}, time taken: {time.time() - start_time:.4f} seconds")
+
+            return result
         
-        # @tf.function(autograph=False)
+        @tf.function(
+            autograph=False, 
+            reduce_retracing=True,
+            input_signature=[tf.TensorSpec([None, None, None, 3], curent_dtype)]
+        )
         def run_fn (image_tensor):
-            return distribute_strategy.run(step_fn, args=(image_tensor,))
+
+            print("Tracing run_fn with image_tensor shape: ", image_tensor.shape)
+
+            time_start = time.time()
+
+            result = distribute_strategy.run(step_fn, args=(image_tensor,))
+
+            print(f"End tracing run_fn with image_tensor shape: {image_tensor.shape}, time taken: {time.time() - time_start:.4f} seconds")
+
+            return result
         
 
         with tqdm(total=image_count) as pbar:
