@@ -91,7 +91,11 @@ def predict_with_dir(
                 flip,
             )
 
-        @tf.function(autograph=False, reduce_retracing=True)
+        @tf.function(
+            autograph=False, 
+            reduce_retracing=True, 
+            input_signature=tf.TensorSpec([None, None, None, 3], curent_dtype)
+        )
         def step_fn(image_tensor):
 
             print("Tracing step_fn with image_tensor shape: ", image_tensor.shape)
