@@ -212,6 +212,8 @@ def default_image_predict(
     
     # image_tensor = tf.cast(image_tensor, tf.int32)
 
+    print("Tracing default_image_predict with image_tensor shape: ", image_tensor.shape)
+
     logits = model.inference_with_multi_scales(
         image_tensor, 
         training=False, 
