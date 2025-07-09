@@ -91,8 +91,10 @@ def predict_with_dir(
                 flip,
             )
 
-        @tf.function(autograph=False)
+        @tf.function(autograph=False, reduce_retracing=True)
         def step_fn(image_tensor):
+
+            print("Tracing step_fn with image_tensor shape: ", image_tensor.shape)
 
             image_tensor = tf.cast(image_tensor, curent_dtype)
 
@@ -100,7 +102,7 @@ def predict_with_dir(
                 image_tensor,
             )
         
-        @tf.function(autograph=False)
+        # @tf.function(autograph=False)
         def run_fn (image_tensor):
             return distribute_strategy.run(step_fn, args=(image_tensor,))
         
