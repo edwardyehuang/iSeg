@@ -94,7 +94,7 @@ def predict_with_dir(
         @tf.function(
             autograph=False, 
             reduce_retracing=True, 
-            input_signature=tf.TensorSpec([None, None, None, 3], curent_dtype)
+            input_signature=[tf.TensorSpec([None, None, None, 3], curent_dtype)]
         )
         def step_fn(image_tensor):
 
