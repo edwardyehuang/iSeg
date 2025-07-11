@@ -7,9 +7,7 @@ import os
 import time
 
 import tensorflow as tf
-import numpy as np
-
-from PIL import Image
+import keras
 
 from iseg.data_process.utils import pad_to_bounding_box
 from iseg.data_process.input_norm_types import InputNormTypes
@@ -49,6 +47,14 @@ def predict_with_dir(
     print("Input dir : ", input_dir)
     print("Output dir : ", output_dir)
 
+    # check if TPU strategy is used
+    if isinstance(distribute_strategy, tf.distribute.TPUStrategy):
+        keras.backend.set_floatx("bfloat16")
+    else:
+        keras.backend.set_floatx("float16")
+
+    curent_dtype = keras.backend.floatx()
+
     with distribute_strategy.scope():
 
         paths = get_data_paths(input_dir, image_sets)
@@ -57,7 +63,12 @@ def predict_with_dir(
         image_count = len(paths[0])
 
         ds = ds.map(
-            data_process(crop_height, crop_width, model.input_norm_type), 
+            data_process(
+                crop_height, 
+                crop_width, 
+                model.input_norm_type, 
+                dtype=curent_dtype
+            ), 
             num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
 
@@ -77,8 +88,6 @@ def predict_with_dir(
         ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         ds = distribute_strategy.experimental_distribute_dataset(ds)
 
-        curent_dtype = tf.keras.backend.floatx()
-
         if compiled_image_predict_func is None:
 
             compiled_image_predict_func = tf.function(
@@ -95,12 +104,8 @@ def predict_with_dir(
         @tf.function(
             autograph=False, 
             reduce_retracing=True, 
-            # input_signature=[tf.TensorSpec([None, None, None, 3], curent_dtype)]
         )
         def step_fn(image_tensor):
-
-            print("Tracing step_fn with image_tensor shape: ", image_tensor.shape)
-            start_time = time.time()
 
             image_tensor = tf.cast(image_tensor, curent_dtype)
 
@@ -108,24 +113,12 @@ def predict_with_dir(
                 image_tensor,
             )
 
-            print(f"End tracing step_fn with image_tensor shape: {image_tensor.shape}, time taken: {time.time() - start_time:.4f} seconds")
-
             return result
         
-        @tf.function(
-            autograph=False, 
-            reduce_retracing=True,
-            input_signature=[tf.TensorSpec([None, None, None, 3], curent_dtype)]
-        )
+
         def run_fn (image_tensor):
 
-            print("Tracing run_fn with image_tensor shape: ", image_tensor.shape)
-
-            time_start = time.time()
-
             result = distribute_strategy.run(step_fn, args=(image_tensor,))
-
-            print(f"End tracing run_fn with image_tensor shape: {image_tensor.shape}, time taken: {time.time() - time_start:.4f} seconds")
 
             return result
         
@@ -198,7 +191,8 @@ def get_data_paths(
 def data_process (
     crop_height, 
     crop_width, 
-    input_norm_type=InputNormTypes.ZERO_MEAN
+    input_norm_type=InputNormTypes.ZERO_MEAN,
+    dtype=tf.float32
 ):
 
     def inner_fn (file_path, filename_wo_ext):
@@ -220,6 +214,8 @@ def data_process (
             image_tensor, 
             input_norm_type=input_norm_type,
         )
+
+        image_tensor = tf.cast(image_tensor, dtype)
 
         return image_tensor, image_size, filename_wo_ext
     
