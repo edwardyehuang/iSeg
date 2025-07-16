@@ -16,6 +16,7 @@ def common_env_setup(
     run_eagerly=False,
     gpu_memory_growth=True,
     cuda_visible_devices=None,
+    use_one_device_strategy=False,
     tpu_name=None,
     random_seed=0,
     mixed_precision=True,
@@ -57,10 +58,11 @@ def common_env_setup(
         tf.data.experimental.enable_debug_mode()
 
     strategy = get_distribution_strategy(
-        gpu_memory_growth, 
-        cuda_visible_devices, 
-        use_tpu, 
-        tpu_name
+        gpu_memory_growth=gpu_memory_growth, 
+        cuda_visible_devices=cuda_visible_devices, 
+        use_tpu=use_tpu, 
+        tpu_name=tpu_name,
+        use_one_device_strategy=use_one_device_strategy,
     )
 
     if mixed_precision:

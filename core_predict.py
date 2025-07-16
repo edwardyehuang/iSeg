@@ -18,8 +18,6 @@ from iseg.core_inference import *
 from iseg.core_model import SegBase
 from iseg.utils.data_loader import load_image_tensor_from_path
 
-from tqdm import tqdm
-
 def predict_with_dir(
     distribute_strategy : tf.distribute.Strategy,
     batch_size : int,
@@ -27,7 +25,6 @@ def predict_with_dir(
     input_dir : str,
     crop_height=512,
     crop_width=512,
-    image_count=0,
     image_sets=None,
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
     flip=True,
@@ -122,48 +119,45 @@ def predict_with_dir(
 
             return result
         
+        for image_tensor, output_size, output_name in ds:
+            
+            predicts = run_fn(image_tensor)
 
-        with tqdm(total=image_count) as pbar:
+            output_name = distribute_strategy.experimental_local_results(
+                output_name
+            )
 
-            for image_tensor, output_size, output_name in ds:
-                
-                predicts = run_fn(image_tensor)
+            output_name = tf.concat(output_name, axis=0)
+            output_path = tf.strings.join([output_dir, output_name], separator=os.sep)
 
-                output_name = distribute_strategy.experimental_local_results(
-                    output_name
+            output_size = distribute_strategy.experimental_local_results(
+                output_size
+            )
+            output_size = tf.concat(output_size, axis=0)
+
+            for i in range(len(predicts)):
+                batch_predict = predicts[i]
+                batch_predict = distribute_strategy.experimental_local_results(
+                    batch_predict
                 )
+                batch_predict = tf.concat(batch_predict, axis=0)
 
-                output_name = tf.concat(output_name, axis=0)
-                output_path = tf.strings.join([output_dir, output_name], separator=os.sep)
+                for k in range(batch_size):
+                    predict = batch_predict[k]
+                    orginal_size = output_size[k]
 
-                output_size = distribute_strategy.experimental_local_results(
-                    output_size
-                )
-                output_size = tf.concat(output_size, axis=0)
+                    predict = tf.image.crop_to_bounding_box(predict, 0, 0, orginal_size[0], orginal_size[1])
+                    predict = tf.cast(predict, tf.uint8)
 
-                for i in range(len(predicts)):
-                    batch_predict = predicts[i]
-                    batch_predict = distribute_strategy.experimental_local_results(
-                        batch_predict
-                    )
-                    batch_predict = tf.concat(batch_predict, axis=0)
+                    png = tf.io.encode_png(predict)
+                    path = output_path[k]
 
-                    for k in range(batch_size):
-                        predict = batch_predict[k]
-                        orginal_size = output_size[k]
+                    if i > 0:
+                        path = path + "_{}".format(i)
 
-                        predict = tf.image.crop_to_bounding_box(predict, 0, 0, orginal_size[0], orginal_size[1])
-                        predict = tf.cast(predict, tf.uint8)
+                    tf.io.write_file(path + output_ext, png)
 
-                        png = tf.io.encode_png(predict)
-                        path = output_path[k]
-
-                        if i > 0:
-                            path = path + "_{}".format(i)
-
-                        tf.io.write_file(path + output_ext, png)
-
-                pbar.update(batch_size)
+            yield batch_size
 
 
 def get_data_paths(

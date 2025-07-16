@@ -49,28 +49,25 @@ def get_cpu_strategy():
     return tf.distribute.OneDeviceStrategy("/cpu:0")
 
 
-def get_distribution_strategy(
-    gpu_memory_growth=True, 
-    cuda_visible_devices=None, 
-    use_tpu=False, 
-    tpu_name=None
+def build_one_device_strategy(device=None):
+
+    if device is None or len(device) == 0:
+        gpus = list_gpus()
+        if gpus:
+            device = gpus[0].name
+        else:
+            device = "/cpu:0"
+    else:
+        device = device[0]
+
+    print(f"Using OneDeviceStrategy with device: {device}")
+
+    return tf.distribute.OneDeviceStrategy(device=device)
+
+
+def build_mirrored_strategy(
+    dist_devices=None,
 ):
-
-    if use_tpu:
-        if tpu_name == "colab":
-            tpu_name = None
-
-        print(f"Use TPU strategy with name={tpu_name}")
-
-        return get_tpu_strategy(tpu_name)
-    
-    dist_devices = None
-
-    if cuda_visible_devices is not None:
-        dist_devices = [cuda_visible_devices]
-
-    set_gpu_memory_growth(gpu_memory_growth)
-
     cross_device_ops = None
 
     if os.name == "nt" or "microsoft-standard" in uname().release:
@@ -89,6 +86,32 @@ def get_distribution_strategy(
     # New issue 62234 : https://github.com/tensorflow/tensorflow/issues/62234
 
     return strategy
+
+
+def get_distribution_strategy(
+    gpu_memory_growth=True, 
+    cuda_visible_devices=None, 
+    use_tpu=False, 
+    tpu_name=None,
+    use_one_device_strategy=False,
+):
+
+    if use_tpu:
+        if tpu_name == "colab":
+            tpu_name = None
+
+        print(f"Use TPU strategy with name={tpu_name}")
+
+        return get_tpu_strategy(tpu_name)
+    
+    dist_devices = _handle_cuda_visible_devices(cuda_visible_devices)
+
+    set_gpu_memory_growth(gpu_memory_growth)
+
+    if use_one_device_strategy:
+        return build_one_device_strategy(dist_devices)
+
+    return build_mirrored_strategy(dist_devices)
 
 
 def list_gpus():
@@ -137,3 +160,17 @@ def all_reduce_values (
     )
 
     return reduced
+
+
+def _handle_cuda_visible_devices(cuda_visible_devices=None):
+
+    if cuda_visible_devices is None:
+        return None
+    
+    if isinstance(cuda_visible_devices, str):
+        cuda_visible_devices = cuda_visible_devices.split(",")
+
+    if isinstance(cuda_visible_devices, tuple):
+        cuda_visible_devices = list(cuda_visible_devices)
+
+    return cuda_visible_devices
