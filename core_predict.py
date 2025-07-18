@@ -79,7 +79,7 @@ def predict_with_dir(
         ds = ds.batch(batch_size, drop_remainder=True)
 
         options = tf.data.Options()
-        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.FILE
+        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.AUTO
         ds = ds.with_options(options)
 
         ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
