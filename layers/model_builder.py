@@ -62,7 +62,7 @@ class ConvNormAct(Keras3_Model_Wrapper):
 
         self.bn = None if not use_bn else norm_func(trainable=trainable, name="{}_bn".format(name))
 
-        self.activation = activation
+        self.activation = keras.activations.get(activation)
 
         if self.activation is False:
             self.activation = None
