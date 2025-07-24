@@ -39,8 +39,9 @@ def get_backbone(
     custom_resblock=None,
     weights_path=None,
     return_endpoints=False,
-    image_shape=(1, 513, 513, 3),
+    image_shape=(1, 512, 512, 3),
     label_shape=None,
+    efficientnet_use_top=True,
     moat_use_pos_encoding=False,
 ):
 
@@ -61,6 +62,11 @@ def get_backbone(
 
     if ss.RESNET in name:
         general_kwargs.update(resnet_kwargs)
+
+    if ss.EFFICIENTNET in name:
+        general_kwargs.update({
+            "use_top": efficientnet_use_top,
+        })
 
     if ss.MOAT in name:
         general_kwargs.update({

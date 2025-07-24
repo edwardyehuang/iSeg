@@ -49,6 +49,7 @@ class SegManaged(SegFoundation):
         logits_conv_postfix=None,
         logits_upsample_masks=None,
         resnet_multi_grids=[1, 2, 4],
+        efficientnet_use_top=True,
         dict_inputs_image_key="image",
         backbone_outputs_dict_key="endpoints",
         head_results_direct_output=False,
@@ -113,6 +114,7 @@ class SegManaged(SegFoundation):
             image_shape=image_shape,
             label_shape=label_shape,
             resnet_multi_grids=resnet_multi_grids,
+            efficientnet_use_top=efficientnet_use_top,
         )
 
         if not self.use_custom_logits:

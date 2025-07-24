@@ -264,6 +264,7 @@ class EfficientNet(Keras3_Model_Wrapper):
         depth_divisor=8,
         activation=tf.nn.swish,
         blocks_args="default",
+        use_top=True,
         return_endpoints=False,
         name="efficientnet",
         **kwargs
@@ -271,6 +272,7 @@ class EfficientNet(Keras3_Model_Wrapper):
 
         super(EfficientNet, self).__init__(name=name)
 
+        self.use_top = use_top
         self.return_endpoints = return_endpoints
 
         if blocks_args == "default":
@@ -320,16 +322,17 @@ class EfficientNet(Keras3_Model_Wrapper):
 
                 b += 1
 
-        self.top_conv = tf.keras.layers.Conv2D(
-            filters=round_filters(1280, width_confficient, depth_divisor),
-            kernel_size=1,
-            padding="same",
-            use_bias=False,
-            kernel_initializer=CONV_KERNEL_INITIALIZER,
-            name="top_conv",
-        )
+        if use_top:
+            self.top_conv = tf.keras.layers.Conv2D(
+                filters=round_filters(1280, width_confficient, depth_divisor),
+                kernel_size=1,
+                padding="same",
+                use_bias=False,
+                kernel_initializer=CONV_KERNEL_INITIALIZER,
+                name="top_conv",
+            )
 
-        self.top_bn = normalization(name="top_bn")
+            self.top_bn = normalization(name="top_bn")
 
 
     def build(self, input_shape):
@@ -356,9 +359,10 @@ class EfficientNet(Keras3_Model_Wrapper):
 
             x = block(x, training=training)
 
-        x = self.top_conv(x)
-        x = self.top_bn(x, training=training)
-        x = self.activation(x)
+        if self.use_top:
+            x = self.top_conv(x)
+            x = self.top_bn(x, training=training)
+            x = self.activation(x)
 
         endpoints += [x]
 
@@ -368,109 +372,118 @@ class EfficientNet(Keras3_Model_Wrapper):
             return x
 
 
-def EfficientNetB0(return_endpoints=False):
+def EfficientNetB0(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=1.0,
         depth_confficient=1.0,
         default_size=224,
         drop_connect_rate=0.2,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetb0",
     )
 
 
-def EfficientNetB1(return_endpoints=False):
+def EfficientNetB1(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=1.0,
         depth_confficient=1.1,
         default_size=240,
         drop_connect_rate=0.2,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetb1",
     )
 
 
-def EfficientNetB2(return_endpoints=False):
+def EfficientNetB2(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=1.1,
         depth_confficient=1.2,
         default_size=260,
         drop_connect_rate=0.3,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetb2",
     )
 
 
-def EfficientNetB3(return_endpoints=False):
+def EfficientNetB3(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=1.2,
         depth_confficient=1.4,
         default_size=300,
         drop_connect_rate=0.3,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetb3",
     )
 
 
-def EfficientNetB4(return_endpoints=False):
+def EfficientNetB4(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=1.4,
         depth_confficient=1.8,
         default_size=380,
         drop_connect_rate=0.4,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetb4",
     )
 
 
-def EfficientNetB5(return_endpoints=False):
+def EfficientNetB5(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=1.6,
         depth_confficient=2.2,
         default_size=456,
         drop_connect_rate=0.4,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetb5",
     )
 
 
-def EfficientNetB6(return_endpoints=False):
+def EfficientNetB6(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=1.8,
         depth_confficient=2.6,
         default_size=528,
         drop_connect_rate=0.5,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetb6",
     )
 
 
-def EfficientNetB7(return_endpoints=False):
+def EfficientNetB7(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=2.0,
         depth_confficient=3.1,
         default_size=600,
         drop_connect_rate=0.5,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetb7",
     )
 
 
-def EfficientNetL2(return_endpoints=False):
+def EfficientNetL2(return_endpoints=False, use_top=True):
 
     return EfficientNet(
         width_confficient=4.3,
         depth_confficient=5.3,
         default_size=800,
         drop_connect_rate=0.5,
+        use_top=use_top,
         return_endpoints=return_endpoints,
         name="efficientnetl2",
     )
