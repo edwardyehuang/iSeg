@@ -8,3 +8,5 @@ class InputNormTypes(Enum):
     ZERO_MEAN = 1
     
     KERAS = 2
+
+    KEARS_SCALE = 3
