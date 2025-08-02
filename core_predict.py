@@ -25,6 +25,8 @@ def predict_with_dir(
     input_dir : str,
     crop_height=512,
     crop_width=512,
+    resize_height=None,
+    resize_width=None,
     image_sets=None,
     scale_rates=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
     flip=True,
@@ -185,6 +187,8 @@ def get_data_paths(
 def data_process (
     crop_height, 
     crop_width, 
+    resize_height=None,
+    resize_width=None,
     input_norm_type=InputNormTypes.ZERO_MEAN,
     dtype=tf.float32
 ):
@@ -192,6 +196,14 @@ def data_process (
     def inner_fn (file_path, filename_wo_ext):
 
         image_tensor, _ = load_image_tensor_from_path(file_path)
+        
+        if resize_height is not None and resize_width is not None:
+            image_tensor = tf.image.resize(
+                image_tensor, 
+                [resize_height, resize_width], 
+                method=tf.image.ResizeMethod.BILINEAR
+            )
+
         image_size = tf.shape(image_tensor)[0:2]
 
         image_tensor = pad_to_bounding_box(
