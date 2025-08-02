@@ -22,6 +22,8 @@ class SelfAttention(Keras3_Model_Wrapper):
         attention_dropout_rate=0,
         feature_dropout_rate=0,
         apply_scale=False,
+        conv_function=tf.keras.layers.Conv2D,
+        use_out_projection=False,
         name=None,
     ):
 
@@ -29,6 +31,7 @@ class SelfAttention(Keras3_Model_Wrapper):
 
         self.guided_filters = guided_filters
         self.apply_scale = apply_scale
+        self.use_out_projection = use_out_projection
 
         query_initializer = key_initializer = "glorot_uniform"
 
@@ -36,23 +39,28 @@ class SelfAttention(Keras3_Model_Wrapper):
             query_initializer = SharedInitializer(tf.keras.initializers.GlorotUniform())
             key_initializer = query_initializer
 
-        self.query_conv = tf.keras.layers.Conv2D(
+        self.query_conv = conv_function(
             guided_filters, 1, kernel_initializer=query_initializer, name="query_conv"
         )
 
         if shared_querykey:
             self.key_conv = self.query_conv
         else:
-            self.key_conv = tf.keras.layers.Conv2D(
+            self.key_conv = conv_function(
                 guided_filters, 1, kernel_initializer=key_initializer, name="key_conv"
             )
 
-        self.value_conv = tf.keras.layers.Conv2D(filters, 1, name="value_conv")
+        self.value_conv = conv_function(filters, 1, name="value_conv")
 
         self.vis_manager = get_visualization_manager()
 
         self.attention_dropout = tf.keras.layers.Dropout(rate=attention_dropout_rate, name="attention_dropout")
         self.feature_dropout = tf.keras.layers.Dropout(rate=feature_dropout_rate, name="feature_dropout")
+
+        if self.use_out_projection:
+            self.out_projection = conv_function(
+                filters, 1, kernel_initializer="glorot_uniform", name="out_projection"
+            )
 
     def call(self, inputs, training=None):
 
@@ -78,5 +86,8 @@ class SelfAttention(Keras3_Model_Wrapper):
         value = tf.reshape(value, [batch_size, height, width, value.shape[-1]])
 
         value = self.feature_dropout(value, training=training)
+
+        if self.use_out_projection:
+            value = self.out_projection(value, training=training)
 
         return value

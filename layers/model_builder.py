@@ -35,7 +35,7 @@ class ConvNormAct(Keras3_Model_Wrapper):
         dilation_rate=1,
         use_bn=True,
         activation=tf.nn.relu,
-        conv_kernel_initializer="glorot_uniform",
+        kernel_initializer="glorot_uniform",
         dropout_rate=0,
         dropout_before_bn=False,
         trainable=True,
@@ -53,7 +53,7 @@ class ConvNormAct(Keras3_Model_Wrapper):
             kernel_size,
             padding="same",
             use_bias=use_bias,
-            kernel_initializer=conv_kernel_initializer,
+            kernel_initializer=kernel_initializer,
             dilation_rate=dilation_rate,
             groups=groups,
             trainable=trainable,
@@ -71,7 +71,7 @@ class ConvNormAct(Keras3_Model_Wrapper):
         self.dropout_before_bn = dropout_before_bn
 
         if dropout_rate > 0:
-            self.dropout = tf.keras.layers.Dropout(dropout_rate, name="{}_dropout".format(name))
+            self.dropout = keras.layers.Dropout(dropout_rate, name="{}_dropout".format(name))
 
     def call(self, inputs, training=None):
 
