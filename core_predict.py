@@ -56,10 +56,16 @@ def predict_with_dir(
 
     with distribute_strategy.scope():
 
+        if not os.path.isdir(input_dir):
+            raise ValueError(f"Input directory {input_dir} does not exist or is not a directory.")
+
         paths = get_data_paths(input_dir, image_sets)
         ds = tf.data.Dataset.from_tensor_slices(paths)
 
         image_count = len(paths[0])
+
+        if image_count == 0:
+            raise ValueError("No images found in the input directory, please check the input directory and image sets.")
 
         ds = ds.map(
             data_process(
@@ -195,6 +201,7 @@ def data_process (
     dtype=tf.float32
 ):
 
+    @tf.autograph.experimental.do_not_convert
     def inner_fn (file_path, filename_wo_ext):
 
         image_tensor, _ = load_image_tensor_from_path(file_path)
