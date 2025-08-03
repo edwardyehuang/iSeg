@@ -6,6 +6,7 @@
 import tensorflow as tf
 
 
+@tf.autograph.experimental.do_not_convert
 def process_seg_metric_inputs(
     y_true, 
     y_pred,
