@@ -64,8 +64,10 @@ def predict_with_dir(
         ds = ds.map(
             data_process(
                 crop_height, 
-                crop_width, 
-                model.input_norm_type, 
+                crop_width,
+                resize_height=resize_height,
+                resize_width=resize_width,
+                input_norm_type=model.input_norm_type, 
                 dtype=curent_dtype
             ), 
             num_parallel_calls=tf.data.experimental.AUTOTUNE
