@@ -9,6 +9,7 @@ import random
 
 import numpy as np
 import tensorflow as tf
+import keras
 
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.distribution_utils import list_gpus
@@ -66,7 +67,11 @@ def enable_mixed_precision(use_tpu=False):
 def get_tensor_shape(x, return_list=False):
 
     shapes = list(x.shape)
-    dynamic_shapes = tf.shape(x)
+
+    if is_keras3():
+        dynamic_shapes = keras.ops.shape(x)
+    else:
+        dynamic_shapes = tf.shape(x)
 
     for i in range(len(shapes)):
         if shapes[i] is None:

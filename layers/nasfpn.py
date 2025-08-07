@@ -27,6 +27,9 @@ from absl import logging
 import tensorflow as tf
 import keras
 
+from iseg.utils.common import get_tensor_shape
+from iseg.utils.keras3_utils import _N, is_keras3
+
 
 # The fixed NAS-FPN architecture discovered by NAS.
 # Each element represents a specification of a building block:
@@ -60,12 +63,17 @@ def nearest_upsampling(data: tf.Tensor,
     if use_keras_layer:
         return keras.layers.UpSampling2D(size=(scale, scale), interpolation='nearest')(data)
     
+    bs, h, w, c = get_tensor_shape(data)
+    bs = -1 if bs is None else bs
+    
+    if is_keras3():
+        data = keras.ops.reshape(data, [bs, h, 1, w, 1, c])
+        data = keras.ops.tile(data, [1, 1, scale, 1, scale, 1])
+
+        return keras.ops.reshape(data, [bs, h * scale, w * scale, c])
+
+
     with tf.name_scope('nearest_upsampling'):
-        bs, _, _, c = data.get_shape().as_list()
-        shape = tf.shape(input=data)
-        h = shape[1]
-        w = shape[2]
-        bs = -1 if bs is None else bs
         # Uses reshape to quickly upsample the input.  The nearest pixel is selected
         # via tiling.
         data = tf.tile(
@@ -216,7 +224,7 @@ class NASFPN(tf.keras.Model):
                              for level in range(self._min_level, self._max_level + 1)]
 
         self._output_specs = {
-                str(level): output_feats[level].get_shape()
+                str(level): get_tensor_shape(output_feats[level])
                 for level in range(min_level, max_level + 1)
         }
         output_feats = {str(level): output_feats[level]
@@ -243,17 +251,18 @@ class NASFPN(tf.keras.Model):
         name_prefix="resample",
     ):
         x = inputs
-        _, _, _, input_num_filters = x.get_shape().as_list()
+        _, _, _, input_num_filters = get_tensor_shape(x)
+
         if input_num_filters != target_num_filters:
             x = self._conv_op(
                     filters=target_num_filters,
                     kernel_size=1,
                     padding='same',
-                    name=f"{name_prefix}/separable_conv2d",
+                    name=_N(f"{name_prefix}/separable_conv2d"),
                     **self._conv_kwargs,
                 )(x)
             x = self._norm_op(
-                name=f"{name_prefix}/bn",
+                name=_N(f"{name_prefix}/bn"),
                 **self._norm_kwargs
             )(x)
 
@@ -298,8 +307,14 @@ class NASFPN(tf.keras.Model):
             }
 
     def _global_attention(self, feat0, feat1):
-        m = tf.math.reduce_max(feat0, axis=[1, 2], keepdims=True)
-        m = tf.math.sigmoid(m)
+
+        if is_keras3():
+            m = keras.ops.max(feat0, axis=[1, 2], keepdims=True)
+            m = keras.activations.sigmoid(m)
+        else:
+            m = tf.math.reduce_max(feat0, axis=[1, 2], keepdims=True)
+            m = tf.math.sigmoid(m)
+
         return feat0 + feat1 * m
 
     def _build_feature_pyramid(self, feats, repeat_idx):
@@ -352,17 +367,17 @@ class NASFPN(tf.keras.Model):
                         feat_ = self._resample_feature_map(feat, feat_level, new_level)
                         new_node += feat_
 
-            new_node_prefix = f"cell_{repeat_idx}/sub_policy{i}/op_after_combine{len(feat_levels)}"
+            new_node_prefix = _N(f"cell_{repeat_idx}/sub_policy{i}/op_after_combine{len(feat_levels)}")
             new_node = self._activation(new_node)
             new_node = self._conv_op(
                     filters=self._config_dict['num_filters'],
                     kernel_size=(3, 3),
                     padding='same',
-                    name=f"{new_node_prefix}/conv",
+                    name=_N(f"{new_node_prefix}/conv"),
                     **self._conv_kwargs
                 )(new_node)
             new_node = self._norm_op(
-                name=f"{new_node_prefix}/bn",
+                name=_N(f"{new_node_prefix}/bn"),
                 **self._norm_kwargs,
             )(new_node)
 
