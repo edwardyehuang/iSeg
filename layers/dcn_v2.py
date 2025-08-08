@@ -45,6 +45,11 @@ class DCNv2(Keras3_Layer_Wrapper):
 
         if is_keras3():
             self.use_jit_compile = False
+
+        if tf.distribute.has_strategy():
+            strategy = tf.distribute.get_strategy()
+            if isinstance(strategy, tf.distribute.TPUStrategy):
+                use_jit_compile = False
         
         self.use_jit_compile = use_jit_compile
 
