@@ -181,25 +181,24 @@ class DCNv2Optimized(tf.keras.layers.Layer):
         else:
             self.bias = None
             
-        # Offset and mask generation layers
-        if not self.use_custom_offset:
-            offset_mask_channels = 3 * self.deformable_groups * self.kernel_size[0] * self.kernel_size[1]
-            
-            self.offset_kernel = self.add_weight(
-                name='offset_kernel',
-                shape=self.kernel_size + (input_channels, offset_mask_channels),
-                initializer='zeros',
-                trainable=True,
-                dtype=self.dtype
-            )
-            
-            self.offset_bias = self.add_weight(
-                name='offset_bias',
-                shape=(offset_mask_channels,),
-                initializer='zeros',
-                trainable=True,
-                dtype=self.dtype
-            )
+        # Offset and mask generation layers - always create them like in the original
+        offset_mask_channels = 3 * self.deformable_groups * self.kernel_size[0] * self.kernel_size[1]
+        
+        self.offset_kernel = self.add_weight(
+            name='offset_kernel',
+            shape=self.kernel_size + (input_channels, offset_mask_channels),
+            initializer='zeros',
+            trainable=True,
+            dtype=self.dtype
+        )
+        
+        self.offset_bias = self.add_weight(
+            name='offset_bias',
+            shape=(offset_mask_channels,),
+            initializer='zeros',
+            trainable=True,
+            dtype=self.dtype
+        )
         
         super().build(input_shape)
     
@@ -226,10 +225,15 @@ class DCNv2Optimized(tf.keras.layers.Layer):
     
     def call(self, inputs, training=None):
         if self.use_custom_offset:
-            x, offset, mask = inputs
+            # Match original behavior: expect (x, offset_input) 
+            # where offset_input is processed through offset_kernel like in original
+            x, offset_input = tuple(inputs)
         else:
-            x = inputs
-            offset, mask = self._generate_offset_mask(x)
+            # Use input as both x and offset_input like the original
+            x = offset_input = inputs
+            
+        # Generate offset and mask by processing offset_input through offset_kernel (like original)
+        offset, mask = self._generate_offset_mask(offset_input)
         
         # Use the optimized CUDA op
         output = dcn_v2_conv2d(
