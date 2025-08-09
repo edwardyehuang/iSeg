@@ -35,18 +35,6 @@ __device__ float gather_sample(const float* input, int height, int width, int ch
     return input[(y * width + x) * channels + c];
 }
 
-// Optimized gather function with better memory access patterns
-__device__ float gather_sample_optimized(const float* input, int height, int width, int channels,
-                                         int y, int x, int c) {
-    // Bounds check with early return
-    if (y < 0 || y >= height || x < 0 || x >= width) {
-        return 0.0f;
-    }
-    
-    // More efficient indexing
-    return input[(y * width + x) * channels + c];
-}
-
 // Ultra-optimized deformable convolution kernel for large feature maps - pure compute focus
 __global__ void deformable_conv2d_kernel_large(
     const float* input, const float* offset, const float* mask, const float* weight, float* output,
@@ -209,10 +197,6 @@ __global__ void deformable_conv2d_kernel(
     
     float sum = 0.0f;
     const int kernel_size = kernel_h * kernel_w;
-    
-    // Calculate padded input dimensions 
-    const int padded_height = input_height + 2 * pad_h;
-    const int padded_width = input_width + 2 * pad_w;
     
     for (int kh = 0; kh < kernel_h; kh++) {
       for (int kw = 0; kw < kernel_w; kw++) {
