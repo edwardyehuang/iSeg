@@ -1,7 +1,13 @@
 #ifndef DCN_V2_CUDA_H_
 #define DCN_V2_CUDA_H_
 
+#ifdef __CUDACC__
 #include <cuda_runtime.h>
+#else
+// For C++ compilation, provide forward declaration of cudaStream_t
+struct CUstream_st;
+typedef struct CUstream_st* cudaStream_t;
+#endif
 
 // CUDA kernel declarations
 void dcn_v2_forward_cuda(

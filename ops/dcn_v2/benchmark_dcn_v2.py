@@ -120,8 +120,8 @@ def main():
     deformable_groups = 1  # Original implementation only supports 1 deformable group
     num_benchmark_runs = 10
     
-    print(f"\nNote: Both implementations will be tested in automatic offset/mask generation mode")
-    print(f"This benchmark compares performance of two valid DCNv2 implementations:")
+    print(f"\nNote: Both implementations will be tested with IDENTICAL WEIGHTS for fair comparison")
+    print(f"This benchmark compares performance of algorithmically-equivalent DCNv2 implementations:")
     print(f"  - Original: Pure TensorFlow implementation (iseg.layers.dcn_v2)")
     print(f"  - Custom: GPU-optimized CUDA implementation (our custom op)")
     print(f"Both implementations will be tested with deformable_groups={deformable_groups}")
@@ -163,14 +163,45 @@ def main():
         _ = original_layer(input_data)
         _ = custom_layer(input_data)
         
-        # Test correctness (note: implementations may differ algorithmically)
-        correctness_passed = test_correctness(original_layer, custom_layer, input_data, rtol=0.1, atol=0.1)
+        # Copy weights from original to custom layer for fair comparison
+        print("🔄 Copying weights from original to custom layer for fair comparison...")
+        weight_mapping = [
+            ('kernel', 'kernel'),
+            ('bias', 'bias'), 
+            ('offset_kernel', 'offset_kernel'),
+            ('offset_bias', 'offset_bias')
+        ]
+        
+        for orig_name, custom_name in weight_mapping:
+            orig_weight = None
+            custom_weight = None
+            
+            # Find original weight
+            for w in original_layer.weights:
+                if orig_name in w.name:
+                    orig_weight = w
+                    break
+                    
+            # Find custom weight  
+            for w in custom_layer.weights:
+                if custom_name in w.name:
+                    custom_weight = w
+                    break
+                    
+            if orig_weight is not None and custom_weight is not None:
+                custom_weight.assign(orig_weight)
+        
+        print("✅ Identical weights applied!")
+        
+        # Test correctness with identical weights
+        correctness_passed = test_correctness(original_layer, custom_layer, input_data, rtol=1e-4, atol=1e-4)
         
         if not correctness_passed:
-            print("⚠️  Note: Outputs differ between implementations (different algorithms/initialization)")
-            print("💡 Both are valid DCNv2 implementations - proceeding with performance comparison")
+            print("❌ UNEXPECTED: Outputs differ despite identical weights - this indicates a bug!")
+            print("   The implementations should match perfectly with identical weights.")
+            return False
         else:
-            print("✓ Outputs are reasonably similar")
+            print("✅ Perfect output match confirmed with identical weights!")
         
         # Benchmark original implementation
         print(f"\nBenchmarking Original DCNv2...")

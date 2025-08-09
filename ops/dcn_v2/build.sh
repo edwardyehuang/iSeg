@@ -33,7 +33,7 @@ CUDA_LFLAGS="-L${CUDA_ROOT}/lib -lcudart -lcublas"
 
 # Compiler flags
 CXXFLAGS="-std=c++17 -fPIC -O2 -DGOOGLE_CUDA=1"
-NVCCFLAGS="-std=c++17 --expt-relaxed-constexpr -O2 -DGOOGLE_CUDA=1"
+NVCCFLAGS="-std=c++17 --expt-relaxed-constexpr -O2 -DGOOGLE_CUDA=1 -Xcompiler -fPIC"
 
 # GPU architectures (modify as needed for your GPU)
 GPU_ARCHS="-gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_89,code=sm_89"
