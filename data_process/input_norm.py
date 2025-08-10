@@ -4,32 +4,6 @@ import keras
 from iseg.data_process.input_norm_types import InputNormTypes
 
 
-KERAS_NORM_FUNC = keras.layers.Normalization(
-    mean=[123.675, 116.28, 103.53],
-    variance=[58.395 ** 2, 57.12 ** 2, 57.375 ** 2],
-)
-
-KERAS_NORM_FUNC_INVERT = keras.layers.Normalization(
-    mean=[123.675, 116.28, 103.53],
-    variance=[58.395 ** 2, 57.12 ** 2, 57.375 ** 2],
-    invert=True,
-)
-
-KERAS_SCALE_FUNC = keras.layers.Rescaling(
-    scale=1.0 / 255.0,
-)
-
-KERAS_NORM_SCALE_FUNC = keras.layers.Normalization(
-    mean=[0.485, 0.456, 0.406],
-    variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2],
-)
-
-KERAS_NORM_SCALE_FUNC_INVERT = keras.layers.Normalization(
-    mean=[0.485, 0.456, 0.406],
-    variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2],
-    invert=True,
-)
-
 def preprocess_zero_mean_unit_range(inputs):
     """Map image values from [0, 255] to [-1, 1]."""
 
@@ -39,42 +13,51 @@ def preprocess_zero_mean_unit_range(inputs):
 
 
 @tf.autograph.experimental.do_not_convert
-def keras_norm_preprocess(inputs, scale=False):
+def keras_norm_preprocess(
+    inputs, 
+    scale=False, 
+    mean=[123.675, 116.28, 103.53], 
+    std=[58.395, 57.12, 57.375]
+):
 
     x = inputs
 
     if scale:
-        norm_func = KERAS_NORM_SCALE_FUNC
+        x /= 255.0
+        mean = [m / 255.0 for m in mean]
+        std = [s / 255.0 for s in std]
 
-        if not KERAS_SCALE_FUNC.built:
-            KERAS_SCALE_FUNC.build((None, None, 3))
-            
-        x = KERAS_SCALE_FUNC(x)
-    else:
-        norm_func = KERAS_NORM_FUNC
+    variance = [s ** 2 for s in std]
 
-    if not norm_func.built:
-        norm_func.build((None, None, 3))
-
-    x = norm_func(x)
+    x = (x - mean) / tf.maximum(
+        tf.sqrt(variance), keras.backend.epsilon()
+    )
 
     return tf.cast(x, dtype=inputs.dtype)
 
 
 @tf.autograph.experimental.do_not_convert
-def keras_norm_preprocess_invert(inputs, scale=False):
+def keras_norm_preprocess_invert(
+    inputs, 
+    scale=False,
+    mean=[123.675, 116.28, 103.53],
+    std=[58.395, 57.12, 57.375]
+):
 
     x = inputs
 
     if scale:
-        norm_func = KERAS_NORM_SCALE_FUNC_INVERT
-    else:
-        norm_func = KERAS_NORM_FUNC_INVERT
+        mean = [m / 255.0 for m in mean]
+        std = [s / 255.0 for s in std]
 
-    if not norm_func.built:
-        norm_func.build((None, None, 3))
+    variance = [s ** 2 for s in std]
 
-    x = norm_func(x)
+    x = mean + (
+        x * tf.maximum(tf.sqrt(variance), keras.backend.epsilon())
+    )
+    
+    if scale:
+        x *= 255.0
 
     return keras.backend.cast(x, dtype=inputs.dtype)
 
