@@ -131,6 +131,7 @@ class DCNv2(Keras3_Layer_Wrapper):
             dilations=self.dilation,
         )
         offset = tf.add(offset, offset_bias, name="offset.add.bias")
+
         bs, ih, iw, ic = get_tensor_shape(x)
 
         ih1 = tf.add(ih, 1, name="ih.add.1")
@@ -231,18 +232,18 @@ class DCNv2(Keras3_Layer_Wrapper):
         map_bilinear = tf.stack(map_bilinear, axis=-2) # [B, H, W, 9, C]
 
         #[B, H, W, 9*C]
-        map_all = tf.reshape(map_bilinear, [bs, ih, iw, -1])
-        #[B, H, W, OC]
+        map_all = tf.reshape(map_bilinear, [bs, ih, iw, self.ks * ic]) # [B, H, W, 9*C], 9 = ks
 
-        final_kernel = tf.cast(self.kernel, map_all.dtype)
-        final_kernel = tf.reshape(final_kernel, [1, 1, -1, self.filters])
+        final_kernel = tf.cast(self.kernel, map_all.dtype) # [kh, kw, C, OC]
+        final_kernel = tf.reshape(final_kernel, [1, 1, -1, self.filters]) # [1, 1, kh*kw*C, OC] = [1, 1, 9*C, OC]
+
         output = tf.nn.conv2d(
             map_all, 
             final_kernel, 
             strides=self.stride, 
             padding='SAME',
             dilations=self.dilation,
-        )
+        ) # [B, H, W, OC]
 
         if self.use_bias:
             output = tf.add(output, tf.cast(self.bias, output.dtype), name="output.add.bias")
