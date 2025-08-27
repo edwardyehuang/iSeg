@@ -4,6 +4,7 @@
 # ================================================================
 
 import tensorflow as tf
+import keras
 
 from tqdm import tqdm
 
@@ -42,7 +43,7 @@ def evaluate(
             num_class=num_class, ignore_label=ignore_label, batch_size=batch_size, reduction=False
         )
 
-        loss_metrics = tf.keras.metrics.Mean("loss")
+        loss_metrics = keras.metrics.Mean("loss")
 
         iou_metrics = MeanIOU(num_class)
 
@@ -52,7 +53,7 @@ def evaluate(
             for fn in pre_compute_fns:
                 iou_metrics.add_pre_compute_fn(fn)
 
-        print("Current image format = {}".format(tf.keras.backend.image_data_format()))
+        print("Current image format = {}".format(keras.backend.image_data_format()))
 
         with tqdm(total=val_image_count) as pbar:
             for inputs in ds:
@@ -65,7 +66,6 @@ def evaluate(
                 loss_result = loss_metrics.result().numpy()
 
                 iou_result = iou_metrics.result()
-                # iou_result = tf.squeeze(iou_result)
                 iou_result = iou_result.numpy()
 
                 pbar.set_description(
@@ -97,7 +97,16 @@ def evaluate(
 
 
 @tf.function(autograph=False)
-def eval_step(ds_inputs, model: SegBase, scale_rates, flip, loss_func, loss_metrics, mertics, distribute_strategy):
+def eval_step(
+    ds_inputs, 
+    model: SegBase, 
+    scale_rates, 
+    flip, 
+    loss_func, 
+    loss_metrics, 
+    mertics, 
+    distribute_strategy
+):
     def step_fn(inputs):
         images, labels = inputs
 
