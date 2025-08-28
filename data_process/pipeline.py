@@ -62,15 +62,6 @@ class AugmentationsPipeLine(object):
 
             inputs = augment(*inputs)
 
-            '''
-            try:
-                inputs = augment(*inputs)
-
-            except Exception as e:
-                print(f"Error : {augment.name}")
-                raise e
-            '''
-
             processed_arugments.append(augment.name)
 
         if not self._printed_processed_augments:
@@ -112,6 +103,7 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
         photo_metric_distortions=False,
         random_erase=True,
         random_jepg_quality=False,
+        random_noisy_eval_level=0,
         name=None,
     ):
 
@@ -171,6 +163,8 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
 
             if random_jepg_quality:
                 augments.append(RandomJEPGQualityAugment())
+        else:
+            if random_noisy_eval_level > 0 + 1e-3:
+                augments.append(RandomNoisyEvalAugment(noise_level=random_noisy_eval_level))
 
-            
         self.augments = augments
