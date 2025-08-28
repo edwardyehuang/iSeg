@@ -19,7 +19,9 @@ class RandomNoisyEvalAugment(DataAugmentationBase):
         
         if self.noise_level <= 0 + 1e-3:
             return image, label
-        
+
+        print("Adding noise with level:", self.noise_level)
+
         noise = tf.random.normal(shape=tf.shape(image), mean=0.0, stddev=self.noise_level, dtype=image.dtype)
 
         image = tf.add(image, noise)
