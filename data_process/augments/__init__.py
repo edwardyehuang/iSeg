@@ -16,3 +16,4 @@ from iseg.data_process.augments.random_photo_metric_distortions import RandomPho
 from iseg.data_process.augments.random_erasing_augment import RandomErasingAugment
 from iseg.data_process.augments.random_jepg_quality_augment import RandomJEPGQualityAugment
 from iseg.data_process.augments.random_noisy_eval_augment import RandomNoisyEvalAugment
+from iseg.data_process.augments.random_rotate_augment import RandomRotateAugment
