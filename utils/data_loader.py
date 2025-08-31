@@ -55,7 +55,11 @@ def load_image_tensor_from_path(image_path, label_path=None):
         return image_tensor, label_tensor
 
     except:
-        raise ValueError(f"Error: {image_path} is not a valid JPEG image.")
+
+        if label_path is not None:
+            raise ValueError(f"Error: {image_path} or {label_path} is not a valid image.")
+        else:
+            raise ValueError(f"Error: {image_path} is not a valid JPEG image.")
 
 
 def simple_load_image(
