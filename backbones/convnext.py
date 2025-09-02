@@ -6,11 +6,12 @@
 # This code implemented https://arxiv.org/pdf/2201.03545.pdf
 
 import tensorflow as tf
+import keras
 import numpy as np
 
 from iseg.utils.drops import drop_path
 from iseg.backbones.utils.layerwise_decay import decay_layers_lr
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
 
 class Block(Keras3_Model_Wrapper):
@@ -22,12 +23,12 @@ class Block(Keras3_Model_Wrapper):
         self.layer_scale_init_value = layer_scale_init_value
         self.filters = filters
 
-        self.dwconv = tf.keras.layers.DepthwiseConv2D(kernel_size=7, padding="same", name=f"{self.name}/dwconv")
+        self.dwconv = keras.layers.DepthwiseConv2D(kernel_size=7, padding="same", name=_N(f"{self.name}/dwconv"))
 
-        self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6, name=f"{self.name}/norm")
+        self.norm = keras.layers.LayerNormalization(epsilon=1e-6, name=_N(f"{self.name}/norm"))
 
-        self.pwconv1 = tf.keras.layers.Dense(units=4 * filters, name=f"{self.name}/pwconv1")
-        self.pwconv2 = tf.keras.layers.Dense(units=filters, name=f"{self.name}/pwconv2")
+        self.pwconv1 = keras.layers.Dense(units=4 * filters, name=_N(f"{self.name}/pwconv1"))
+        self.pwconv2 = keras.layers.Dense(units=filters, name=_N(f"{self.name}/pwconv2"))
 
     def build(self, input_shape):
 
@@ -35,7 +36,7 @@ class Block(Keras3_Model_Wrapper):
             self.add_weight(
                 name=f"gamma",
                 shape=[self.filters],
-                initializer=tf.keras.initializers.Constant(self.layer_scale_init_value * tf.ones([self.filters])),
+                initializer=keras.initializers.Constant(self.layer_scale_init_value * tf.ones([self.filters])),
                 trainable=True,
             )
             if self.layer_scale_init_value > 0
@@ -70,9 +71,9 @@ class DownSampleLayer(Keras3_Model_Wrapper):
         self.swap = swap
         names = ["1", "0"] if swap else ["0", "1"]
 
-        self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6, name=f"{self.name}/{names[0]}")
-        self.conv = tf.keras.layers.Conv2D(
-            filters=filters, kernel_size=strides, strides=strides, padding="same", name=f"{self.name}/{names[1]}"
+        self.norm = keras.layers.LayerNormalization(epsilon=1e-6, name=_N(f"{self.name}/{names[0]}"))
+        self.conv = keras.layers.Conv2D(
+            filters=filters, kernel_size=strides, strides=strides, padding="same", name=_N(f"{self.name}/{names[1]}")
         )
 
     def build(self, input_shape):
@@ -149,7 +150,7 @@ class ConvNeXt(Keras3_Model_Wrapper):
         for i in range(num_stage):
             self.downsample_blocks += [
                 DownSampleLayer(
-                    filters=filters_list[i], strides=4 if i == 0 else 2, swap=i == 0, name=f"downsample_layers/{i}"
+                    filters=filters_list[i], strides=4 if i == 0 else 2, swap=i == 0, name=_N(f"downsample_layers/{i}")
                 )
             ]
 
@@ -159,7 +160,7 @@ class ConvNeXt(Keras3_Model_Wrapper):
                     depth=depths[i],
                     drop_path_probs=drop_path_rates[cur : cur + depths[i]],
                     layer_scale_init_value=layer_scale_init_value,
-                    name=f"stages/{i}",
+                    name=_N(f"stages/{i}"),
                 )
             ]
 
