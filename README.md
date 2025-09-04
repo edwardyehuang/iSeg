@@ -4,6 +4,8 @@
 
 ### News
 
+Sept-04-2025: Add support for TPUv5e. We will support TPUv6e in next few months.
+
 March-14-2024: Add support for Gemma (Keras 2.15 compatible).
 
 March-05-2024: Add support for keras 3. Note that I still retain support for keras 2 and currently only support the TensorFlow backend. Support for Pytorch and JAX backends will be released at a later date.
