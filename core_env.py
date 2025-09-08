@@ -79,3 +79,7 @@ def common_env_clean (strategy):
 
     if isinstance(strategy, tf.distribute.TPUStrategy):
         shutdown_tpu_system(strategy)
+
+        from cloud_tpu_client import Client
+
+        Client().configure_tpu_version(tf.__version__, restart_type='always')
