@@ -209,7 +209,13 @@ def sliding_window_body(i, inputs, model, slices_list, training=False):
 
 
 @tf.autograph.experimental.do_not_convert
-def inference_with_sliding_window(inputs, model, training=False, windows_size=(769, 769)):
+def inference_with_sliding_window(
+    inputs, 
+    model, 
+    training=False, 
+    windows_size=(769, 769),
+    use_cpu_cache=True,
+):
 
     if windows_size is None:
         raise ValueError("Window size must not be None !!!!!!!!")
@@ -243,17 +249,34 @@ def inference_with_sliding_window(inputs, model, training=False, windows_size=(7
             seg_map_handler=lambda x: dynamic_padding_2d(x, paddings, constant_values=0),
         )
 
+        # convert to original device using tf.identity
+        with tf.device(results[0].device):
+            cropped_results = multi_results_handler(
+                cropped_results, lambda x: tf.identity(x),
+            )
+
         results = multi_results_add(results, cropped_results)
 
         return tf.add(i, 1), results
 
     _, results = loop_body(tf.constant(0))
 
+    if use_cpu_cache:
+        orginal_device = results[0].device
+    
+        with tf.device("/CPU:0"):
+            results = multi_results_handler(results, lambda x: tf.identity(x))
+
     _, results = tf.while_loop(
         lambda i, _: i < total_sliding_indexs_len, 
         loop_body, 
-        [1, results]
+        [1, results],
+        swap_memory=use_cpu_cache,
     )
+
+    if use_cpu_cache:
+        with tf.device(orginal_device):
+            results = multi_results_handler(results, lambda x: tf.identity(x))
 
     inference_count_map = tf.cast(inference_count_map, dtype=results[0].dtype)
 

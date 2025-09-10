@@ -147,6 +147,7 @@ class SegBase(Keras3_Model_Wrapper):
         training=False, 
         scale_rates=[1.0], 
         flip=False,
+        use_cpu_cache=True,
         resize_method="bilinear",
     ):
         num_rates = len(scale_rates)
@@ -177,10 +178,20 @@ class SegBase(Keras3_Model_Wrapper):
         false_tensor = tf.constant(False, dtype=tf.bool)
 
         logits_sum_list = loop_body(
-            inputs, 
+            inputs,
             tf.constant(scale_rates[0]), 
             inner_flip=false_tensor
         )
+
+        original_device = logits_sum_list[0].device
+
+        # Cache to CPU to save GPU memory if use_cpu_cache
+        if use_cpu_cache:
+            with tf.device("/CPU:0"):
+                logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.identity(x))
+
+                print(f"Cache logits to CPU:0 from {original_device}")
+
 
         for i in range(1, num_rates):
             logits_list = loop_body(
@@ -188,6 +199,12 @@ class SegBase(Keras3_Model_Wrapper):
                 tf.constant(scale_rates[i]), 
                 inner_flip=false_tensor
             )
+
+            # Convert to CPU to save GPU memory if use_cpu_cache
+            if use_cpu_cache:
+                with tf.device("/CPU:0"):
+                    logits_list = multi_results_handler(logits_list, lambda x: tf.identity(x))
+
             logits_sum_list = multi_results_add(logits_sum_list, logits_list)
 
         if flip:
@@ -201,9 +218,18 @@ class SegBase(Keras3_Model_Wrapper):
                     inner_flip=false_tensor
                 )
 
+                # Convert to CPU to save GPU memory if use_cpu_cache
+                if use_cpu_cache:
+                    with tf.device("/CPU:0"):
+                        logits_list = multi_results_handler(logits_list, lambda x: tf.identity(x))
+
                 logits_sum_list = multi_results_add(logits_sum_list, logits_list)
 
             logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.image.flip_left_right(x))
+
+        if use_cpu_cache:
+            with tf.device(original_device):
+                logits_sum_list = multi_results_handler(logits_sum_list, lambda x: tf.identity(x))
 
         result = [tf.math.divide(logits_sum, divide_factor) for logits_sum in logits_sum_list]
 
