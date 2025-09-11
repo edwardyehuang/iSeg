@@ -11,6 +11,7 @@ import iseg.data_process.utils as dataprocess
 
 from iseg.data_process.augments.data_augment_base import DataAugmentationBase
 
+from keras.src.backend import RandomGenerator
 from keras.src.layers.preprocessing.image_preprocessing import get_rotation_matrix, transform
 
 H_AXIS = -3
@@ -30,9 +31,7 @@ class RandomRotateAugment(DataAugmentationBase):
 
         self.prob_of_rotate = prob_of_rotate
 
-        self.rotate_layer = keras.layers.RandomRotation()
-
-        self._random_generator = keras.backend.RandomGenerator()
+        self._random_generator = RandomGenerator()
 
         self.fill_constant_color = fill_constant_color
         self.ignore_label = ignore_label
@@ -82,6 +81,9 @@ class RandomRotateAugment(DataAugmentationBase):
 
         original_image_shape = images.shape
 
+        if labels is not None:
+            original_label_shape = labels.shape
+
         unbatched = images.shape.rank == 3
         # The transform op only accepts rank 4 inputs,
         # so if we have an unbatched image,
@@ -108,7 +110,7 @@ class RandomRotateAugment(DataAugmentationBase):
             images,
             rotation_matrix,
             fill_mode="constant",
-            fill_value=self.fill_constant_color,
+            fill_value=0.0,
             interpolation="bilinear",
         )
 
@@ -130,7 +132,7 @@ class RandomRotateAugment(DataAugmentationBase):
         output_images.set_shape(original_image_shape)
 
         if labels is not None:
-            output_labels.set_shape(labels.shape)
+            output_labels.set_shape(original_label_shape)
 
             return output_images, output_labels
 
