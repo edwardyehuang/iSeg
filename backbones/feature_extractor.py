@@ -174,6 +174,9 @@ def get_backbone(
         elif ".ckpt" in weights_path[-5:]:
             print(f"Load backbone weights {weights_path} as ckpt format")
             backbone.load_weights(weights_path)
+        elif ".keras" in weights_path[-7:]:
+            print(f"Load backbone weights {weights_path} as keras format")
+            backbone.load_weights(weights_path)
         else:
             raise ValueError(f"Weights {weights_path} not supported")
 
