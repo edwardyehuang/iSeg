@@ -45,7 +45,7 @@ class EvaAttention (Keras3_Model_Wrapper):
 
     def build(self, input_shape):
 
-        input_channels = input_shape[0][-1]
+        input_channels = input_shape[-1]
 
         head_filters = input_channels // self.num_heads
 
@@ -60,7 +60,7 @@ class EvaAttention (Keras3_Model_Wrapper):
             self.qkv = tf.keras.layers.Dense(
                 all_head_filters * 3,
                 use_bias=False,
-                name=f"{self.name}/qkv",
+                name=_N(f"{self.name}/qkv"),
             )
 
             self.q_bias = self.add_weight(
@@ -97,10 +97,9 @@ class EvaAttention (Keras3_Model_Wrapper):
         super().build(input_shape)
 
 
-    def call(self, inputs, training=None):
+    def call(self, inputs, rope=None, training=None):
 
-        x = inputs[0]
-        rope = inputs[1]
+        x = inputs
 
         batch_size, hw, channels = get_tensor_shape(x)
 

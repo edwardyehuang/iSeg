@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
 LAYER_NORM_EPSILON = 1e-6
 
@@ -61,7 +61,7 @@ class Mlp(Keras3_Model_Wrapper):
         output_filters = self.output_filters or input_channels
         hidden_filters = self.hidden_filters or input_channels
 
-        self.fc1 = self.build_fc(hidden_filters, name=f"{self.name}/fc1")
+        self.fc1 = self.build_fc(hidden_filters, name=_N(f"{self.name}/fc1"))
 
         self.drop1 = tf.keras.layers.Dropout(
             rate=self.dropout_rate,
@@ -71,12 +71,12 @@ class Mlp(Keras3_Model_Wrapper):
         if self.use_norm:
             self.norm = tf.keras.layers.LayerNormalization(
                 epsilon=LAYER_NORM_EPSILON,
-                name=f"{self.name}/norm",
+                name=_N(f"{self.name}/norm"),
             )
         else:
             self.norm = tf.identity
 
-        self.fc2 = self.build_fc(output_filters, name=f"{self.name}/fc2")
+        self.fc2 = self.build_fc(output_filters, name=_N(f"{self.name}/fc2"))
 
         self.drop2 = tf.keras.layers.Dropout(
             rate=self.dropout_rate,

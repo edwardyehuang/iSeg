@@ -137,7 +137,7 @@ class Stage(Keras3_Model_Wrapper):
             Block(
                 filters=filters,
                 drop_path_prob=drop_path_probs[i],
-                name=f"{self.name}/{i}",
+                name=_N(f"{self.name}/{i}"),
             )
             for i in range(depth)
         ]
@@ -182,7 +182,7 @@ class ConvNeXtV2(Keras3_Model_Wrapper):
         for i in range(num_stage):
             self.downsample_blocks += [
                 DownSampleLayer(
-                    filters=filters_list[i], strides=4 if i == 0 else 2, swap=i == 0, name=f"downsample_layers/{i}"
+                    filters=filters_list[i], strides=4 if i == 0 else 2, swap=i == 0, name=_N(f"downsample_layers/{i}"),
                 )
             ]
 
@@ -191,7 +191,7 @@ class ConvNeXtV2(Keras3_Model_Wrapper):
                     filters=filters_list[i],
                     depth=depths[i],
                     drop_path_probs=drop_path_rates[cur : cur + depths[i]],
-                    name=f"stages/{i}",
+                    name=_N(f"stages/{i}"),
                 )
             ]
 

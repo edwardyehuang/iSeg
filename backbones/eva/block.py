@@ -65,7 +65,7 @@ class EvaBlock (Keras3_Model_Wrapper):
 
     def build(self, input_shape):
 
-        input_channels = input_shape[0][-1]
+        input_channels = input_shape[-1]
 
         self.norm1 = tf.keras.layers.LayerNormalization(
             epsilon=LAYER_NORM_EPSILON,
@@ -139,10 +139,9 @@ class EvaBlock (Keras3_Model_Wrapper):
         super().build(input_shape)
 
     
-    def call (self, inputs, training=None):
+    def call (self, inputs, rope=None, training=None):
 
-        x = inputs[0]
-        rope = inputs[1]
+        x = inputs
 
         residual = tf.identity(x, name="residual")
 
@@ -151,7 +150,7 @@ class EvaBlock (Keras3_Model_Wrapper):
         if not self.use_post_norm:
             x = self.norm1(x)
 
-        x = self.attention([x, rope], training=training)
+        x = self.attention(x, rope=rope, training=training)
 
         if self.use_post_norm:
             x = self.norm1(x)

@@ -288,7 +288,7 @@ class Eva (Keras3_Model_Wrapper):
         endpoints = []
 
         for i in range(num_blocks):
-            x = self.blocks[i]([x, rope], training=training)
+            x = self.blocks[i](x, rope=rope, training=training)
             _x = x[:, 1:, :]
             _x = tf.reshape(_x, [batch_size, height, width, channels])
             endpoints.append(_x)
