@@ -160,7 +160,14 @@ class CoreTrain(object):
             )
 
         if initial_epoch == -1:
-            current_iter = model.optimizer.iterations.value()
+            
+            iteration_object = model.optimizer.iterations
+
+            if hasattr(iteration_object, "value") and callable(iteration_object.value):
+                current_iter = iteration_object.value()
+            else:
+                current_iter = iteration_object
+
             initial_epoch = current_iter // epoch_steps
 
         train_ds = self.prepare_train_dataset(model, batch_size, shuffle_rate)
