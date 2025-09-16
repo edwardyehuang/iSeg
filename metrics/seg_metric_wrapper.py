@@ -4,6 +4,7 @@
 # ================================================================
 
 import tensorflow as tf
+import keras
 
 
 @tf.autograph.experimental.do_not_convert
@@ -46,7 +47,7 @@ def process_seg_metric_inputs(
 
 
 
-class SegMetricWrapper(tf.keras.metrics.Metric):
+class SegMetricWrapper(keras.metrics.Metric):
     def __init__(self, metric, num_class=21, ignore_label=255, name=None):
         super().__init__(name=name)
 
