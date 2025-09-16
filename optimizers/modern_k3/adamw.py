@@ -3,17 +3,6 @@ from keras.optimizers import AdamW
 
 class AdamW_EXT (AdamW):
 
-    def _distributed_tf_update_step(
-        self, distribution, grads_and_vars, learning_rate
-    ):
-        def apply_grad_to_update_var(var, grad, lr):
-            return self.update_step(grad, var, lr)
-
-        for grad, var in grads_and_vars:
-            distribution.extended.update(
-                var, apply_grad_to_update_var, args=(grad,learning_rate,), group=False
-            )
-
     def update_step(self, gradient, variable, learning_rate):
         """Update step given gradient and the associated model variable."""
 
@@ -21,7 +10,7 @@ class AdamW_EXT (AdamW):
 
         if hasattr(variable, "lr_multiplier"):
             lr = lr * variable.lr_multiplier
-            # print(f"lr_multiplier: {variable.lr_multiplier}")
+            print(f"lr_multiplier: {variable.name} {variable.lr_multiplier}")
 
         gradient = ops.cast(gradient, variable.dtype)
         local_step = ops.cast(self.iterations + 1, variable.dtype)

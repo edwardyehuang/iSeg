@@ -4,6 +4,7 @@
 # ====================================================================
 
 import tensorflow as tf
+import keras
 
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
@@ -40,14 +41,14 @@ class Mlp(Keras3_Model_Wrapper):
     def build_fc (self, filters, name=None):
 
         if self.use_conv:
-            return tf.keras.layers.Conv2D(
+            return keras.layers.Conv2D(
                 filters,
                 kernel_size=1,
                 use_bias=self.use_bias,
                 name=name,
             )
         else:
-            return tf.keras.layers.Dense(
+            return keras.layers.Dense(
                 filters,
                 use_bias=self.use_bias,
                 name=name,
@@ -63,13 +64,13 @@ class Mlp(Keras3_Model_Wrapper):
 
         self.fc1 = self.build_fc(hidden_filters, name=_N(f"{self.name}/fc1"))
 
-        self.drop1 = tf.keras.layers.Dropout(
+        self.drop1 = keras.layers.Dropout(
             rate=self.dropout_rate,
             name="drop1",
         )
 
         if self.use_norm:
-            self.norm = tf.keras.layers.LayerNormalization(
+            self.norm = keras.layers.LayerNormalization(
                 epsilon=LAYER_NORM_EPSILON,
                 name=_N(f"{self.name}/norm"),
             )
@@ -78,7 +79,7 @@ class Mlp(Keras3_Model_Wrapper):
 
         self.fc2 = self.build_fc(output_filters, name=_N(f"{self.name}/fc2"))
 
-        self.drop2 = tf.keras.layers.Dropout(
+        self.drop2 = keras.layers.Dropout(
             rate=self.dropout_rate,
             name="drop2",
         )
