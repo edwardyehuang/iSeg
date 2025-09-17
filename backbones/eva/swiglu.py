@@ -4,6 +4,7 @@
 # ====================================================================
 
 import tensorflow as tf
+import keras
 
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
@@ -15,7 +16,7 @@ class SwiGLU (Keras3_Model_Wrapper):
         self,
         hidden_filters=None,
         output_filters=None,
-        activation=tf.nn.silu,
+        activation="swish",
         use_bias=True,
         use_norm=True,
         dropout_rate=0.0,
@@ -27,7 +28,7 @@ class SwiGLU (Keras3_Model_Wrapper):
         self.hidden_filters = hidden_filters
         self.output_filters = output_filters
 
-        self.activation = activation
+        self.activation = keras.activations.get(activation)
         self.use_bias = use_bias
         self.use_norm = use_norm
 
@@ -41,38 +42,38 @@ class SwiGLU (Keras3_Model_Wrapper):
         output_filters = self.output_filters or input_channels
         hidden_filters = self.hidden_filters or input_channels
 
-        self.fc1_g = tf.keras.layers.Dense(
+        self.fc1_g = keras.layers.Dense(
             hidden_filters,
             use_bias=self.use_bias,
             name=_N(f"{self.name}/fc1_g"),
         )
 
-        self.fc1_x = tf.keras.layers.Dense(
+        self.fc1_x = keras.layers.Dense(
             hidden_filters,
             use_bias=self.use_bias,
             name=_N(f"{self.name}/fc1_x"),
         )
 
-        self.drop1 = tf.keras.layers.Dropout(
+        self.drop1 = keras.layers.Dropout(
             rate=self.dropout_rate,
             name="drop1",
         )
 
         if self.use_norm:
-            self.norm = tf.keras.layers.LayerNormalization(
+            self.norm = keras.layers.LayerNormalization(
                 epsilon=LAYER_NORM_EPSILON,
                 name=_N(f"{self.name}/norm"),
             )
         else:
             self.norm = tf.identity
 
-        self.fc2 = tf.keras.layers.Dense(
+        self.fc2 = keras.layers.Dense(
             output_filters,
             use_bias=self.use_bias,
             name=_N(f"{self.name}/fc2"),
         )
 
-        self.drop2 = tf.keras.layers.Dropout(
+        self.drop2 = keras.layers.Dropout(
             rate=self.dropout_rate,
             name="drop2",
         )

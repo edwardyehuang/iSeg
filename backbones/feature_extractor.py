@@ -6,6 +6,7 @@
 from distutils.version import LooseVersion
 
 import tensorflow as tf
+import keras
 import iseg.static_strings as ss
 
 from iseg.backbones.resnet_common import *
@@ -132,7 +133,7 @@ def get_backbone(
     if custom_backbone_fn is not None:
         backbone = custom_backbone_fn(**general_kwargs)
     else:
-        backbone : tf.keras.Model = backbone_dicts[name](**general_kwargs)
+        backbone : keras.Model = backbone_dicts[name](**general_kwargs)
 
     if ss.RESNET in name:
         build_atrous_resnet(backbone, output_stride=output_stride)

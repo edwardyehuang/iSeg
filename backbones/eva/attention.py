@@ -5,6 +5,8 @@
 
 import tensorflow as tf
 
+import keras
+
 from iseg.utils import get_tensor_shape
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat, apply_rot_embed_cat
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
@@ -57,7 +59,7 @@ class EvaAttention (Keras3_Model_Wrapper):
         self.attention_scale = head_filters ** -0.5
 
         if self.qkv_fused:
-            self.qkv = tf.keras.layers.Dense(
+            self.qkv = keras.layers.Dense(
                 all_head_filters * 3,
                 use_bias=False,
                 name=_N(f"{self.name}/qkv"),
@@ -66,7 +68,7 @@ class EvaAttention (Keras3_Model_Wrapper):
             self.q_bias = self.add_weight(
                 name="q_bias",
                 shape=[all_head_filters],
-                initializer=tf.keras.initializers.Zeros(),
+                initializer=keras.initializers.Zeros(),
                 trainable=True,
             )
 
@@ -75,24 +77,24 @@ class EvaAttention (Keras3_Model_Wrapper):
             self.v_bias = self.add_weight(
                 name="v_bias",
                 shape=[all_head_filters],
-                initializer=tf.keras.initializers.Zeros(),
+                initializer=keras.initializers.Zeros(),
                 trainable=True,
             )
 
         else:
-            self.q_proj = tf.keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=_N(f"{self.name}/q_proj"))
-            self.k_proj = tf.keras.layers.Dense(all_head_filters, use_bias=False, name=_N(f"{self.name}/k_proj"))
-            self.v_proj = tf.keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=_N(f"{self.name}/v_proj"))
+            self.q_proj = keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=_N(f"{self.name}/q_proj"))
+            self.k_proj = keras.layers.Dense(all_head_filters, use_bias=False, name=_N(f"{self.name}/k_proj"))
+            self.v_proj = keras.layers.Dense(all_head_filters, use_bias=self.qkv_bias, name=_N(f"{self.name}/v_proj"))
 
-        self.attention_dropout = tf.keras.layers.Dropout(self.attention_dropout_rate, name="attention_dropout")
+        self.attention_dropout = keras.layers.Dropout(self.attention_dropout_rate, name="attention_dropout")
 
         if self.use_norm:
-            self.norm = tf.keras.layers.LayerNormalization(epsilon=LAYER_NORM_EPSILON, name=_N(f"{self.name}/norm"))
+            self.norm = keras.layers.LayerNormalization(epsilon=LAYER_NORM_EPSILON, name=_N(f"{self.name}/norm"))
         else:
             self.norm = tf.identity
 
-        self.projection_dropout = tf.keras.layers.Dropout(self.projection_dropout_rate, name="projection_dropout")
-        self.projection = tf.keras.layers.Dense(input_channels, use_bias=True, name=_N(f"{self.name}/proj"))
+        self.projection_dropout = keras.layers.Dropout(self.projection_dropout_rate, name="projection_dropout")
+        self.projection = keras.layers.Dense(input_channels, use_bias=True, name=_N(f"{self.name}/proj"))
 
         super().build(input_shape)
 
@@ -132,9 +134,9 @@ class EvaAttention (Keras3_Model_Wrapper):
             k = tf.transpose(k, [0, 2, 1, 3])
             v = tf.transpose(v, [0, 2, 1, 3]) # [batch_size, num_heads, hw, head_filters]
 
-        q = replace_nan_or_inf(q, tf.keras.backend.epsilon())
-        k = replace_nan_or_inf(k, tf.keras.backend.epsilon())
-        v = replace_nan_or_inf(v, tf.keras.backend.epsilon())
+        q = replace_nan_or_inf(q, keras.backend.epsilon())
+        k = replace_nan_or_inf(k, keras.backend.epsilon())
+        v = replace_nan_or_inf(v, keras.backend.epsilon())
 
 
         if rope is not None:
@@ -151,16 +153,16 @@ class EvaAttention (Keras3_Model_Wrapper):
 
         attention = tf.matmul(q, k) # [batch_size, num_heads, hw, hw]
 
-        attention = replace_nan_or_inf(attention, tf.keras.backend.epsilon())
+        attention = replace_nan_or_inf(attention, keras.backend.epsilon())
 
         attention = safed_softmax(attention)
 
-        attention = replace_nan_or_inf(attention, tf.keras.backend.epsilon())
+        attention = replace_nan_or_inf(attention, keras.backend.epsilon())
 
         attention = self.attention_dropout(attention, training=training)
         y = tf.matmul(attention, v) # [batch_size, num_heads, hw, head_filters]
 
-        y = replace_nan_or_inf(y, tf.keras.backend.epsilon())
+        y = replace_nan_or_inf(y, keras.backend.epsilon())
 
         y = tf.transpose(y, [0, 2, 1, 3]) # [batch_size, hw, num_heads, head_filters]
         y = tf.reshape(y, [batch_size, hw, channels]) # [batch_size, hw, channels]
@@ -169,6 +171,6 @@ class EvaAttention (Keras3_Model_Wrapper):
         y = self.projection(y)
         y = self.projection_dropout(y, training=training)
 
-        y = replace_nan_or_inf(y, tf.keras.backend.epsilon())
+        y = replace_nan_or_inf(y, keras.backend.epsilon())
 
         return y

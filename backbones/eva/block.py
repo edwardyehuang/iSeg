@@ -4,6 +4,7 @@
 # ====================================================================
 
 import tensorflow as tf
+import keras
 
 from iseg.backbones.eva.attention import EvaAttention
 
@@ -31,7 +32,7 @@ class EvaBlock (Keras3_Model_Wrapper):
         projection_dropout_rate=0.0,
         drop_path_rate=0.0,
         init_values=None,
-        activation=tf.nn.gelu,
+        activation="gelu",
         attention_head_filters=None,
         use_post_norm=False,
         trainable=True,
@@ -67,7 +68,7 @@ class EvaBlock (Keras3_Model_Wrapper):
 
         input_channels = input_shape[-1]
 
-        self.norm1 = tf.keras.layers.LayerNormalization(
+        self.norm1 = keras.layers.LayerNormalization(
             epsilon=LAYER_NORM_EPSILON,
             name=_N(f"{self.name}/norm1"),
         )
@@ -83,7 +84,7 @@ class EvaBlock (Keras3_Model_Wrapper):
             name=_N(f"{self.name}/attn"),
         )
 
-        self.norm2 = tf.keras.layers.LayerNormalization(
+        self.norm2 = keras.layers.LayerNormalization(
             epsilon=LAYER_NORM_EPSILON,
             name=_N(f"{self.name}/norm2"),
         )
@@ -105,7 +106,7 @@ class EvaBlock (Keras3_Model_Wrapper):
                 self.mlp = GluMlp(
                     hidden_filters=hidden_channels * 2,
                     use_norm=False,
-                    activation=tf.nn.silu,
+                    activation="swish",
                     dropout_rate=self.projection_dropout_rate,
                     name=mlp_name,
                 )
@@ -122,14 +123,14 @@ class EvaBlock (Keras3_Model_Wrapper):
             self.gamma_1 = self.add_weight(
                 name="gamma_1",
                 shape=[input_channels],
-                initializer=tf.keras.initializers.Constant(self.init_values),
+                initializer=keras.initializers.Constant(self.init_values),
                 trainable=True,
             )
 
             self.gamma_2 = self.add_weight(
                 name="gamma_2",
                 shape=[input_channels],
-                initializer=tf.keras.initializers.Constant(self.init_values),
+                initializer=keras.initializers.Constant(self.init_values),
                 trainable=True,
             )
         else:

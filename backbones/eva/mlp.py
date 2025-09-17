@@ -16,7 +16,7 @@ class Mlp(Keras3_Model_Wrapper):
         self,
         hidden_filters=None,
         output_filters=None,
-        activation=tf.nn.gelu,
+        activation="gelu",
         use_bias=True,
         use_norm=True,
         dropout_rate=0.0,
@@ -29,7 +29,7 @@ class Mlp(Keras3_Model_Wrapper):
         self.hidden_filters = hidden_filters
         self.output_filters = output_filters
 
-        self.activation = activation
+        self.activation = keras.activations.get(activation)
         self.use_bias = use_bias
         self.use_norm = use_norm
 
@@ -53,8 +53,7 @@ class Mlp(Keras3_Model_Wrapper):
                 use_bias=self.use_bias,
                 name=name,
             )
-
-
+        
     def build(self, input_shape):
 
         input_channels = input_shape[-1]

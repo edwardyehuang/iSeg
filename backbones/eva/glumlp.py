@@ -4,6 +4,7 @@
 # ====================================================================
 
 import tensorflow as tf
+import keras
 
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
@@ -15,7 +16,7 @@ class GluMlp (Keras3_Model_Wrapper):
         self,
         hidden_filters=None,
         output_filters=None,
-        activation=tf.nn.sigmoid,
+        activation="sigmoid",
         use_bias=True,
         use_norm=True,
         dropout_rate=0.0,
@@ -29,7 +30,7 @@ class GluMlp (Keras3_Model_Wrapper):
         self.hidden_filters = hidden_filters
         self.output_filters = output_filters
 
-        self.activation = activation
+        self.activation = keras.activations.get(activation)
         self.use_bias = use_bias
         self.use_norm = use_norm
 

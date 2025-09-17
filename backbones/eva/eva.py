@@ -5,6 +5,7 @@
 
 import numpy as np
 import tensorflow as tf
+import keras
 
 from iseg.layers.common_layers import PatchEmbed
 from iseg.utils.common import resample_absolute_position_embedding, get_tensor_shape
@@ -159,7 +160,7 @@ class Eva (Keras3_Model_Wrapper):
             self.position_embedding.assign = assign_op_wrapper_fn
 
 
-        self.pos_droppout = tf.keras.layers.Dropout(
+        self.pos_droppout = keras.layers.Dropout(
             rate=self.pos_droppout_rate,
             name="pos_droppout",
         )
