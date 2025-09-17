@@ -15,7 +15,7 @@ from iseg.backbones.utils.layerwise_decay import decay_layers_lr
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat
 from iseg.backbones.eva.block import EvaBlock
 from iseg.utils.version_utils import is_keras3
-from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
 
 from iseg.utils.value_utils import values_to_tuple_2d
 
@@ -196,7 +196,7 @@ class Eva (Keras3_Model_Wrapper):
                     drop_path_rate=dpr[i],
                     init_values=self.init_values,
                     use_post_norm=self.use_post_norm,
-                    name=f"blocks/{i}",
+                    name=_N(f"blocks/{i}"),
                 )
             ]
 

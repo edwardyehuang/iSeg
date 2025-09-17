@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras
 import numpy as np
 import math
 
@@ -23,7 +24,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         shared_qk_weights=True,
         shared_qk=False,
         trainable=True,
-        linear_func=tf.keras.layers.Conv2D,
+        use_dense_for_linear=False,
         name=None
     ):
 
@@ -37,10 +38,12 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         self.shared_qk = shared_qk
 
-        self.linear_func = linear_func
+        self.use_dense_for_linear = use_dense_for_linear
 
     
     def build (self, input_shape):
+
+        linear_func = keras.layers.Dense if self.use_dense_for_linear else keras.layers.Conv2D
 
         channels = input_shape[-1]
 
@@ -56,7 +59,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
             k_kernel_initializer = tf.keras.initializers.GlorotUniform()
 
         if self.apply_linear:
-            self.query_conv = self.linear_func(
+            self.query_conv = linear_func(
                 qk_filters,
                 (1, 1), 
                 kernel_initializer=q_kernel_initializer,
@@ -65,7 +68,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
                 )
             
             if not self.shared_qk:  
-                self.key_conv = self.linear_func(
+                self.key_conv = linear_func(
                     qk_filters, 
                     (1, 1), 
                     kernel_initializer=k_kernel_initializer,
@@ -73,7 +76,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
                     name="key_conv"
                 )
 
-            self.value_conv = self.linear_func(
+            self.value_conv = linear_func(
                 channels, 
                 (1, 1), 
                 trainable=self.trainable,
