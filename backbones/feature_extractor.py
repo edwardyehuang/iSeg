@@ -131,7 +131,7 @@ def get_backbone(
         raise ValueError(f"Backbone {name} currently not supported")
 
     if custom_backbone_fn is not None:
-        backbone = custom_backbone_fn(**general_kwargs)
+        backbone : keras.Model = custom_backbone_fn(**general_kwargs)
     else:
         backbone : keras.Model = backbone_dicts[name](**general_kwargs)
 
@@ -163,8 +163,12 @@ def get_backbone(
         print("Built backbone with shape inputs")
 
     if weights_path is not None:
-        if ".h5" in weights_path[-3:]:
-            print(f"Load backbone weights {weights_path} as H5 format")
+        if ".topology.h5" in weights_path[-12:]:
+            print(f"Load backbone weights {weights_path} as H5 format (topology-based)")
+            load_h5_weight(backbone, weights_path, by_name=False)
+            
+        elif ".h5" in weights_path[-3:]:
+            print(f"Load backbone weights {weights_path} as H5 format (name-based)")
             # backbone.load_weights(weights_path, by_name=True) 
 
             if "resnet" in name:

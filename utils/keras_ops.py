@@ -10,7 +10,7 @@ import tensorflow as tf
 import h5py
 
 from tensorflow.python.keras.saving.hdf5_format import save_weights_to_hdf5_group
-from iseg.utils.hdf5_utils import load_weights_from_hdf5_group_by_name, load_weights_from_hdf5_group_by_name_v2
+from iseg.utils.hdf5_utils import load_weights_from_hdf5_group_by_name, load_weights_from_hdf5_group_by_name_v2, load_weights_from_hdf5_group
 
 from tensorflow.python.framework import ops
 from tensorflow.python.ops.parallel_for.control_flow_ops import pfor
@@ -104,17 +104,27 @@ def save_model_to_h5(model: tf.keras.Model, path):
         save_weights_to_hdf5_group(f, get_all_layers(model))
 
 
-def load_h5_weight(model, path, skip_mismatch=False, use_v2_behavior=False):
+def load_h5_weight(
+    model, 
+    path, 
+    skip_mismatch=False, 
+    use_v2_behavior=False, 
+    by_name=True,
+):
 
     with h5py.File(path, "r") as f:
         if "layer_names" not in f.attrs and "model_weights" in f:
             f = f["model_weights"]
 
-        if use_v2_behavior:
-            load_weights_from_hdf5_group_by_name_v2(f, model, skip_mismatch=skip_mismatch)
+        if by_name:
+
+            if use_v2_behavior:
+                load_weights_from_hdf5_group_by_name_v2(f, model, skip_mismatch=skip_mismatch)
+            else:
+                layers = get_all_layers(model)
+                load_weights_from_hdf5_group_by_name(f, layers, skip_mismatch=skip_mismatch)
         else:
-            layers = get_all_layers(model)
-            load_weights_from_hdf5_group_by_name(f, layers, skip_mismatch=skip_mismatch)
+            load_weights_from_hdf5_group(f, model)
 
 
 def get_training_value(training=None):

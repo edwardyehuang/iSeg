@@ -137,20 +137,29 @@ class Eva (Keras3_Model_Wrapper):
             )
             
             assign_op = self.position_embedding.assign
+            global value_has_assigned
+            value_has_assigned = False
 
             def assign_op_wrapper_fn(value, use_locking=False, name=None, read_value=True):
+
+                global value_has_assigned
 
                 value_shape = get_tensor_shape(value, return_list=True)
 
                 print(f"assign_op_wrapper_fn: value_shape={value_shape}")
 
-                resized_value = resample_absolute_position_embedding(
-                    position_embedding=value,
-                    target_size=(grid_size_h, grid_size_w),
-                    source_size=(p_grid_size_h, p_grid_size_w),
-                    num_prefix_tokens=num_prefix_tokens,
-                    method="bicubic",
-                )
+                if not value_has_assigned:
+                    resized_value = resample_absolute_position_embedding(
+                        position_embedding=value,
+                        target_size=(grid_size_h, grid_size_w),
+                        source_size=(p_grid_size_h, p_grid_size_w),
+                        num_prefix_tokens=num_prefix_tokens,
+                        method="bicubic",
+                    )
+
+                    value_has_assigned = True
+                else:
+                    resized_value = value
 
                 if not is_keras3():
                     return assign_op(resized_value, use_locking=use_locking, name=name, read_value=read_value)
