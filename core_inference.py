@@ -68,6 +68,14 @@ def convert_to_list_if_single(inputs):
     return inputs
 
 
+def convert_to_list_if_dict(inputs):
+
+    if isinstance(inputs, dict):
+        return list(inputs.values())
+
+    return inputs
+
+
 def free_from_list_if_single(inputs):
 
     if not check_if_tuple_or_list(inputs):

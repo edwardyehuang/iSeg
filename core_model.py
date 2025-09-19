@@ -126,6 +126,7 @@ class SegBase(Keras3_Model_Wrapper):
             sliding_window_crop_size=sliding_window_size,
         )  # Under solving  #47261
 
+        logits = convert_to_list_if_dict(logits)
         logits = convert_to_list_if_single(logits)
 
         logits = multi_results_handler(
