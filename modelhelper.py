@@ -3,11 +3,13 @@
 # Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
 # ================================================================
 
-import tensorflow as tf
+import time
+
 import keras
+import tensorflow as tf
+
 
 from iseg.utils.keras_ops import set_bn_epsilon, set_bn_momentum, set_weight_decay
-
 from iseg.utils.keras3_utils import is_keras3
 
 
@@ -55,15 +57,19 @@ class ModelHelper:
         checkpoint_dir,
         max_to_keep=20
     ):
+        # Note that, we need to support both keras 2 and 3 in the same class to easier convert in tf keras 2.5
 
         self.model = model
+        self.checkpoint_dir = checkpoint_dir
+        self.max_to_keep = max_to_keep
 
-        self.ckpt = tf.train.Checkpoint(model=self.model)
+        if not is_keras3():
+            self.ckpt = tf.train.Checkpoint(model=self.model)
 
-        if checkpoint_dir is not None:
-            self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, checkpoint_dir, max_to_keep=max_to_keep)
-        else:
-            self.ckpt_manager = None
+            if checkpoint_dir is not None:
+                self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, checkpoint_dir, max_to_keep=max_to_keep)
+            else:
+                self.ckpt_manager = None
 
 
     def print_trackable_variables(self, items=[]):
@@ -89,11 +95,22 @@ class ModelHelper:
         # print("Trackable variables:")
         # self.print_trackable_variables([self.model])
 
-        if is_keras3(): # TODO: Implement restoring for Keras 3
-            raise NotImplementedError("Restoring checkpoints is not implemented for Keras 3 yet")
+        if is_keras3():
+            return self.restore_checkpoint_keras3()
         else:
             return self.restore_checkpoint_keras2()
     
+
+    def save_checkpoint(self):
+
+        if is_keras3():
+            return self.save_checkpoint_keras3()
+        else:
+            return self.save_checkpoint_keras2()
+    
+
+
+    # code for keras 2
 
     def restore_checkpoint_keras2(self):
 
@@ -106,14 +123,6 @@ class ModelHelper:
             self.ckpt.restore(last_checkpoint)
 
         return last_checkpoint
-
-
-    def save_checkpoint(self):
-
-        if is_keras3():# TODO: Implement saving for Keras 3
-            raise NotImplementedError("Saving checkpoints is not implemented for Keras 3 yet")
-        else:
-            return self.save_checkpoint_keras2()
     
 
     def save_checkpoint_keras2(self):
@@ -121,11 +130,93 @@ class ModelHelper:
         return self.ckpt_manager.save()
 
 
-    def list_latest_ckpt_vars(self):
 
-        if self.ckpt_manager is None:
+    # code for keras 3
+
+    def restore_checkpoint_keras3(self):
+        
+        latest_checkpoint = self.get_lastest_checkpoint_keras3()
+
+        if latest_checkpoint is None:
+            return None
+        
+        full_path = tf.io.gfile.join(self.checkpoint_dir, latest_checkpoint)
+
+        self.model.load_weights(full_path)
+
+        return latest_checkpoint
+    
+
+    def save_checkpoint_keras3(self, checkpoint_dir=None):
+
+        checkpoint_dir = self.checkpoint_dir if checkpoint_dir is None else checkpoint_dir
+
+        if checkpoint_dir is None:
+            print("No checkpoint dir specified, skip saving checkpoint")
             return None
 
-        last_checkpoint = self.ckpt_manager.latest_checkpoint
+        if not tf.io.gfile.exists(checkpoint_dir):
+            tf.io.gfile.makedirs(checkpoint_dir)
 
-        return tf.train.list_variables(last_checkpoint)
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+
+        filename = f"id-{timestr}.ckpt.h5"
+
+        full_path = tf.io.gfile.join(checkpoint_dir, filename)
+
+        self.model.save_weights(full_path)
+
+        print(f"Saved checkpoint to {full_path}")
+
+        # remove old checkpoints
+        files = self.get_checkpoint_list_keras3(checkpoint_dir)
+
+        if len(files) > self.max_to_keep:
+            files = sorted(files)
+
+            num_to_remove = len(files) - self.max_to_keep
+
+            for i in range(num_to_remove):
+                f = files[i]
+                full_path = tf.io.gfile.join(checkpoint_dir, f)
+                print(f"Removing old checkpoint file: {full_path}")
+                tf.io.gfile.remove(full_path)
+
+        return filename
+
+        
+    
+
+    def get_checkpoint_list_keras3(self, checkpoint_dir=None):
+
+        checkpoint_dir = self.checkpoint_dir if checkpoint_dir is None else checkpoint_dir
+        
+        files = tf.io.gfile.listdir(checkpoint_dir)
+
+        postfix = "ckpt.h5"
+
+        files = [f for f in files if f.endswith(postfix)]
+
+        print(f"Found checkpoint files: {files}")
+
+        return files
+    
+
+    def get_lastest_checkpoint_keras3(self, checkpoint_dir=None):
+
+        files = self.get_checkpoint_list_keras3(checkpoint_dir)
+
+        if len(files) == 0:
+            print("No checkpoint found")
+            return None
+
+        files = sorted(files)
+
+        result = files[-1]
+
+        print(f"Latest checkpoint file: {result}")
+
+        return result
+    
+
+
