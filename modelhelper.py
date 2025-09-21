@@ -12,6 +12,8 @@ import tensorflow as tf
 from iseg.utils.keras_ops import set_bn_epsilon, set_bn_momentum, set_weight_decay
 from iseg.utils.keras3_utils import is_keras3
 
+K3_POSTFIX = "ckpt.weights.h5"
+
 
 def model_common_setup(
     model,
@@ -160,7 +162,7 @@ class ModelHelper:
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
 
-        filename = f"id-{timestr}.ckpt.h5"
+        filename = f"id-{timestr}.{K3_POSTFIX}"
 
         full_path = tf.io.gfile.join(checkpoint_dir, filename)
 
@@ -193,9 +195,7 @@ class ModelHelper:
         
         files = tf.io.gfile.listdir(checkpoint_dir)
 
-        postfix = "ckpt.h5"
-
-        files = [f for f in files if f.endswith(postfix)]
+        files = [f for f in files if f.endswith(K3_POSTFIX)]
 
         print(f"Found checkpoint files: {files}")
 
