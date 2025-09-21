@@ -209,6 +209,8 @@ class Eva (Keras3_Model_Wrapper):
                 )
             ]
 
+            # setattr(self, f"blocks.{i}", self.blocks[-1]) # TODO: Temp fix for Keras 3
+
         super().build(input_shape)
 
 

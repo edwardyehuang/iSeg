@@ -4,8 +4,11 @@
 # ================================================================
 
 import tensorflow as tf
+import keras
 
 from iseg.utils.keras_ops import set_bn_epsilon, set_bn_momentum, set_weight_decay
+
+from iseg.utils.keras3_utils import is_keras3
 
 
 def model_common_setup(
@@ -46,7 +49,12 @@ def model_common_setup(
 
 
 class ModelHelper:
-    def __init__(self, model: tf.keras.Model, checkpoint_dir, max_to_keep=20):
+    def __init__(
+        self, 
+        model: keras.Model, 
+        checkpoint_dir,
+        max_to_keep=20
+    ):
 
         self.model = model
 
@@ -57,19 +65,37 @@ class ModelHelper:
         else:
             self.ckpt_manager = None
 
-    def set_optimizer(self, optimizer):
 
-        self.__optimizer = optimizer
+    def print_trackable_variables(self, items=[]):
+        
+        for item in items:
 
-    @property
-    def optimizer(self):
+            if hasattr(item, 'path'):
+                print(f"path = {item.path}")
 
-        if self.__optimizer is None:
-            raise ValueError("The optimizer is None")
+            if hasattr(item, 'name'):
+                print(f"name = {item.name}")
 
-        return self.__optimizer
+            sub_items = tf.train.TrackableView(item).children(item).items()
+            sub_items = dict(sub_items)
+            sub_items = list(sub_items.values())
+
+            self.print_trackable_variables(sub_items)
+
 
     def restore_checkpoint(self):
+
+        # print trackable variables
+        # print("Trackable variables:")
+        # self.print_trackable_variables([self.model])
+
+        if is_keras3(): # TODO: Implement restoring for Keras 3
+            raise NotImplementedError("Restoring checkpoints is not implemented for Keras 3 yet")
+        else:
+            return self.restore_checkpoint_keras2()
+    
+
+    def restore_checkpoint_keras2(self):
 
         if self.ckpt_manager is None:
             return None
@@ -77,13 +103,23 @@ class ModelHelper:
         last_checkpoint = self.ckpt_manager.latest_checkpoint
 
         if last_checkpoint is not None:
-            self.ckpt.restore(last_checkpoint).expect_partial()
+            self.ckpt.restore(last_checkpoint)
 
         return last_checkpoint
 
+
     def save_checkpoint(self):
 
+        if is_keras3():# TODO: Implement saving for Keras 3
+            raise NotImplementedError("Saving checkpoints is not implemented for Keras 3 yet")
+        else:
+            return self.save_checkpoint_keras2()
+    
+
+    def save_checkpoint_keras2(self):
+        
         return self.ckpt_manager.save()
+
 
     def list_latest_ckpt_vars(self):
 
