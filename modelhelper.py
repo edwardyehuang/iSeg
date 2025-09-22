@@ -57,15 +57,17 @@ class ModelHelper:
         self, 
         model: keras.Model, 
         checkpoint_dir,
-        max_to_keep=20
+        max_to_keep=20,
+        force_use_keras2=False,
     ):
         # Note that, we need to support both keras 2 and 3 in the same class to easier convert in tf keras 2.5
 
         self.model = model
         self.checkpoint_dir = checkpoint_dir
         self.max_to_keep = max_to_keep
+        self.force_use_keras2 = force_use_keras2
 
-        if not is_keras3():
+        if not is_keras3() or self.force_use_keras2:
             self.ckpt = tf.train.Checkpoint(model=self.model)
 
             if checkpoint_dir is not None:
@@ -97,7 +99,7 @@ class ModelHelper:
         # print("Trackable variables:")
         # self.print_trackable_variables([self.model])
 
-        if is_keras3():
+        if is_keras3() and not self.force_use_keras2:
             return self.restore_checkpoint_keras3()
         else:
             return self.restore_checkpoint_keras2()
@@ -105,7 +107,7 @@ class ModelHelper:
 
     def save_checkpoint(self):
 
-        if is_keras3():
+        if is_keras3() and not self.force_use_keras2:
             return self.save_checkpoint_keras3()
         else:
             return self.save_checkpoint_keras2()
