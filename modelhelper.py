@@ -11,8 +11,9 @@ import tensorflow as tf
 
 from iseg.utils.keras_ops import set_bn_epsilon, set_bn_momentum, set_weight_decay
 from iseg.utils.keras3_utils import is_keras3
+from iseg.utils.keras_ops import load_h5_weight
 
-K3_POSTFIX = "ckpt.weights.h5"
+K3_POSTFIX = "ckpt.h5"
 
 
 def model_common_setup(
@@ -146,7 +147,7 @@ class ModelHelper:
         
         full_path = tf.io.gfile.join(self.checkpoint_dir, latest_checkpoint)
 
-        self.model.load_weights(full_path)
+        load_h5_weight(self.model, full_path, by_name=True, use_v2_behavior=True)
 
         return latest_checkpoint
     

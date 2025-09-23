@@ -181,7 +181,9 @@ def load_weights_from_hdf5_group_by_name_v2(f, model, skip_mismatch=False):
 
         name = replace_slash(name)
 
-        for layer in index.get(name, []):
+        layer_list = index.get(name, [])
+
+        for layer in layer_list:
             symbolic_weights = _legacy_weights(layer)
 
             if not is_keras3():
