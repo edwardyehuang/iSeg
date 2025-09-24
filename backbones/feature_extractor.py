@@ -27,6 +27,7 @@ from iseg.backbones.intern_image.intern_image import intern_image_tiny, intern_i
 from iseg.backbones.eva.eva import EVA02_large_patch16_224, EVA02_large_patch14_224, EVA02_tiny_patch_14_336, EVA02_large_patch16_512_COCO, EVA02_large_patch16_512_MV
 
 from iseg.utils.keras_ops import load_h5_weight
+from iseg.saver.h5_saver import load_h5_weight_by_name
 
 from iseg.utils.version_utils import is_keras3, print_keras_version
 
@@ -174,7 +175,7 @@ def get_backbone(
             if "resnet" in name:
                 load_h5_weight(backbone, weights_path)
             else:
-                load_h5_weight(backbone, weights_path, use_v2_behavior=True)
+                load_h5_weight_by_name(backbone, weights_path)
 
         elif ".ckpt" in weights_path[-5:]:
             print(f"Load backbone weights {weights_path} as ckpt format")

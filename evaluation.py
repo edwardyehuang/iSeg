@@ -90,8 +90,8 @@ def evaluate(
 
         print(pre_class_iou)
 
-        loss_metrics.reset_states()
-        iou_metrics.reset_states()
+        loss_metrics.reset_state()
+        iou_metrics.reset_state()
 
     return mean_iou
 

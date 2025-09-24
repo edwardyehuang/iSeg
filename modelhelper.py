@@ -77,6 +77,19 @@ class ModelHelper:
                 self.ckpt_manager = None
 
 
+    def set_optimizer(self, optimizer):
+
+        self.__optimizer = optimizer
+
+    @property
+    def optimizer(self):
+
+        if self.__optimizer is None:
+            raise ValueError("The optimizer is None")
+
+        return self.__optimizer
+
+
     def print_trackable_variables(self, items=[]):
         
         for item in items:
@@ -189,12 +202,16 @@ class ModelHelper:
 
         return filename
 
-        
+
     
 
     def get_checkpoint_list_keras3(self, checkpoint_dir=None):
 
         checkpoint_dir = self.checkpoint_dir if checkpoint_dir is None else checkpoint_dir
+
+        if checkpoint_dir is None or not tf.io.gfile.exists(checkpoint_dir):
+            print("No checkpoint dir specified or not exists")
+            return []
         
         files = tf.io.gfile.listdir(checkpoint_dir)
 
