@@ -7,19 +7,19 @@ from iseg.utils.slash_utils import replace_slash
 from iseg.utils.version_utils import is_keras3
 
 if LooseVersion(tf.version.VERSION) < LooseVersion("2.13.0"):
-    from keras.saving.hdf5_format import (
+    from keras.saving.hdf5_format import ( # type: ignore
         load_attributes_from_hdf5_group,
         preprocess_weights_for_loading,
         _legacy_weights,
     )
 elif not is_keras3():
-    from keras.src.saving.legacy.hdf5_format import (
+    from keras.src.saving.legacy.hdf5_format import ( # type: ignore
         load_attributes_from_hdf5_group, 
         preprocess_weights_for_loading, 
         _legacy_weights
     )
 else:
-    from keras.src.legacy.saving.legacy_h5_format import (
+    from keras.src.legacy.saving.legacy_h5_format import ( # type: ignore
         load_attributes_from_hdf5_group, 
         _legacy_weights
     )
