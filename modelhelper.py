@@ -13,7 +13,10 @@ from iseg.utils.keras_ops import set_bn_epsilon, set_bn_momentum, set_weight_dec
 from iseg.utils.keras3_utils import is_keras3
 from iseg.saver.h5_saver import load_h5_weight_by_name
 
-K3_POSTFIX = "ckpt.h5"
+K_GENERAL_POSTFIX = "ckpt.general.h5" # Compatible with keras 2 and 3
+K3_POSTFIX = "ckpt.weights.h5"
+
+
 
 
 def model_common_setup(
@@ -63,7 +66,7 @@ class ModelHelper:
     ):
         # Note that, we need to support both keras 2 and 3 in the same class to easier convert in tf keras 2.5
 
-        self.model = model
+        self.model : keras.Model = model
         self.checkpoint_dir = checkpoint_dir
         self.max_to_keep = max_to_keep
         self.force_use_keras2 = force_use_keras2
@@ -146,8 +149,7 @@ class ModelHelper:
     def save_checkpoint_keras2(self):
         
         return self.ckpt_manager.save()
-
-
+    
 
     # code for keras 3
 
@@ -160,7 +162,18 @@ class ModelHelper:
         
         full_path = tf.io.gfile.join(self.checkpoint_dir, latest_checkpoint)
 
-        load_h5_weight_by_name(self.model, full_path)
+        latest_checkpoint_postfix = ".".join(latest_checkpoint.split('.')[-3:])
+
+        if latest_checkpoint_postfix == K_GENERAL_POSTFIX:
+            print(f"Loading checkpoint {full_path} in general keras format, compatible with keras 2 and 3")
+            load_h5_weight_by_name(self.model, full_path)
+        elif latest_checkpoint_postfix == K3_POSTFIX:
+            print(f"Loading checkpoint {full_path} in keras 3 format")
+            self.model.load_weights(full_path)
+        else:
+            raise ValueError(f"Unknown checkpoint format: {latest_checkpoint_postfix}, path: {full_path}")
+
+        # load_h5_weight_by_name(self.model, full_path)
 
         return latest_checkpoint
     
@@ -178,7 +191,16 @@ class ModelHelper:
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
 
-        filename = f"id-{timestr}.{K3_POSTFIX}"
+        postfix = K3_POSTFIX
+
+        if not is_keras3():
+            # Although Keras 2.15 supports saving in keras 3 format, 
+            # but the saved file cannot be loaded in keras 3, so we
+            # use the general postfix for keras 2 and legacy .h5 format
+            postfix = K_GENERAL_POSTFIX
+            print("Saving in legacy keras .h5 format, compatible with keras 2 and 3")
+
+        filename = f"id-{timestr}.{postfix}"
 
         full_path = tf.io.gfile.join(checkpoint_dir, filename)
 
@@ -215,11 +237,14 @@ class ModelHelper:
         
         files = tf.io.gfile.listdir(checkpoint_dir)
 
-        files = [f for f in files if f.endswith(K3_POSTFIX)]
+        ckpt_files = [f for f in files if f.endswith(K3_POSTFIX)]
 
-        print(f"Found checkpoint files: {files}")
+        # we also need to consider the general postfix for keras 2(legacy .h5 format)
+        ckpt_files += [f for f in files if f.endswith(K_GENERAL_POSTFIX)]
 
-        return files
+        print(f"Found checkpoint files: {ckpt_files}")
+
+        return ckpt_files
     
 
     def get_lastest_checkpoint_keras3(self, checkpoint_dir=None):
