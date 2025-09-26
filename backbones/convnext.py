@@ -99,15 +99,18 @@ class Stage(Keras3_Model_Wrapper):
 
         assert len(drop_path_probs) == 0 or len(drop_path_probs) == depth
 
-        self.blocks = [
-            Block(
+        self.blocks = []
+
+        for i in range(depth):
+            block = Block(
                 filters=filters,
                 drop_path_prob=drop_path_probs[i],
                 layer_scale_init_value=layer_scale_init_value,
                 name=f"{self.name}/{i}",
             )
-            for i in range(depth)
-        ]
+
+            self.blocks.append(block)
+            
 
     def build(self, input_shape):
 
@@ -148,22 +151,23 @@ class ConvNeXt(Keras3_Model_Wrapper):
         cur = 0
 
         for i in range(num_stage):
-            self.downsample_blocks += [
-                DownSampleLayer(
-                    filters=filters_list[i], strides=4 if i == 0 else 2, swap=i == 0, name=_N(f"downsample_layers/{i}")
-                )
-            ]
 
-            self.stages += [
-                Stage(
-                    filters=filters_list[i],
-                    depth=depths[i],
-                    drop_path_probs=drop_path_rates[cur : cur + depths[i]],
-                    layer_scale_init_value=layer_scale_init_value,
-                    name=_N(f"stages/{i}"),
-                )
-            ]
+            downsample_block = DownSampleLayer(
+                filters=filters_list[i], strides=4 if i == 0 else 2, swap=i == 0, name=_N(f"downsample_layers/{i}")
+            )
 
+            self.downsample_blocks.append(downsample_block)
+
+            stage = Stage(
+                filters=filters_list[i],
+                depth=depths[i],
+                drop_path_probs=drop_path_rates[cur : cur + depths[i]],
+                layer_scale_init_value=layer_scale_init_value,
+                name=_N(f"stages/{i}"),
+            )
+
+            self.stages.append(stage)
+            
             cur += depths[i]
 
     def build(self, input_shape):
