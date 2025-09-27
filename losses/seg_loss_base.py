@@ -4,7 +4,7 @@ import keras
 from iseg.utils.version_utils import is_keras3
 
 if not is_keras3():
-    from keras.src.utils.losses_utils import ReductionV2
+    from keras.src.utils.losses_utils import ReductionV2 # type: ignore
 
 from iseg.utils.common import get_tensor_shape
 from iseg.utils.tensor_utils import get_stable_float_dtype_for_loss
