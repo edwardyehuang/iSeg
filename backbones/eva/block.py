@@ -35,6 +35,7 @@ class EvaBlock (Keras3_Model_Wrapper):
         activation="gelu",
         attention_head_filters=None,
         use_post_norm=False,
+        class_token_size=1,
         trainable=True,
         name=None,
     ):
@@ -63,6 +64,8 @@ class EvaBlock (Keras3_Model_Wrapper):
 
         self.use_post_norm = use_post_norm
 
+        self.class_token_size = class_token_size
+
 
     def build(self, input_shape):
 
@@ -81,6 +84,7 @@ class EvaBlock (Keras3_Model_Wrapper):
             projection_dropout_rate=self.projection_dropout_rate,
             attention_head_filters=self.attention_head_filters,
             use_norm=self.scale_attention_inner,
+            class_token_size=self.class_token_size,
             name=_N(f"{self.name}/attn"),
         )
 

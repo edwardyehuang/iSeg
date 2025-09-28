@@ -205,6 +205,7 @@ class Eva (Keras3_Model_Wrapper):
                     drop_path_rate=dpr[i],
                     init_values=self.init_values,
                     use_post_norm=self.use_post_norm,
+                    class_token_size=1 if self.use_class_token else 0,
                     name=_N(f"blocks/{i}"),
                 )
             ]

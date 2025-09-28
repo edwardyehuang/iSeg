@@ -27,6 +27,7 @@ class EvaAttention (Keras3_Model_Wrapper):
         projection_dropout_rate=0.0,
         attention_head_filters=None,
         use_norm=True,
+        class_token_size=1,
         trainable=True,
         name=None,
     ):
@@ -43,6 +44,8 @@ class EvaAttention (Keras3_Model_Wrapper):
         self.attention_head_filters = attention_head_filters
 
         self.use_norm = use_norm
+
+        self.class_token_size = class_token_size
         
 
     def build(self, input_shape):
@@ -140,12 +143,12 @@ class EvaAttention (Keras3_Model_Wrapper):
 
 
         if rope is not None:
-            q0 = q[:, :, :1, :] # [batch_size, num_heads, 1, head_filters]
-            q1 = apply_rot_embed_cat(q[:, :, 1:, :], rope)
+            q0 = q[:, :, :self.class_token_size, :] # [batch_size, num_heads, 1, head_filters]
+            q1 = apply_rot_embed_cat(q[:, :, self.class_token_size:, :], rope)
             q = tf.concat([q0, q1], axis=2) # [batch_size, num_heads, hw, head_filters]
 
-            k0 = k[:, :, :1, :] # [batch_size, num_heads, 1, head_filters]
-            k1 = apply_rot_embed_cat(k[:, :, 1:, :], rope)
+            k0 = k[:, :, :self.class_token_size, :] # [batch_size, num_heads, 1, head_filters]
+            k1 = apply_rot_embed_cat(k[:, :, self.class_token_size:, :], rope)
             k = tf.concat([k0, k1], axis=2) # [batch_size, num_heads, hw, head_filters]
 
         q *= self.attention_scale # [batch_size, num_heads, hw, head_filters]
