@@ -258,8 +258,19 @@ class RandomRotateAugment(DataAugmentationBase):
             images,
             rotation_matrix,
             fill_mode="constant",
-            fill_value=0.0,
+            fill_value=-1.0,
             interpolation="bilinear",
+        )
+
+        fill_constant_color = tf.reshape(
+            tf.constant(self.fill_constant_color, dtype=output_images.dtype), 
+            [1, 1, 1, 3]
+        )
+
+        output_images = tf.where(
+            tf.less(output_images, 0.0 - 1e-6),
+            tf.constant(fill_constant_color, dtype=output_images.dtype),
+            output_images,
         )
 
         if labels is not None:
