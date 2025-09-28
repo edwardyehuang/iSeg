@@ -263,13 +263,13 @@ class RandomRotateAugment(DataAugmentationBase):
         )
 
         fill_constant_color = tf.reshape(
-            tf.constant(self.fill_constant_color, dtype=output_images.dtype), 
+            tf.cast(self.fill_constant_color, dtype=output_images.dtype), 
             [1, 1, 1, 3]
         )
 
         output_images = tf.where(
             tf.less(output_images, 0.0 - 1e-6),
-            tf.constant(fill_constant_color, dtype=output_images.dtype),
+            fill_constant_color,
             output_images,
         )
 
