@@ -4,7 +4,7 @@
 
 ### News
 
-Sept-28-2025: Add weights for DINOv3 ConvNeXt-L and ConvNeXt-T. ViT weights are comming soon.
+Sept-28-2025: Add weights for DINOv3 ConvNeXt-L and ConvNeXt-T. ViT weights are coming soon.
 
 Sept-04-2025: Add support for TPUv5e. We will support TPUv6e in next few months.
 
