@@ -262,14 +262,20 @@ class RandomRotateAugment(DataAugmentationBase):
             interpolation="bilinear",
         )
 
+        random_fill_color = tf.random.uniform(
+            shape=[3], minval=0.0, maxval=255.0, dtype=output_images.dtype
+        )
+
+        '''
         fill_constant_color = tf.reshape(
             tf.cast(self.fill_constant_color, dtype=output_images.dtype), 
             [1, 1, 1, 3]
         )
+        '''
 
         output_images = tf.where(
             tf.less(output_images, 0.0 - 1e-6),
-            fill_constant_color,
+            random_fill_color,
             output_images,
         )
 
