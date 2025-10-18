@@ -48,30 +48,43 @@ class SegLossBase (keras.losses.Loss):
     @tf.autograph.experimental.do_not_convert
     def internal_call (self, y_true, y_pred):
 
+        y_true, y_pred, valid_mask = self.internal_preprocess(y_true, y_pred)
+
+        return self.compute_loss_forwards(y_true, y_pred, valid_mask=valid_mask)
+    
+
+    def internal_preprocess (self, y_true, y_pred):
+
         float_dtype = get_stable_float_dtype_for_loss()
 
         y_true = tf.cast(y_true, tf.int32) # [batch, h, w]
         y_pred = tf.cast(y_pred, float_dtype) # [batch, h, w, num_class]
 
-        batch_size, height, width, _ = get_tensor_shape(y_pred)
+        _, height, width, _ = get_tensor_shape(y_pred)
 
         y_true = tf.cast(tf.expand_dims(y_true, axis=-1), float_dtype) # [batch, h, w, 1]
         y_true = tf.image.resize(y_true, [height, width], method="nearest") # [batch, h, w, 1]
         y_true = tf.cast(tf.squeeze(y_true, axis=-1), tf.int32) # [batch, h, w]
 
-        valid_mask = self.compute_valid_mask(y_true)
+        valid_mask = self.compute_valid_mask(y_true, dtype=float_dtype) # [batch, h * w]
+
         y_true, y_pred = self.before_compute_loss_forward(y_true, y_pred)
 
-        valid_mask = tf.cast(valid_mask, float_dtype)
-        valid_mask = tf.reshape(valid_mask, [batch_size, -1]) # [batch, h * w]
+        return y_true, y_pred, valid_mask
 
-        return self.compute_loss_forwards(y_true, y_pred, valid_mask=valid_mask)
-    
 
-    def compute_valid_mask (self, y_true):
+    def compute_valid_mask (self, y_true, dtype=None):
+
+        dtype = dtype if dtype is not None else y_true.dtype
         
-        return tf.math.not_equal(y_true, self.ignore_label) # [batch, h, w]
-    
+        valid_mask = tf.math.not_equal(y_true, self.ignore_label) # [batch, h, w]
+        valid_mask = tf.cast(valid_mask, dtype)
+
+        batch_size = tf.shape(y_true)[0]
+
+        return tf.reshape(valid_mask, [batch_size, -1]) # [batch, h * w]
+
+
 
     def before_compute_loss_forward (self, y_true, y_pred):
 
