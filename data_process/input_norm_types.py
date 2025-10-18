@@ -9,4 +9,4 @@ class InputNormTypes(Enum):
     
     KERAS = 2
 
-    KEARS_SCALE = 3
+    KERAS_SCALE = 3

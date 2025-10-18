@@ -237,7 +237,9 @@ class SegManaged(SegFoundation):
 
             for i in range(len(_y)):
                 output_name = self._index_to_output_key(i)
-                y[output_name] = tf.identity(_y[i], name=output_name)
+
+                if tf.is_tensor(_y[i]):
+                    y[output_name] = tf.identity(_y[i], name=output_name)
 
 
         return y

@@ -74,7 +74,7 @@ def normalize_input_value_range(
         return preprocess_zero_mean_unit_range(image)
     elif input_norm_type == InputNormTypes.KERAS:
         return keras_norm_preprocess(image)
-    elif input_norm_type == InputNormTypes.KEARS_SCALE:
+    elif input_norm_type == InputNormTypes.KERAS_SCALE:
         return keras_norm_preprocess(image, scale=True)
     else:
         raise ValueError(f"Unsupported input_norm_type: {input_norm_type}")
@@ -90,7 +90,7 @@ def invert_normalize_input_value_range(
         raise NotImplementedError("Not implemented")
     elif input_norm_type == InputNormTypes.KERAS:
         return keras_norm_preprocess_invert(image)
-    elif input_norm_type == InputNormTypes.KEARS_SCALE:
+    elif input_norm_type == InputNormTypes.KERAS_SCALE:
         return keras_norm_preprocess_invert(image, scale=True)
     else:
         raise ValueError(f"Unsupported input_norm_type: {input_norm_type}")
