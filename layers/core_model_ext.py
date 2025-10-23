@@ -224,25 +224,34 @@ class SegManaged(SegFoundation):
 
     def compute_final_results (self, logits_list):
 
-        y = [tf.cast(logits, tf.float32) for logits in logits_list]
+        results_list = []
 
-        '''
-        if len(y) == 1:
-            y = y[0]
-        '''
+        for logits in logits_list:
+            
+            if tf.is_tensor(logits):
+                logits = tf.cast(logits, tf.float32)
+            elif isinstance(logits, list):
+                logits = [tf.cast(l, tf.float32) for l in logits]
 
-        if isinstance(y, list) and is_keras3():
-            _y = y
-            y = dict()
+            results_list.append(logits)
 
-            for i in range(len(_y)):
+
+        if isinstance(results_list, list) and is_keras3():
+            _y = results_list
+            results_dict = dict()
+
+            for i in range(len(results_list)):
                 output_name = self._index_to_output_key(i)
 
-                if tf.is_tensor(_y[i]):
-                    y[output_name] = tf.identity(_y[i], name=output_name)
+                if tf.is_tensor(results_list[i]):
+                    results_list[i] = tf.identity(results_list[i], name=output_name)
 
+                results_dict[output_name] = results_list[i]
 
-        return y
+        else:
+            return results_list
+    
+
 
     def call(self, inputs, training=None):
 
