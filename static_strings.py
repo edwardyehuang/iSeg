@@ -7,6 +7,7 @@
 BN = "bn"
 LN = "ln"
 GN = "gn"
+RMSN = "rmsn"
 
 VOC2012 = "voc2012"
 VOC2012TEST = "voc2012test"

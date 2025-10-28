@@ -8,9 +8,13 @@ import keras
 import iseg.static_strings as ss
 
 from iseg.layers.normalizations import normalization
+from iseg.layers.rmsnorm import RMSNormalization
+
 from iseg.utils.common import resize_image
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+
+
 
 
 def get_training_value(training=None):
@@ -201,11 +205,13 @@ class NormConvAct(Keras3_Model_Wrapper):
                     self.ln = keras.layers.GroupNormalization(groups=groups, axis=-1, epsilon=ln_epsilon, trainable=trainable, name=f"{self.name}_ln")
                 else:
                     raise ValueError(f"Invalid groups value: {groups}")
+            elif norm_type == ss.RMSN:
+                self.ln = RMSNormalization(epsilon=ln_epsilon, trainable=trainable, name=f"{self.name}_rmsn")
             else:
                 raise ValueError(f"Invalid norm_type: {norm_type}")
         
 
-        self.conv = tf.keras.layers.Conv2D(
+        self.conv = keras.layers.Conv2D(
             filters,
             kernel_size,
             padding="same",
