@@ -4,6 +4,7 @@
 # ================================================================
 
 import tensorflow as tf
+import keras
 import numpy as np
 
 from tensorflow.python.keras.engine import data_adapter
@@ -52,7 +53,7 @@ class SegBase(Keras3_Model_Wrapper):
     def test_step(self, data):
 
         if is_keras3():
-            (x, y, sample_weight) = tf.keras.utils.unpack_x_y_sample_weight(data)
+            (x, y, sample_weight) = keras.utils.unpack_x_y_sample_weight(data)
             if self._call_has_training_arg:
                 y_pred = self.inference(x, training=False)
             else:

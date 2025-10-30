@@ -165,11 +165,11 @@ def __get_optimizer(
             print("TensorFlow version < 2.10, use legacy optimizer")
 
             if optimizer == "sgd":
-                _optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate)
+                _optimizer = keras.optimizers.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate)
             elif optimizer == "adam":
-                _optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=False)
+                _optimizer = keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=False)
             elif optimizer == "amsgrad":
-                _optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=True)
+                _optimizer = keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=True)
             elif optimizer == "adamw":
                 _optimizer = legacy_optimizers.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate)
             else:
