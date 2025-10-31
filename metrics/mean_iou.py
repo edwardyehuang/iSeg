@@ -9,7 +9,7 @@ import tensorflow as tf
 import keras
 import numpy as np
 
-from iseg.metrics.confusion_matrix import confusion_matrix
+from iseg.metrics.confusion_matrix import confusion_matrix, batch_confusion_matrix
 from iseg.utils.version_utils import is_keras3
 
 
@@ -32,6 +32,27 @@ def get_class_confusion_matrix (y_true, y_pred, num_class=21, sample_weight=None
 
     # Accumulate the prediction to current confusion matrix.
     return confusion_matrix(y_true, y_pred, num_class, weights=sample_weight, dtype=dtype)
+
+
+
+def get_batch_class_confusion_matrix (y_true, y_pred, num_class=21, sample_weight=None, dtype=tf.float32):
+
+    y_true = tf.cast(y_true, dtype)
+    y_pred = tf.cast(y_pred, dtype)
+
+    batch_size = tf.shape(y_true)[0]
+
+    # Flatten the input if its rank > 2.
+    y_pred = tf.reshape(y_pred, [batch_size, -1])
+    y_true = tf.reshape(y_true, [batch_size, -1])
+
+
+    if sample_weight is not None:
+        sample_weight = tf.cast(sample_weight, dtype)
+        sample_weight = tf.reshape(sample_weight, [batch_size,-1])
+
+    # Accumulate the prediction to current confusion matrix.
+    return batch_confusion_matrix(y_true, y_pred, num_class, weights=sample_weight, dtype=dtype)
 
 
 
