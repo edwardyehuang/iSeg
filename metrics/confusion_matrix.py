@@ -141,3 +141,91 @@ def confusion_matrix(labels, predictions, num_classes=None, weights=None, dtype=
     values = tf.ones_like(predictions, dtype) if weights is None else weights
 
     return tf.scatter_nd(indices=indices, updates=values, shape=tf.cast(shape, tf.int32))
+
+
+def batch_confusion_matrix(labels, predictions, num_classes=None, weights=None, dtype=tf.int32, name=None):
+    """Computes per-batch confusion matrices from predictions and labels.
+
+    Inputs:
+      - labels: Tensor of integer class ids with shape [B, ...].
+      - predictions: Tensor of integer class ids with the same shape as labels.
+      - num_classes: Optional int scalar. If None, inferred from max(labels, predictions) + 1.
+      - weights: Optional Tensor with the same shape as labels for per-element weighting.
+      - dtype: Output dtype (counts). Use a floating dtype if fractional weights are desired.
+      - name: Optional op name.
+
+    Output:
+      - Tensor of shape [B, num_classes, num_classes], where rows are true labels and
+        columns are predicted labels for each batch element.
+    """
+    with ops.name_scope(name, "batch_confusion_matrix", (predictions, labels, num_classes, weights)) as name:
+        labels, predictions = remove_squeezable_dimensions(
+            tf.convert_to_tensor(labels, name="labels"),
+            tf.convert_to_tensor(predictions, name="predictions"),
+        )
+
+    predictions = tf.cast(predictions, tf.int32)
+    labels = tf.cast(labels, tf.int32)
+
+    # Shapes must match and rank must be >= 2 (batch-first inputs).
+    shape_assert = tf.debugging.assert_equal(
+        tf.shape(labels), tf.shape(predictions), message="`labels` and `predictions` must have the same shape"
+    )
+    rank_assert = tf.debugging.assert_greater_equal(
+        tf.rank(labels), 2, message="`labels` and `predictions` must have rank >= 2 (batch first)"
+    )
+    dep = control_flow_ops.group(shape_assert, rank_assert)
+    labels = control_flow_ops.with_dependencies([dep], labels)
+    predictions = control_flow_ops.with_dependencies([dep], predictions)
+
+    # Sanity checks - underflow or overflow can cause memory corruption.
+    labels = control_flow_ops.with_dependencies(
+        [tf.debugging.assert_non_negative(labels, message="`labels` contains negative values")], labels
+    )
+    predictions = control_flow_ops.with_dependencies(
+        [tf.debugging.assert_non_negative(predictions, message="`predictions` contains negative values")], predictions
+    )
+
+    # Determine / validate num_classes.
+    if num_classes is None:
+        num_classes_int32 = tf.maximum(tf.reduce_max(predictions), tf.reduce_max(labels)) + 1
+    else:
+        num_classes_int32 = tf.cast(num_classes, tf.int32)
+        labels = control_flow_ops.with_dependencies(
+            [tf.debugging.assert_less(labels, num_classes_int32, message="`labels` out of bound")], labels
+        )
+        predictions = control_flow_ops.with_dependencies(
+            [tf.debugging.assert_less(predictions, num_classes_int32, message="`predictions` out of bound")],
+            predictions,
+        )
+
+    # Flatten per batch: [B, ...] -> [B, N]
+    labels_shape = tf.shape(labels)
+    batch_size = labels_shape[0]
+    N = tf.reduce_prod(labels_shape[1:])
+
+    labels_2d = tf.reshape(labels, [batch_size, N])
+    preds_2d = tf.reshape(predictions, [batch_size, N])
+
+    # Build indices [b, y_true, y_pred] for scatter_nd
+    b_range = tf.range(batch_size, dtype=tf.int32)                # [B]
+    b_ids = tf.reshape(tf.tile(tf.expand_dims(b_range, 1), [1, N]), [-1])  # [B*N]
+
+    labels_flat = tf.reshape(labels_2d, [-1])       # [B*N]
+    preds_flat = tf.reshape(preds_2d, [-1])         # [B*N]
+
+    if weights is not None:
+        weights = tf.convert_to_tensor(weights, name="weights")
+        # Ensure weights shape matches predictions
+        _w_shape_assert = tf.debugging.assert_equal(
+            tf.shape(weights), tf.shape(predictions), message="`weights` must match `predictions` shape"
+        )
+        weights = control_flow_ops.with_dependencies([_w_shape_assert], weights)
+        updates = tf.reshape(tf.cast(weights, dtype), [-1])
+    else:
+        updates = tf.ones_like(preds_flat, dtype)
+
+    indices = tf.stack([b_ids, labels_flat, preds_flat], axis=1)  # [B*N, 3]
+    out_shape = tf.stack([batch_size, num_classes_int32, num_classes_int32])
+
+    return tf.scatter_nd(indices=indices, updates=updates, shape=tf.cast(out_shape, tf.int32))
