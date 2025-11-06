@@ -51,12 +51,12 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         if self.shared_qk_weights:
             if is_keras3():
-                q_kernel_initializer = k_kernel_initializer = tf.keras.initializers.GlorotUniform()
+                q_kernel_initializer = k_kernel_initializer = keras.initializers.GlorotUniform()
             else:
-                q_kernel_initializer = k_kernel_initializer = SharedInitializer(tf.keras.initializers.GlorotUniform())
+                q_kernel_initializer = k_kernel_initializer = SharedInitializer(keras.initializers.GlorotUniform())
         else:
-            q_kernel_initializer = tf.keras.initializers.GlorotUniform()
-            k_kernel_initializer = tf.keras.initializers.GlorotUniform()
+            q_kernel_initializer = keras.initializers.GlorotUniform()
+            k_kernel_initializer = keras.initializers.GlorotUniform()
 
         if self.apply_linear:
             self.query_conv = linear_func(
@@ -90,8 +90,8 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         batch_size, height, width, _ = get_tensor_shape(value)
 
-        query = replace_nan_or_inf(query, tf.keras.backend.epsilon())
-        key = replace_nan_or_inf(key, tf.keras.backend.epsilon())
+        query = replace_nan_or_inf(query, keras.backend.epsilon())
+        key = replace_nan_or_inf(key, keras.backend.epsilon())
 
         query = check_numerics(query, "query contains NaN/Inf", level=1)
         key = check_numerics(key, "keys contains NaN/Inf", level=1)
@@ -112,9 +112,9 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         attention_map = safed_softmax(attention_map) # [N, heads, H*W, H*W]
 
-        attention_map = replace_nan_or_inf(attention_map, nan_value=tf.keras.backend.epsilon())
+        attention_map = replace_nan_or_inf(attention_map, nan_value=keras.backend.epsilon())
         
-        attention_map = tf.clip_by_value(attention_map, tf.keras.backend.epsilon(), 1.0 - tf.keras.backend.epsilon())
+        attention_map = tf.clip_by_value(attention_map, keras.backend.epsilon(), 1.0 - keras.backend.epsilon())
 
         attention_map = check_numerics(attention_map, "softmax attention_map contains NaN/Inf", level=1) # [N, heads, H*W, H*W]
 
@@ -122,7 +122,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         x = tf.transpose(x, [0, 2, 1, 3]) # [N, H*W, heads, C//heads]
         x = tf.reshape(x, [batch_size, height, width, x.shape[-1] * self.num_heads]) # [N, H, W, C]
 
-        x = replace_nan_or_inf(x, tf.keras.backend.epsilon())
+        x = replace_nan_or_inf(x, keras.backend.epsilon())
 
         return x
 
