@@ -127,25 +127,27 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         return x
 
 
-    def call (self, inputs, training=None):
+    def call (self, inputs, key=None, value=None, training=None):
 
-        x = inputs # [N, H, W, C]
+        query = inputs # [N, H, W, C]
+
+        if key is None:
+            key = query
+
+        if value is None:
+            value = key
 
         if self.apply_linear:
-            query = self.query_conv(x) # [N, H, W, C]
+            query = self.query_conv(query) # [N, H, W, C]
 
             if not self.shared_qk:
-                key = self.key_conv(x)
+                key = self.key_conv(key)
             else:
                 key = tf.identity(query, name="shared_key")
 
-            x = self.value_conv(x) # [N, H, W, C]
-            
-        else:
-            query = x
-            key = x
+            value = self.value_conv(value) # [N, H, W, C]
 
 
-        x = self.compute_attetnion(query, key, x, training=training)
+        x = self.compute_attetnion(query, key, value, training=training)
 
         return x
