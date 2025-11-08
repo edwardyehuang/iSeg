@@ -86,9 +86,9 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         super().build(input_shape)
 
 
-    def compute_attetnion (self, query, key, value, training=None):
+    def compute_attention (self, query, key, value, training=None):
 
-        batch_size, height, width, _ = get_tensor_shape(value)
+        batch_size, height, width, _ = get_tensor_shape(query)
 
         query = replace_nan_or_inf(query, keras.backend.epsilon())
         key = replace_nan_or_inf(key, keras.backend.epsilon())
@@ -96,11 +96,11 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         query = check_numerics(query, "query contains NaN/Inf", level=1)
         key = check_numerics(key, "keys contains NaN/Inf", level=1)
 
-        query = tf.reshape(query, [batch_size, height * width, self.num_heads, query.shape[-1] // self.num_heads]) # [N, H*W, heads, C//heads]
+        query = tf.reshape(query, [batch_size, -1, self.num_heads, query.shape[-1] // self.num_heads]) # [N, H*W, heads, C//heads]
         query = tf.transpose(query, [0, 2, 1, 3]) # [N, heads, H*W, C//heads]
-        key = tf.reshape(key, [batch_size, height * width, self.num_heads, key.shape[-1] // self.num_heads]) # [N, H*W, heads, C//heads]
+        key = tf.reshape(key, [batch_size, -1, self.num_heads, key.shape[-1] // self.num_heads]) # [N, H*W, heads, C//heads]
         key = tf.transpose(key, [0, 2, 3, 1]) # [N, heads, C//heads, H*W]
-        value = tf.reshape(value, [batch_size, height * width, self.num_heads, value.shape[-1] // self.num_heads]) # [N, H*W, heads, C//heads]
+        value = tf.reshape(value, [batch_size, -1, self.num_heads, value.shape[-1] // self.num_heads]) # [N, H*W, heads, C//heads]
         value = tf.transpose(value, [0, 2, 1, 3]) # [N, heads, H*W, C//heads]
 
         attention_map = tf.matmul(query, key) # [N, heads, H*W, H*W]
@@ -148,6 +148,6 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
             value = self.value_conv(value) # [N, H, W, C]
 
 
-        x = self.compute_attetnion(query, key, value, training=training)
+        x = self.compute_attention(query, key, value, training=training)
 
         return x
