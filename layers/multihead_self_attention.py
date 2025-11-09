@@ -25,6 +25,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         shared_qk=False,
         trainable=True,
         use_dense_for_linear=False,
+        use_jit_compile=False,
         name=None
     ):
 
@@ -39,6 +40,16 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         self.shared_qk = shared_qk
 
         self.use_dense_for_linear = use_dense_for_linear
+
+        if is_keras3():
+            self.use_jit_compile = False
+
+        if tf.distribute.has_strategy():
+            strategy = tf.distribute.get_strategy()
+            if isinstance(strategy, tf.distribute.TPUStrategy):
+                use_jit_compile = False
+
+        self.use_jit_compile = use_jit_compile
 
     
     def build (self, input_shape):
@@ -85,8 +96,8 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         super().build(input_shape)
 
-
-    def compute_attention (self, query, key, value, training=None):
+    
+    def compute_attention_internal (self, query, key, value):
 
         batch_size, height, width, _ = get_tensor_shape(query)
 
@@ -125,6 +136,19 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         x = replace_nan_or_inf(x, keras.backend.epsilon())
 
         return x
+    
+    @tf.function(jit_compile=True, autograph=False)
+    def compute_attention_xla (self, query, key, value):
+        return self.compute_attention_internal(query, key, value)
+
+
+    def compute_attention (self, query, key, value):
+
+        if self.use_jit_compile:
+            return self.compute_attention_xla(query, key, value)
+        else:
+            return self.compute_attention_internal(query, key, value)
+
 
 
     def call (self, inputs, key=None, value=None, training=None):
@@ -148,6 +172,6 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
             value = self.value_conv(value) # [N, H, W, C]
 
 
-        x = self.compute_attention(query, key, value, training=training)
+        x = self.compute_attention(query, key, value)
 
         return x
