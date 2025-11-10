@@ -62,12 +62,12 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         if self.shared_qk_weights:
             if is_keras3():
-                q_kernel_initializer = k_kernel_initializer = keras.initializers.GlorotUniform()
+                q_kernel_initializer = k_kernel_initializer = keras.initializers.RandomNormal(stddev=0.02)
             else:
-                q_kernel_initializer = k_kernel_initializer = SharedInitializer(keras.initializers.GlorotUniform())
+                q_kernel_initializer = k_kernel_initializer = SharedInitializer(keras.initializers.RandomNormal(stddev=0.02))
         else:
-            q_kernel_initializer = keras.initializers.GlorotUniform()
-            k_kernel_initializer = keras.initializers.GlorotUniform()
+            q_kernel_initializer = keras.initializers.RandomNormal(stddev=0.02)
+            k_kernel_initializer = keras.initializers.RandomNormal(stddev=0.02)
 
         if self.apply_linear:
             self.query_conv = linear_func(
