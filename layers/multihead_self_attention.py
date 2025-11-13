@@ -25,6 +25,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         shared_qk=False,
         trainable=True,
         use_dense_for_linear=False,
+        dropout_rate=0.0,
         use_jit_compile=False,
         name=None
     ):
@@ -51,7 +52,9 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         self.use_jit_compile = use_jit_compile
 
-    
+        self.dropout_rate = dropout_rate
+
+
     def build (self, input_shape):
 
         linear_func = keras.layers.Dense if self.use_dense_for_linear else keras.layers.Conv2D
@@ -94,10 +97,12 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
                 name="value_conv"
             )
 
+        self.dropout_layer = keras.layers.Dropout(self.dropout_rate)
+
         super().build(input_shape)
 
     
-    def compute_attention_internal (self, query, key, value):
+    def compute_attention_internal (self, query, key, value, training=None):
 
         batch_size, height, width, _ = get_tensor_shape(query)
 
@@ -123,6 +128,8 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         attention_map = safed_softmax(attention_map) # [N, heads, H*W, H*W]
 
+        attention_map = self.dropout_layer(attention_map, training=training)
+
         attention_map = replace_nan_or_inf(attention_map, nan_value=keras.backend.epsilon())
         
         attention_map = tf.clip_by_value(attention_map, keras.backend.epsilon(), 1.0 - keras.backend.epsilon())
@@ -138,16 +145,16 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         return x
     
     @tf.function(jit_compile=True, autograph=False)
-    def compute_attention_xla (self, query, key, value):
-        return self.compute_attention_internal(query, key, value)
+    def compute_attention_xla (self, query, key, value, training=None):
+        return self.compute_attention_internal(query, key, value, training=training)
 
 
-    def compute_attention (self, query, key, value):
+    def compute_attention (self, query, key, value, training=None):
 
         if self.use_jit_compile:
-            return self.compute_attention_xla(query, key, value)
+            return self.compute_attention_xla(query, key, value, training=training)
         else:
-            return self.compute_attention_internal(query, key, value)
+            return self.compute_attention_internal(query, key, value, training=training)
 
 
 
@@ -172,6 +179,6 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
             value = self.value_conv(value) # [N, H, W, C]
 
 
-        x = self.compute_attention(query, key, value)
+        x = self.compute_attention(query, key, value, training=training)
 
         return x
