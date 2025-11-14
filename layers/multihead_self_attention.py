@@ -27,6 +27,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         use_dense_for_linear=False,
         dropout_rate=0.0,
         use_jit_compile=False,
+        return_attention_map=False,
         name=None
     ):
 
@@ -53,6 +54,8 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         self.use_jit_compile = use_jit_compile
 
         self.dropout_rate = dropout_rate
+
+        self.return_attention_map = return_attention_map
 
 
     def build (self, input_shape):
@@ -101,8 +104,8 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         super().build(input_shape)
 
-    
-    def compute_attention_internal (self, query, key, value, training=None):
+
+    def compute_attention_internal (self, query, key, value, attention_mask=None, training=None):
 
         batch_size, height, width, _ = get_tensor_shape(query)
 
@@ -126,7 +129,7 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         if self.apply_scale:
             attention_map /= tf.sqrt(tf.cast(query.shape[-1], attention_map.dtype))
 
-        attention_map = safed_softmax(attention_map) # [N, heads, H*W, H*W]
+        attention_map = safed_softmax(attention_map, mask=attention_mask) # [N, heads, H*W, H*W]
 
         attention_map = self.dropout_layer(attention_map, training=training)
 
@@ -142,23 +145,40 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
 
         x = replace_nan_or_inf(x, keras.backend.epsilon())
 
+        if self.return_attention_map:
+            return x, attention_map
+
         return x
     
     @tf.function(jit_compile=True, autograph=False)
-    def compute_attention_xla (self, query, key, value, training=None):
-        return self.compute_attention_internal(query, key, value, training=training)
+    def compute_attention_xla (self, query, key, value, attention_mask=None, training=None):
+        return self.compute_attention_internal(query, key, value, attention_mask=attention_mask, training=training)
 
 
-    def compute_attention (self, query, key, value, training=None):
+    def compute_attention (
+        self, 
+        query, 
+        key, 
+        value, 
+        attention_mask=None,
+        training=None
+    ):
 
         if self.use_jit_compile:
-            return self.compute_attention_xla(query, key, value, training=training)
+            return self.compute_attention_xla(query, key, value, attention_mask=attention_mask, training=training)
         else:
-            return self.compute_attention_internal(query, key, value, training=training)
+            return self.compute_attention_internal(query, key, value, attention_mask=attention_mask, training=training)
 
 
 
-    def call (self, inputs, key=None, value=None, training=None):
+    def call (
+        self, 
+        inputs, 
+        key=None, 
+        value=None, 
+        attention_mask=None, 
+        training=None
+    ):
 
         query = inputs # [N, H, W, C]
 
