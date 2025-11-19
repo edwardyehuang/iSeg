@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras
 
 from iseg.layers.se import SqueezeAndExcitationModule
 from iseg.layers.dcn_v2 import DCNv2
@@ -81,11 +82,13 @@ class FeatureAlignedPyramidNet (Keras3_Model_Wrapper):
         self, 
         skip_conv_filters=256,
         trainable=True,
+        warp_coarse_feature=False,
         name=None
     ):
         super().__init__(name=name, trainable=trainable)
 
         self.skip_conv_filters = skip_conv_filters
+        self.warp_coarse_feature = warp_coarse_feature
 
     def build(self, input_shape):
 
@@ -97,11 +100,19 @@ class FeatureAlignedPyramidNet (Keras3_Model_Wrapper):
             align_module = FeatureAlignment(self.skip_conv_filters, name=f"skip_conv_filters{i}")
             self.align_modules += [align_module]
 
+        if self.warp_coarse_feature:
+            self.warp_coarse_feature = keras.layers.Dense(self.skip_conv_filters, name="coarse_warp_conv")
+
+        super().build(input_shape)
+
     def call(self, inputs, training=None):
 
         feature_map_list = list(inputs)
 
         x = feature_map_list[-1]
+
+        if self.warp_coarse_feature:
+            x = self.warp_coarse_feature(x)
 
         result_endpoints = [x]
 
