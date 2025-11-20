@@ -54,7 +54,7 @@ class FeatureAlignment (Keras3_Model_Wrapper):
         self.lateral_conv = FeatureSelectionModule(filters=self.filters, name="lateral_conv")
         self.offset_conv = tf.keras.layers.Conv2D(self.filters, (1, 1),  use_bias=False, name="offset_conv")
 
-        self.depack_l2 = DCNv2(self.filters, (3, 3), use_custom_offset=True, name="depack_l2")
+        self.depack_l2 = DCNv2(self.filters, (3, 3), use_custom_offset=True, use_jit_compile=True, name="depack_l2")
         
         super().build(input_shape)
 
