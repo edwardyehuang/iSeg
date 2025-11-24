@@ -10,7 +10,7 @@ from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 class FeatureSelectionModule(SqueezeAndExcitationModule):
 
-    def __init__(self, filters=128, activation=tf.nn.relu, name=None):
+    def __init__(self, filters=128, activation="relu", name=None):
         super().__init__(
             ratio=1, 
             activation=activation, 
@@ -23,7 +23,7 @@ class FeatureSelectionModule(SqueezeAndExcitationModule):
 
     def build(self, input_shape):
 
-        self.conv = tf.keras.layers.Conv2D(self.filters, (1, 1), use_bias=False, name="conv")
+        self.conv = keras.layers.Conv2D(self.filters, (1, 1), use_bias=False, name="conv")
         
         super().build(input_shape)
 
@@ -52,7 +52,7 @@ class FeatureAlignment (Keras3_Model_Wrapper):
     def build(self, input_shape):
         
         self.lateral_conv = FeatureSelectionModule(filters=self.filters, name="lateral_conv")
-        self.offset_conv = tf.keras.layers.Conv2D(self.filters, (1, 1),  use_bias=False, name="offset_conv")
+        self.offset_conv = keras.layers.Conv2D(self.filters, (1, 1),  use_bias=False, name="offset_conv")
 
         self.depack_l2 = DCNv2(self.filters, (3, 3), use_custom_offset=True, use_jit_compile=True, name="depack_l2")
         
@@ -72,7 +72,7 @@ class FeatureAlignment (Keras3_Model_Wrapper):
         offset = self.offset_conv(offset)
 
         feat_align = self.depack_l2([feats_up, offset], training=training)
-        feat_align = tf.nn.relu(feat_align)
+        feat_align = keras.activations.relu(feat_align)
 
         return feat_align + feats_arm
 
