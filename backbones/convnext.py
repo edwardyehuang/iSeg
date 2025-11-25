@@ -51,7 +51,7 @@ class Block(Keras3_Model_Wrapper):
         x = self.dwconv(x)
         x = self.norm(x)
         x = self.pwconv1(x)
-        x = tf.nn.gelu(x)
+        x = keras.activations.gelu(x)
         x = self.pwconv2(x)
 
         if self.gamma is not None:
