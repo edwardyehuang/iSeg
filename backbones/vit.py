@@ -6,6 +6,8 @@
 import numpy as np
 import tensorflow as tf
 
+import keras
+
 from iseg.utils.attention_utils import flatten_hw
 from iseg.utils.common import get_tensor_shape
 from iseg.layers.model_builder import get_training_value
@@ -66,34 +68,34 @@ class MLPBlock(Keras3_Model_Wrapper):
         self, 
         filters, 
         dropout_rate=0.0,
-        activation=tf.nn.gelu,
+        activation="gelu",
         name=None
     ):
         super().__init__(name=name)
 
         self.filters = filters
         self.dropout_rate = dropout_rate
-        self.activation = activation
+        self.activation = keras.activations.get(activation)
 
 
     def build(self, input_shape):
 
-        self.dense0 = tf.keras.layers.Dense(
+        self.dense0 = keras.layers.Dense(
             self.filters, 
             activation=self.activation,
             kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
             name=f"{self.name}/dense0"
         )
         
-        self.dense0_dropout = tf.keras.layers.Dropout(self.dropout_rate)
+        self.dense0_dropout = keras.layers.Dropout(self.dropout_rate)
 
-        self.dense1 = tf.keras.layers.Dense(
+        self.dense1 = keras.layers.Dense(
             input_shape[-1], 
             kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
             name=f"{self.name}/dense1"
         )
         
-        self.dense1_dropout = tf.keras.layers.Dropout(
+        self.dense1_dropout = keras.layers.Dropout(
             self.dropout_rate, name="dense1_dropout"
         )
 
@@ -132,19 +134,19 @@ class TransformerBlock(Keras3_Model_Wrapper):
 
         channels = input_shape[-1]
 
-        self.attention_norm = tf.keras.layers.LayerNormalization(
+        self.attention_norm = keras.layers.LayerNormalization(
             epsilon=1e-6, 
             name=f"{self.name}/ln1"
         )
 
-        self.attention = tf.keras.layers.MultiHeadAttention(
+        self.attention = keras.layers.MultiHeadAttention(
             num_heads=self.num_head, 
             key_dim=channels // self.num_head, 
             dropout=self.dropout_rate, 
             name=f"{self.name}/attn"
         )
 
-        self.mlp_norm = tf.keras.layers.LayerNormalization(
+        self.mlp_norm = keras.layers.LayerNormalization(
             epsilon=1e-6, 
             name=f"{self.name}/ln2"
         )
