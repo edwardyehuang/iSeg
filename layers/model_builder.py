@@ -181,7 +181,7 @@ class NormConvAct(Keras3_Model_Wrapper):
         use_norm=True,
         norm_type=ss.LN,
         ln_epsilon=1e-6,
-        activation=tf.nn.gelu,
+        activation="gelu",
         conv_kernel_initializer="glorot_uniform",
         dropout_rate=0,
         trainable=True,
