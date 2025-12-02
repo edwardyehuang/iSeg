@@ -237,6 +237,8 @@ class DCNv2(Keras3_Layer_Wrapper):
         map_all = tf.reshape(map_bilinear, [bs, ih, iw, self.ks * ic]) # [B, H, W, 9*C], 9 = ks
 
         final_kernel = tf.cast(self.kernel, map_all.dtype) # [kh, kw, C, OC]
+
+        '''
         final_kernel = tf.reshape(final_kernel, [1, 1, -1, self.filters]) # [1, 1, kh*kw*C, OC] = [1, 1, 9*C, OC]
 
         output = tf.nn.conv2d(
@@ -246,6 +248,14 @@ class DCNv2(Keras3_Layer_Wrapper):
             padding='SAME',
             dilations=self.dilation,
         ) # [B, H, W, OC]
+        '''
+
+        final_kernel = tf.reshape(final_kernel, [1, self.ks * ic, self.filters]) # [1, kh*kw*C, OC] = [1, 9*C, OC]
+        final_kernel = tf.broadcast_to(final_kernel, [bs, self.ks * ic, self.filters]) # [B, kh*kw*C, OC] = [B, 9*C, OC]
+        map_all = tf.reshape(map_all, [bs, ih * iw, self.ks * ic]) # [B, H*W, 9*C]
+        output = tf.matmul(map_all, final_kernel) # [B, H*W, OC]
+        output = tf.reshape(output, [bs, ih, iw, self.filters]) # [B, H, W, OC]
+
 
         if self.use_bias:
             output = tf.add(output, tf.cast(self.bias, output.dtype), name="output.add.bias")
