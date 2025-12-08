@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras
 
 from iseg.utils.keras_ops import get_all_layers_v2, set_bn_momentum
 from iseg.modelhelper import ModelHelper
@@ -13,15 +14,21 @@ def get_no_weight_decay_layers_names_from_model (model):
         "relative_position_bias_table", 
         "pos", 
         "patch_embed",
-        "class_token"
+        "class_token",
+        "logits",
     ]
 
     for layer in layers:
         
-        if (isinstance(layer, tf.keras.layers.LayerNormalization) or
-            isinstance(layer, tf.keras.layers.BatchNormalization)):
+        if (isinstance(layer, keras.layers.LayerNormalization) or
+            isinstance(layer, keras.layers.BatchNormalization)):
 
             excluded_name_list.append(layer.name)
+        else:
+            layer_type_name = layer.__class__.__name__.lower()
+
+            if "norm" in layer_type_name:
+                excluded_name_list.append(layer.name)
         
     return excluded_name_list
 
