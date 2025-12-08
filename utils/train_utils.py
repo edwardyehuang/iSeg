@@ -26,11 +26,12 @@ def get_no_weight_decay_layers_names_from_model (model):
             excluded_name_list.append(layer.name)
         else:
             layer_type_name = layer.__class__.__name__.lower()
+            layer_name = layer.name.lower()
 
             if "norm" in layer_type_name:
                 excluded_name_list.append(layer.name)
 
-            if "logits" in layer_type_name:
+            if "logits" in layer_name:
                 excluded_name_list.append(layer.name)
         
     return excluded_name_list
