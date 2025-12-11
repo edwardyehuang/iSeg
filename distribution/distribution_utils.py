@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 from platform import uname
 
 
-def get_tpu_strategy(name=None):
+def initialize_tpu_system(name=None):
 
     if LooseVersion(tf.version.VERSION) >= LooseVersion("2.19.0"):
         print("Set TPU name to None for 2.19.0+")
@@ -26,6 +26,13 @@ def get_tpu_strategy(name=None):
 
     tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
     print("TPU Device:", cluster_resolver.master())
+
+    return cluster_resolver
+
+
+def get_tpu_strategy(name=None):
+
+    cluster_resolver = initialize_tpu_system(name)
 
     print("Creating TPU strategy ...")
 
