@@ -9,7 +9,7 @@ import tensorflow as tf
 from distutils.version import LooseVersion
 
 from iseg.utils.common import set_random_seed, enable_mixed_precision
-from iseg.utils.distribution_utils import get_distribution_strategy, shutdown_tpu_system
+from iseg.distribution.distribution_utils import get_distribution_strategy, shutdown_tpu_system
 
 
 def common_env_setup(

@@ -4,7 +4,7 @@ from keras.src import backend
 from keras.src import ops
 from keras.src.backend.tensorflow.core import cast
 
-from iseg.utils.distribution_utils import all_reduce_values
+from iseg.distribution.distribution_utils import all_reduce_values
 
 
 def moments(x, axes, keepdims=False, synchronized=False):

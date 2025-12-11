@@ -12,7 +12,7 @@ import tensorflow as tf
 import keras
 
 from iseg.utils.version_utils import is_keras3
-from iseg.utils.distribution_utils import list_gpus
+from iseg.distribution.distribution_utils import list_gpus
 
 
 DEFAULT_IMAGE_RESIZE_METHOD = "bilinear"
