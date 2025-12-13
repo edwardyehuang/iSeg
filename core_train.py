@@ -4,6 +4,7 @@
 # ================================================================
 
 import tensorflow as tf
+import keras
 import numpy as np
 import math
 
@@ -173,13 +174,12 @@ class CoreTrain(object):
         train_ds = self.prepare_train_dataset(model, batch_size, shuffle_rate)
         eval_ds = self.prepare_val_dataset(model, eval_batch_size)
 
-        if not is_keras3():
-            tensorboard_callback = tf.keras.callbacks.TensorBoard(
-                log_dir=tensorboard_dir, 
-                histogram_freq=0, 
-                write_images=False,
-                profile_batch=0 if not use_profiler else (int(epoch_steps * 0.1), int(epoch_steps * 0.1) + 2),
-            )
+        tensorboard_callback = keras.callbacks.TensorBoard(
+            log_dir=tensorboard_dir, 
+            histogram_freq=0, 
+            write_images=False,
+            profile_batch=0 if not use_profiler else (int(epoch_steps * 0.1), int(epoch_steps * 0.1) + 2),
+        )
 
         checkpoint_saver = CheckpointSaver(self.model_helper)
         model_callback = ModelCallback(self.model_helper.model)
@@ -187,13 +187,11 @@ class CoreTrain(object):
         val_steps = None if eval_ds is None else int(math.ceil(self.val_image_count / eval_batch_size))
 
         model_callbacks = [
+            tensorboard_callback,
             checkpoint_saver, 
             model_callback, 
             TimeCallback(),
         ]
-
-        if not is_keras3():
-            model_callbacks.insert(0, tensorboard_callback)
 
         # Note, we do not apply the shuffle in keras.model.fit as it has already shuffled in tf.data
         model.fit(
