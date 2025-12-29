@@ -10,7 +10,7 @@ from iseg.layers.model_builder import ConvNormAct
 from iseg.utils.common import resize_image
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
-from iseg.utils.keras_ops import replace_nan_or_inf
+from iseg.utils.op_utils import replace_nan_or_inf
 
 
 class FeaturePyramidNetwork(Keras3_Model_Wrapper):

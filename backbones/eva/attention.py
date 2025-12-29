@@ -10,7 +10,7 @@ import keras
 from iseg.utils import get_tensor_shape
 from iseg.backbones.eva.rotar_embedding_cat import RotaryEmbeddingCat, apply_rot_embed_cat
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper, _N
-from iseg.utils.keras_ops import replace_nan_or_inf
+from iseg.utils.op_utils import replace_nan_or_inf
 from iseg.utils.op_utils import safed_softmax
 
 LAYER_NORM_EPSILON = 1e-6

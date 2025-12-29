@@ -4,7 +4,7 @@ import math
 
 from iseg.utils import get_tensor_shape
 from iseg import check_numerics
-from iseg.utils.keras_ops import replace_nan_or_inf
+from iseg.utils.op_utils import replace_nan_or_inf
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 from iseg.utils.op_utils import safed_softmax

@@ -211,25 +211,6 @@ def capture_func(model, func_name):
     return None
 
 
-def replace_nan(x, value=0.0):
-    return tf.where(tf.math.is_nan(x), tf.ones_like(x) * value, x)
-
-
-def replace_inf(x):
-
-    inf_to_zero = tf.where(tf.math.is_inf(x), tf.zeros_like(x), x)
-    max_value = tf.reduce_max(inf_to_zero)
-    min_value = tf.reduce_min(inf_to_zero)
-
-    return tf.clip_by_value(x, min_value, max_value)
-
-
-def replace_nan_or_inf(x, nan_value=0.0):
-    
-    with tf.name_scope("replace_nan_or_inf"):
-        return replace_inf(replace_nan(x, nan_value))
-
-
 class HookLayer(Keras3_Model_Wrapper):
     def __init__(self, target):
         super(HookLayer, self).__init__()

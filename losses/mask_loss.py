@@ -3,7 +3,7 @@ import keras
 
 from iseg.utils.common import get_tensor_shape
 from iseg.utils.value_check import check_numerics
-from iseg.utils.keras_ops import replace_nan_or_inf
+from iseg.utils.op_utils import replace_nan_or_inf
 
 from iseg.losses.seg_loss_base import SegLossBase
 

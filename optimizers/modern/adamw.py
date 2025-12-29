@@ -6,7 +6,7 @@ if LooseVersion(tf.version.VERSION) < LooseVersion("2.14.0"):
 else:
     _ADAMW = tf.keras.optimizers.AdamW
 
-from iseg.utils.keras_ops import replace_nan
+from iseg.utils.op_utils import replace_nan
 
 class AdamW_EXT (_ADAMW):
 
