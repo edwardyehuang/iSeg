@@ -1,7 +1,5 @@
 import tensorflow as tf
 
-from iseg.utils.common import rep
-
 def _large_compatible_negative(tensor_type):
     """Large negative number as Tensor.
 
