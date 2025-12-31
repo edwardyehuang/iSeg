@@ -255,6 +255,7 @@ class SegFoundation(SegBase):
         ohem_thresh=0.7,
         label_as_inputs=False,
         custom_aux_loss_fns=[],
+        custom_aux_metrics_fns=[],
         use_focal_loss=False,
         focal_loss_gamma=2.0,
         focal_loss_alpha=1.0,
@@ -301,6 +302,7 @@ class SegFoundation(SegBase):
         self.label_as_inputs = label_as_inputs
 
         self.custom_aux_loss_fns = custom_aux_loss_fns
+        self.custom_aux_metrics_fns = custom_aux_metrics_fns
 
         self.use_focal_loss = use_focal_loss
         self.focal_loss_gamma = focal_loss_gamma
@@ -473,6 +475,15 @@ class SegFoundation(SegBase):
 
         assert len(aux_metric_pre_fns) == self.num_aux_loss
 
+        # custom metric fns for aux metrics
+        custom_aux_metrics_fns = self.custom_aux_metrics_fns
+
+        if custom_aux_metrics_fns is None or len(custom_aux_metrics_fns) == 0:
+            custom_aux_metrics_fns = [[]] * self.num_aux_loss
+        
+        assert len(custom_aux_metrics_fns) == self.num_aux_loss
+
+
         # Build aux metrics
 
         for i in range(self.num_aux_loss):
@@ -481,8 +492,9 @@ class SegFoundation(SegBase):
             metrics.add(
                 f"{prefix}_{i}", 
                 use_iou=aux_metric_iou_masks[i],
-                pre_compute_fn=aux_metric_pre_fns[i]
-                )
+                pre_compute_fn=aux_metric_pre_fns[i],
+                custom_metric_fns_list=custom_aux_metrics_fns[i],
+            )
 
         return metrics.to_dict(self._index_to_output_key)
 

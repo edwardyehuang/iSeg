@@ -17,7 +17,7 @@ class SegMetricBuilder:
 
         self.__metrics = []
 
-    def add(self, prefix="", use_iou=True, pre_compute_fn=None):
+    def add(self, prefix="", use_iou=True, pre_compute_fn=None, custom_metric_fns_list=[]):
 
         metrics_list = []
 
@@ -35,6 +35,18 @@ class SegMetricBuilder:
             iou_metric.add_pre_compute_fn(pre_compute_fn)
 
             metrics_list.append(iou_metric)
+        
+        if custom_metric_fns_list is not None:
+
+            if not isinstance(custom_metric_fns_list, list):
+                custom_metric_fns_list = [custom_metric_fns_list]
+
+            for custom_metric_fn in custom_metric_fns_list:
+                custom_metric = custom_metric_fn(num_class=self.num_class, ignore_label=self.ignore_label, name=prefix)
+                if isinstance(custom_metric, SegMetricWrapper):
+                    custom_metric.add_pre_compute_fn(pre_compute_fn)
+
+                metrics_list.append(custom_metric)
 
         self.__metrics.append(metrics_list)
 

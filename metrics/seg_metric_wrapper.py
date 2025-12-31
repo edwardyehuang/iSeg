@@ -7,6 +7,17 @@ import tensorflow as tf
 import keras
 
 
+def reshape_with_cond (
+    x,
+    target_shape,
+    condition=True,
+):
+    if condition:
+        x = tf.reshape(x, target_shape)
+
+    return x
+
+
 @tf.autograph.experimental.do_not_convert
 def process_seg_metric_inputs(
     y_true, 
@@ -14,6 +25,7 @@ def process_seg_metric_inputs(
     num_class=21,
     ignore_label=255,
     use_class_prob_as_pred=True,
+    flatten_outputs=True,
 ):
     
     y_true = tf.cast(y_true, tf.dtypes.int32)
@@ -27,12 +39,20 @@ def process_seg_metric_inputs(
 
 
     if use_class_prob_as_pred:
-        y_pred = tf.reshape(y_pred, shape=[-1, num_class])  # [NHW, C]
+        y_pred = reshape_with_cond(
+            y_pred, target_shape=[-1, num_class], condition=flatten_outputs
+        )  # [NHW, C]
         y_pred = tf.argmax(y_pred, axis=-1)
     else:
-        y_pred = tf.reshape(y_pred, shape=[-1]) # [NHW]
+        y_pred = reshape_with_cond(
+            y_pred, target_shape=[-1], condition=flatten_outputs
+        ) # [NHW]
 
-    y_true = tf.reshape(y_true, shape=[-1])  # [NHW]
+    y_pred = tf.cast(y_pred, tf.int32)
+
+    y_true = reshape_with_cond(
+        y_true, target_shape=[-1], condition=flatten_outputs
+    )  # [NHW]
 
     not_ignore_mask = tf.math.not_equal(y_true, ignore_label)
     not_ignore_mask = tf.cast(not_ignore_mask, tf.dtypes.float32)
