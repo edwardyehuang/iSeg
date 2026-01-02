@@ -26,6 +26,7 @@ def process_seg_metric_inputs(
     ignore_label=255,
     use_class_prob_as_pred=True,
     flatten_outputs=True,
+    set_ignore_label_to_zero=True,
 ):
     
     y_true = tf.cast(y_true, tf.dtypes.int32)
@@ -55,13 +56,14 @@ def process_seg_metric_inputs(
     )  # [NHW]
 
     not_ignore_mask = tf.math.not_equal(y_true, ignore_label)
-    not_ignore_mask = tf.cast(not_ignore_mask, tf.dtypes.float32)
 
     if ignore_label == 0:
         y_true -= 1
-        y_true = tf.where(tf.equal(y_true, -1), tf.zeros_like(y_true), y_true)
-    else:
-        y_true = tf.where(tf.equal(y_true, ignore_label), tf.zeros_like(y_true), y_true)
+
+    if set_ignore_label_to_zero:
+        y_true = tf.where(not_ignore_mask, y_true, tf.zeros_like(y_true))
+
+    not_ignore_mask = tf.cast(not_ignore_mask, tf.dtypes.float32)
 
     return y_true, y_pred, not_ignore_mask
 
