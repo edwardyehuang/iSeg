@@ -606,10 +606,10 @@ class SwinTransformerModel(Keras3_Model_Wrapper):
         if self.use_absolute_pos_embed:
             x = x + tf.reshape(self.absolute_pos_embed, shape=tf.shape(x))
 
-        x = self.pos_drop(x, training=training)
-
         endpoints = [x]
 
+        x = self.pos_drop(x, training=training)
+        
         for layer in self.basic_layers:
             x, before_downsample = layer(x, training=training)
             endpoints += [before_downsample]
