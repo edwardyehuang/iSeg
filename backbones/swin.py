@@ -10,7 +10,7 @@ import tensorflow as tf
 import keras
 
 from iseg.utils.drops import drop_path
-from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, Keras3_Model_Wrapper
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper, Keras3_Model_Wrapper, _N
 from iseg.utils.tensor_utils import get_tensor_shape
 
 
@@ -21,10 +21,10 @@ class Mlp(Keras3_Model_Wrapper):
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
 
-        self.fc1 = keras.layers.Dense(hidden_features, name=f"{name}/fc1")
-        self.fc2 = keras.layers.Dense(out_features, name=f"{name}/fc2")
+        self.fc1 = keras.layers.Dense(hidden_features, name=_N(f"{name}/fc1"))
+        self.fc2 = keras.layers.Dense(out_features, name=_N(f"{name}/fc2"))
 
-        self.dropout = keras.layers.Dropout(dropout_rate, name=f"{name}/dropout")
+        self.dropout = keras.layers.Dropout(dropout_rate, name=_N(f"{name}/dropout"))
 
     def build(self, input_shape):
         super().build(input_shape)
@@ -107,10 +107,10 @@ class WindowAttention(Keras3_Model_Wrapper):
             initial_value=tf.convert_to_tensor(relative_position_index), trainable=False, name="relative_position_index"
         )
 
-        self.qkv = keras.layers.Dense(self.filters * 3, use_bias=self.use_qkv_bias, name=f"{self.name}/qkv")
-        self.attention_dropout = keras.layers.Dropout(self.attn_drop, name=f"{self.name}/attention_dropout")
-        self.project = keras.layers.Dense(self.filters, name=f"{self.name}/proj")
-        self.project_dropout = keras.layers.Dropout(self.proj_drop, name=f"{self.name}/project_dropout")
+        self.qkv = keras.layers.Dense(self.filters * 3, use_bias=self.use_qkv_bias, name=_N(f"{self.name}/qkv"))
+        self.attention_dropout = keras.layers.Dropout(self.attn_drop, name=_N(f"{self.name}/attention_dropout"))
+        self.project = keras.layers.Dense(self.filters, name=_N(f"{self.name}/proj"))
+        self.project_dropout = keras.layers.Dropout(self.proj_drop, name=_N(f"{self.name}/project_dropout"))
 
         super().build(input_shape)
 
@@ -203,7 +203,7 @@ class SwinTransformerBlock(Keras3_Model_Wrapper):
 
         assert 0 <= self.shift_size < self.window_size, "shift_size must in 0-window_size"
 
-        self.norm1 = norm_layer(epsilon=1e-5, name=f"{name}/norm1")
+        self.norm1 = norm_layer(epsilon=1e-5, name=_N(f"{name}/norm1"))
 
         self.attention = WindowAttention(
             filters,
@@ -213,15 +213,15 @@ class SwinTransformerBlock(Keras3_Model_Wrapper):
             qk_scale=qk_scale,
             attn_drop=attention_dropout_rate,
             proj_drop=dropout_rate,
-            name=f"{name}/attn",
+            name=_N(f"{name}/attn"),
         )
 
         self.drop_path = DropPath(drop_path_prob if drop_path_prob > 0.0 else 0.0)
 
-        self.norm2 = norm_layer(epsilon=1e-5, name=f"{name}/norm2")
+        self.norm2 = norm_layer(epsilon=1e-5, name=_N(f"{name}/norm2"))
         mlp_hidden_dim = int(filters * mlp_ratio)
         self.mlp = Mlp(
-            in_features=filters, hidden_features=mlp_hidden_dim, dropout_rate=dropout_rate, name=f"{name}/mlp"
+            in_features=filters, hidden_features=mlp_hidden_dim, dropout_rate=dropout_rate, name=_N(f"{name}/mlp")
         )
 
     def get_pad_values(self, h, w):
@@ -300,8 +300,8 @@ class PatchMerging(Keras3_Model_Wrapper):
         super().__init__(name=name)
 
         self.filters = filters
-        self.reduction = keras.layers.Dense(2 * filters, use_bias=False, name=f"{name}/reduction")
-        self.norm = norm_layer(epsilon=1e-5, name=f"{name}/norm")
+        self.reduction = keras.layers.Dense(2 * filters, use_bias=False, name=_N(f"{name}/reduction"))
+        self.norm = norm_layer(epsilon=1e-5, name=_N(f"{name}/norm"))
 
     def build(self, input_shape):
         super().build(input_shape)
@@ -378,13 +378,13 @@ class BasicLayer(Keras3_Model_Wrapper):
                 attention_dropout_rate=attn_drop,
                 drop_path_prob=drop_path_prob[i] if isinstance(drop_path_prob, list) else drop_path_prob,
                 norm_layer=norm_layer,
-                name=f"{name}/blocks/{i}",
+                name=_N(f"{name}/blocks/{i}"),
             )
 
             self.blocks.append(block)
 
         if downsample is not None:
-            self.downsample = downsample(filters=filters, norm_layer=norm_layer, name=f"{name}/downsample")
+            self.downsample = downsample(filters=filters, norm_layer=norm_layer, name=_N(f"{name}/downsample"))
         else:
             self.downsample = None
 
@@ -466,10 +466,10 @@ class PatchEmbed(Keras3_Model_Wrapper):
         self.embed_dim = embed_filters
 
         self.proj = keras.layers.Conv2D(
-            embed_filters, kernel_size=patch_size, strides=patch_size, name=f"{name}/proj"
+            embed_filters, kernel_size=patch_size, strides=patch_size, name=_N(f"{name}/proj")
         )
         if norm_layer is not None:
-            self.norm = norm_layer(epsilon=1e-5, name=f"{name}/norm")
+            self.norm = norm_layer(epsilon=1e-5, name=_N(f"{name}/norm"))
         else:
             self.norm = None
 
@@ -591,7 +591,7 @@ class SwinTransformerModel(Keras3_Model_Wrapper):
                 drop_path_prob=dpr[sum(self.depths[:i_layer]) : sum(self.depths[: i_layer + 1])],
                 norm_layer=self.norm_layer,
                 downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
-                name=f"layers/{i_layer}",
+                name=_N(f"layers/{i_layer}"),
             )
 
             self.basic_layers.append(basic_layer)
