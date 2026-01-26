@@ -97,6 +97,10 @@ def load_weights_from_hdf5_group_by_name_v3(f, model, skip_mismatch=False):
 
         layer_list = index.get(name, [])
 
+        if len(layer_list) == 0:
+            logging.warning(f'Skipping loading weights for layer "{name}" '
+                            "as no layer with this name exists in the model.")
+
         for layer in layer_list:
             symbolic_weights = _legacy_weights(layer)
 
