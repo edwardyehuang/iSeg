@@ -21,6 +21,9 @@ COCOSTUFF10K = "cocostuff10k"
 GTA5 = "gta5"
 LIP = "lip"
 MAPILLARYVISTAS = "mapillary_vistas"
+
+COD10K = "cod10k"
+
 SEMANTICDRONE = "semantic_drone"
 TEMPSET = "tempset"
 PSEUDO = "pseudo"
