@@ -246,6 +246,7 @@ class SegFoundation(SegBase):
         num_class=21,
         input_norm_type=InputNormTypes.ZERO_MEAN,
         custom_main_loss_fn=None,
+        custom_main_metric_fn=None,
         num_aux_loss=0,
         aux_loss_rate=0.4,
         aux_metric_names=None,
@@ -270,6 +271,7 @@ class SegFoundation(SegBase):
         )
 
         self.custom_main_loss_fn = custom_main_loss_fn
+        self.custom_main_metric_fn = custom_main_metric_fn
 
         assert num_aux_loss >= 0, f"num_aux_loss must >= 0, found {num_aux_loss}"
 
@@ -455,7 +457,21 @@ class SegFoundation(SegBase):
     def custom_metrics(self, num_class, ignore_label):
 
         metrics = SegMetricBuilder(num_class, ignore_label)
-        metrics.add()
+
+        # Handle main metrics
+
+        custom_main_metric_fn = self.custom_main_metric_fn
+
+        if custom_main_metric_fn is None:
+            custom_main_metric_fn = []
+
+        if isinstance(custom_main_metric_fn, tuple):
+            custom_main_metric_fn = list(custom_main_metric_fn)
+        
+        if not isinstance(custom_main_metric_fn, list):
+            custom_main_metric_fn = [custom_main_metric_fn]
+
+        metrics.add(custom_metric_fns_list=custom_main_metric_fn)
 
         # Rest of the code is for aux metrics
 
