@@ -137,7 +137,9 @@ class TFSmeasureMetric(Metric):
         super().__init__(name=name, **kwargs)
         self.alpha = tf.constant(alpha, dtype=TYPE)
         self.sm_sum = self.add_weight(name="sm_sum", initializer="zeros", dtype=TYPE)
-        self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
+        self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE, )
+
+        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
 
 
     def update_state(
@@ -154,7 +156,7 @@ class TFSmeasureMetric(Metric):
 
         sm = self._cal_sm(pred, gt)
         self.sm_sum.assign_add(sm)
-        self.count.assign_add(1.0)
+        self.count.assign_add(self.one)
 
     @tf.autograph.experimental.do_not_convert
     def _cal_sm(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
@@ -636,7 +638,9 @@ class TFEmeasureMetric(Metric):
 
         changeable_em = tf.reduce_mean(changeable_em)
 
-        return {f"{self.name}_adp": adaptive_em, f"{self.name}_curve": changeable_em}
+        return adaptive_em
+
+        # return {f"{self.name}_adp": adaptive_em, f"{self.name}_curve": changeable_em}
 
     def reset_state(self) -> None:
         """Reset the metric state."""

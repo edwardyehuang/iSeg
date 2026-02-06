@@ -14,6 +14,7 @@ from iseg.utils.keras_ops import capture_func
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import _N
 from iseg.utils.value_utils import values_to_list
+from iseg.utils.tensor_utils import get_tensor_shape
 
 from iseg.data_process.input_norm_types import InputNormTypes
 
@@ -276,7 +277,7 @@ class SegManaged(SegFoundation):
                 label = inputs_dict
 
         image_tensor = tf.identity(x, name="image_tensor")
-        inputs_size = tf.shape(image_tensor)[1:3]
+        inputs_size = get_tensor_shape(image_tensor, return_list=True)[1:3]
 
         if is_dict_inputs:
             image_tensor = {self.dict_inputs_image_key: image_tensor}
