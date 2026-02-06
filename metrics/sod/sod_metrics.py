@@ -55,6 +55,8 @@ class TFMAEMetric(Metric):
         self.mae_sum = self.add_weight(name="mae_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
+        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
+
     def update_state(
         self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
     ) -> None:
@@ -69,7 +71,7 @@ class TFMAEMetric(Metric):
 
         mae = self._cal_mae(pred, gt)
         self.mae_sum.assign_add(mae)
-        self.count.assign_add(1.0)
+        self.count.assign_add(self.one)
 
     def _cal_mae(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the mean absolute error.
