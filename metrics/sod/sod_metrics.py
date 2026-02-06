@@ -139,6 +139,7 @@ class TFSmeasureMetric(Metric):
         self.sm_sum = self.add_weight(name="sm_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
+
     def update_state(
         self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
     ) -> None:
@@ -155,6 +156,7 @@ class TFSmeasureMetric(Metric):
         self.sm_sum.assign_add(sm)
         self.count.assign_add(1.0)
 
+    @tf.autograph.experimental.do_not_convert
     def _cal_sm(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the S-measure (Structure-measure) score.
 
@@ -631,7 +633,10 @@ class TFEmeasureMetric(Metric):
         """
         adaptive_em = safe_divide(self.adaptive_em_sum, self.adaptive_count)
         changeable_em = safe_divide(self.changeable_em_sum, self.changeable_count)
-        return {"adp": adaptive_em, "curve": changeable_em}
+
+        changeable_em = tf.reduce_mean(changeable_em)
+
+        return {f"{self.name}_adp": adaptive_em, f"{self.name}_curve": changeable_em}
 
     def reset_state(self) -> None:
         """Reset the metric state."""
@@ -818,6 +823,9 @@ class TFFmeasureMetric(Metric):
         changeable_fm = safe_divide(self.changeable_fm_sum, self.count)
         precision = safe_divide(self.precision_sum, self.count)
         recall = safe_divide(self.recall_sum, self.count)
+
+        changeable_fm = tf.reduce_mean(changeable_fm)
+
         return {
             "fm": {"adp": adaptive_fm, "curve": changeable_fm},
             "pr": {"p": precision, "r": recall},

@@ -9,9 +9,9 @@ import tensorflow as tf
 
 # The different implementation of epsilon between numpy and matlab
 # np.spacing(1) ≈ 2.220446049250313e-16
-EPS = tf.constant(2.220446049250313e-16, dtype=tf.float64)
-TYPE = tf.float64
-PI = tf.constant(math.pi, dtype=tf.float64)
+EPS = tf.constant(2.220446049250313e-16, dtype=tf.float32)
+TYPE = tf.float32
+PI = tf.constant(math.pi, dtype=tf.float32)
 
 
 def validate_and_normalize_input(
@@ -125,6 +125,7 @@ def tf_histogram(values: tf.Tensor, bins: int, min_val: float, max_val: float) -
     return tf.cast(hist, TYPE)
 
 
+@tf.autograph.experimental.do_not_convert
 def safe_divide(numerator: tf.Tensor, denominator: tf.Tensor) -> tf.Tensor:
     """Safe division that handles zero denominators.
 
