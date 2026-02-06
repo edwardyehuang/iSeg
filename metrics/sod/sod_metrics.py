@@ -400,6 +400,9 @@ class TFEmeasureMetric(Metric):
             name="changeable_count", initializer="zeros", dtype=TYPE
         )
 
+        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
+
+
     def update_state(
         self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
     ) -> None:
@@ -419,12 +422,12 @@ class TFEmeasureMetric(Metric):
         # Calculate adaptive E-measure
         adaptive_em = self._cal_adaptive_em(pred, gt)
         self.adaptive_em_sum.assign_add(adaptive_em)
-        self.adaptive_count.assign_add(1.0)
+        self.adaptive_count.assign_add(self.one)
 
         # Calculate changeable E-measure
         changeable_ems = self._cal_changeable_em(pred, gt)
         self.changeable_em_sum.assign_add(changeable_ems)
-        self.changeable_count.assign_add(1.0)
+        self.changeable_count.assign_add(self.one)
 
     def _cal_adaptive_em(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the adaptive E-measure using an adaptive threshold.
@@ -708,6 +711,8 @@ class TFFmeasureMetric(Metric):
         )
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
+        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
+
     def update_state(
         self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
     ) -> None:
@@ -730,7 +735,7 @@ class TFFmeasureMetric(Metric):
         self.recall_sum.assign_add(recalls)
         self.changeable_fm_sum.assign_add(changeable_fms)
 
-        self.count.assign_add(1.0)
+        self.count.assign_add(self.one)
 
     def _cal_adaptive_fm(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the adaptive F-measure.
@@ -885,6 +890,8 @@ class TFWeightedFmeasureMetric(Metric):
         self.wfm_sum = self.add_weight(name="wfm_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
+        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
+
     def update_state(
         self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
     ) -> None:
@@ -905,7 +912,7 @@ class TFWeightedFmeasureMetric(Metric):
             lambda: tf.constant(0.0, dtype=TYPE),
         )
         self.wfm_sum.assign_add(wfm)
-        self.count.assign_add(1.0)
+        self.count.assign_add(self.one)
 
     def _cal_wfm(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the weighted F-measure score.
@@ -1030,6 +1037,8 @@ class TFHumanCorrectionEffortMeasure(Metric):
         self.hce_sum = self.add_weight(name="hce_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
+        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
+
     def update_state(
         self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
     ) -> None:
@@ -1044,7 +1053,7 @@ class TFHumanCorrectionEffortMeasure(Metric):
 
         hce = self._cal_hce(pred, gt)
         self.hce_sum.assign_add(hce)
-        self.count.assign_add(1.0)
+        self.count.assign_add(self.one)
 
     def _cal_hce(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the Human Correction Effort (HCE) for a prediction-ground truth pair.
