@@ -641,7 +641,7 @@ class TFEmeasureMetric(Metric):
 
         changeable_em = tf.reduce_mean(changeable_em)
 
-        return adaptive_em
+        return changeable_em
 
         # return {f"{self.name}_adp": adaptive_em, f"{self.name}_curve": changeable_em}
 
