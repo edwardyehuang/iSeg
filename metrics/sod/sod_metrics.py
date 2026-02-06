@@ -12,6 +12,7 @@ from keras.metrics import Metric
 from iseg.metrics.sod.sod_metric_utils import (
     EPS,
     TYPE,
+    get_one_tensor,
     get_adaptive_threshold,
     safe_divide,
     tf_convolve2d,
@@ -55,10 +56,8 @@ class TFMAEMetric(Metric):
         self.mae_sum = self.add_weight(name="mae_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
-        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
-
     def update_state(
-        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
+        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = False
     ) -> None:
         """Update the metric state with a new prediction-ground truth pair.
 
@@ -68,10 +67,10 @@ class TFMAEMetric(Metric):
             normalize (bool): Whether to normalize the input data. Defaults to True.
         """
         pred, gt = validate_and_normalize_input(pred, gt, normalize)
-
+    
         mae = self._cal_mae(pred, gt)
         self.mae_sum.assign_add(mae)
-        self.count.assign_add(self.one)
+        self.count.assign_add(get_one_tensor(gt))
 
     def _cal_mae(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the mean absolute error.
@@ -141,11 +140,9 @@ class TFSmeasureMetric(Metric):
         self.sm_sum = self.add_weight(name="sm_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE, )
 
-        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
-
 
     def update_state(
-        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
+        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = False
     ) -> None:
         """Update the metric state with a new prediction-ground truth pair.
 
@@ -158,7 +155,8 @@ class TFSmeasureMetric(Metric):
 
         sm = self._cal_sm(pred, gt)
         self.sm_sum.assign_add(sm)
-        self.count.assign_add(self.one)
+        self.count.assign_add(get_one_tensor(gt))
+
 
     @tf.autograph.experimental.do_not_convert
     def _cal_sm(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
@@ -402,11 +400,9 @@ class TFEmeasureMetric(Metric):
             name="changeable_count", initializer="zeros", dtype=TYPE
         )
 
-        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
-
 
     def update_state(
-        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
+        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = False
     ) -> None:
         """Update the metric state with a new prediction-ground truth pair.
 
@@ -421,15 +417,17 @@ class TFEmeasureMetric(Metric):
         shape = tf.shape(gt)
         self.gt_size = tf.cast(shape[0] * shape[1], tf.int64)
 
+        one = get_one_tensor(gt)
+
         # Calculate adaptive E-measure
         adaptive_em = self._cal_adaptive_em(pred, gt)
         self.adaptive_em_sum.assign_add(adaptive_em)
-        self.adaptive_count.assign_add(self.one)
+        self.adaptive_count.assign_add(one)
 
         # Calculate changeable E-measure
         changeable_ems = self._cal_changeable_em(pred, gt)
         self.changeable_em_sum.assign_add(changeable_ems)
-        self.changeable_count.assign_add(self.one)
+        self.changeable_count.assign_add(one)
 
     def _cal_adaptive_em(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the adaptive E-measure using an adaptive threshold.
@@ -713,10 +711,9 @@ class TFFmeasureMetric(Metric):
         )
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
-        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
 
     def update_state(
-        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
+        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = False
     ) -> None:
         """Update the metric state with a new prediction-ground truth pair.
 
@@ -737,7 +734,7 @@ class TFFmeasureMetric(Metric):
         self.recall_sum.assign_add(recalls)
         self.changeable_fm_sum.assign_add(changeable_fms)
 
-        self.count.assign_add(self.one)
+        self.count.assign_add(get_one_tensor(gt))
 
     def _cal_adaptive_fm(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the adaptive F-measure.
@@ -892,10 +889,9 @@ class TFWeightedFmeasureMetric(Metric):
         self.wfm_sum = self.add_weight(name="wfm_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
-        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
 
     def update_state(
-        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
+        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = False
     ) -> None:
         """Update the metric state with a new prediction-ground truth pair.
 
@@ -914,7 +910,7 @@ class TFWeightedFmeasureMetric(Metric):
             lambda: tf.constant(0.0, dtype=TYPE),
         )
         self.wfm_sum.assign_add(wfm)
-        self.count.assign_add(self.one)
+        self.count.assign_add(get_one_tensor(gt))
 
     def _cal_wfm(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the weighted F-measure score.
@@ -1039,10 +1035,8 @@ class TFHumanCorrectionEffortMeasure(Metric):
         self.hce_sum = self.add_weight(name="hce_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
-        self.one = self.add_weight(name="one", initializer="ones", dtype=TYPE)
-
     def update_state(
-        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = True
+        self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = False
     ) -> None:
         """Update the metric state with a new prediction-ground truth pair.
 
@@ -1055,7 +1049,7 @@ class TFHumanCorrectionEffortMeasure(Metric):
 
         hce = self._cal_hce(pred, gt)
         self.hce_sum.assign_add(hce)
-        self.count.assign_add(self.one)
+        self.count.assign_add(get_one_tensor(gt))
 
     def _cal_hce(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the Human Correction Effort (HCE) for a prediction-ground truth pair.

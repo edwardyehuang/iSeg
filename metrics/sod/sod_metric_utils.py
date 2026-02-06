@@ -55,6 +55,15 @@ def validate_and_normalize_input(
     return pred, gt
 
 
+def get_one_tensor (ref_tensor):
+
+    one = tf.ones_like(ref_tensor)
+    one = tf.cast(one, dtype=TYPE)
+    one = tf.reduce_mean(one)
+
+    return one
+
+
 def prepare_data(pred: tf.Tensor, gt: tf.Tensor) -> tuple:
     """Convert and normalize prediction and ground truth data.
 
