@@ -1,6 +1,6 @@
 # ================================================================
 # MIT License
-# Copyright (c) 2021 edwardyehuang (https://github.com/edwardyehuang)
+# Copyright (c) 2026 edwardyehuang (https://github.com/edwardyehuang)
 # ================================================================
 
 import tensorflow as tf
@@ -10,10 +10,11 @@ from tqdm import tqdm
 
 from iseg.metrics.mean_iou import MeanIOU
 
-from iseg.core_model import SegBase
+from iseg.core_model import SegFoundation
 
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
 from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
+
 
 def evaluate(
     distribute_strategy,
@@ -28,14 +29,12 @@ def evaluate(
     pre_compute_fns=[],
 ):
 
-    if not isinstance(model, SegBase):
-        raise ValueError("ALl model must based on SegBase")
+    if not isinstance(model, SegFoundation):
+        raise ValueError("ALl model must based on SegFoundation")
 
     ds = prepare_dataset(distribute_strategy, data, batch_size, val_image_count=val_image_count)
 
     processed_count = 0
-
-    print("Evaluate mIOU : ")
 
     with distribute_strategy.scope():
 
@@ -53,7 +52,7 @@ def evaluate(
             for fn in pre_compute_fns:
                 iou_metrics.add_pre_compute_fn(fn)
 
-        print("Current image format = {}".format(keras.backend.image_data_format()))
+        print(f"Current image format = {keras.backend.image_data_format()}")
 
         with tqdm(total=val_image_count) as pbar:
             for inputs in ds:
@@ -96,10 +95,11 @@ def evaluate(
     return mean_iou
 
 
+
 @tf.function(autograph=False)
 def eval_step(
     ds_inputs, 
-    model: SegBase, 
+    model: SegFoundation, 
     scale_rates, 
     flip, 
     loss_func, 
