@@ -54,6 +54,7 @@ class SegManaged(SegFoundation):
         dict_inputs_image_key="image",
         backbone_outputs_dict_key="endpoints",
         head_results_direct_output=False,
+        use_dict_outputs=False,
         **kwargs,
     ):
 
@@ -134,6 +135,8 @@ class SegManaged(SegFoundation):
         self.backbone_outputs_dict_key = backbone_outputs_dict_key
 
         self.head_results_direct_output = head_results_direct_output
+
+        self.use_dict_outputs = use_dict_outputs
 
 
     def build_aux_logits_conv (self, num_aux_loss, aux_metric_names=None):
@@ -325,7 +328,21 @@ class SegManaged(SegFoundation):
 
         logits_list = self.compute_final_results(logits_list)
 
+        if self.use_dict_outputs:
+            logits_list = self.map_results_to_dict(logits_list)
+
         return logits_list
+
+
+    def map_results_to_dict(self, results_list):
+
+        results_dict = dict()
+
+        for i in range(len(results_list)):
+            output_key = self._index_to_output_key(i)
+            results_dict[output_key] = results_list[i]
+
+        return results_dict
     
 
     def build_sub_model_inputs(

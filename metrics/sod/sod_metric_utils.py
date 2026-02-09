@@ -9,9 +9,9 @@ import tensorflow as tf
 
 # The different implementation of epsilon between numpy and matlab
 # np.spacing(1) ≈ 2.220446049250313e-16
-EPS = tf.constant(2.220446049250313e-16, dtype=tf.float32)
 TYPE = tf.float32
-PI = tf.constant(math.pi, dtype=tf.float32)
+EPS = tf.constant(2.220446049250313e-16, dtype=TYPE)
+PI = tf.constant(math.pi, dtype=TYPE)
 
 
 def validate_and_normalize_input(
@@ -145,8 +145,8 @@ def safe_divide(numerator: tf.Tensor, denominator: tf.Tensor) -> tf.Tensor:
     Returns:
         tf.Tensor: Result of division with zero handling.
     """
-    denominator = tf.cast(denominator, dtype=TYPE)
-    numerator = tf.cast(numerator, dtype=TYPE)
+    denominator = tf.cast(denominator, dtype=tf.float32)
+    numerator = tf.cast(numerator, dtype=tf.float32)
     return tf.where(
         tf.equal(denominator, 0.0), tf.zeros_like(numerator), numerator / denominator
     )
@@ -210,9 +210,12 @@ def tf_gaussian_kernel(shape: tuple = (7, 7), sigma: float = 5.0) -> tf.Tensor:
     """
     m, n = (shape[0] - 1) / 2, (shape[1] - 1) / 2
 
-    y = tf.range(-m, m + 1, dtype=TYPE)
-    x = tf.range(-n, n + 1, dtype=TYPE)
+    y = tf.range(-m, m + 1, dtype=tf.float32)
+    x = tf.range(-n, n + 1, dtype=tf.float32)
     y, x = tf.meshgrid(y, x, indexing="ij")
+
+    y = tf.cast(y, dtype=TYPE)
+    x = tf.cast(x, dtype=TYPE)
 
     h = tf.exp(-(x * x + y * y) / (2 * sigma * sigma))
 
@@ -284,9 +287,12 @@ def tf_distance_transform_edt(
     h, w = shape[0], shape[1]
 
     # Create coordinate grids
-    y_coords = tf.range(h, dtype=TYPE)
-    x_coords = tf.range(w, dtype=TYPE)
+    y_coords = tf.range(h, dtype=tf.int32)
+    x_coords = tf.range(w, dtype=tf.int32)
     yy, xx = tf.meshgrid(y_coords, x_coords, indexing="ij")
+
+    yy = tf.cast(yy, dtype=TYPE)
+    xx = tf.cast(xx, dtype=TYPE)
 
     # Find background pixel coordinates (where mask is False)
     bg_mask = tf.logical_not(mask)

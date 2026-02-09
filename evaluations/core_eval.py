@@ -46,6 +46,8 @@ def evaluate(
             jit_compile=False,
         )
 
+    print(f"Total eval steps = Total image count {val_image_count} // batch size {batch_size} = {val_image_count // batch_size}")
+
     model.evaluate(
         ds, 
         batch_size=batch_size, 
@@ -58,7 +60,7 @@ def evaluate(
 
 def prepare_dataset(distribute_strategy, data, batch_size=16, val_image_count=0):
 
-    # AUTOTUNE = tf.data.experimental.AUTOTUNE
+    AUTOTUNE = tf.data.experimental.AUTOTUNE
 
     ds = data
     # ds = ds.repeat()
@@ -68,8 +70,6 @@ def prepare_dataset(distribute_strategy, data, batch_size=16, val_image_count=0)
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
     ds = ds.with_options(options)
 
-    # ds = ds.prefetch(buffer_size=AUTOTUNE)
-
-    ds = distribute_strategy.experimental_distribute_dataset(ds)
+    ds = ds.prefetch(buffer_size=AUTOTUNE)
 
     return ds

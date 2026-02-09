@@ -181,10 +181,10 @@ class TFSmeasureMetric(Metric):
         def mixed():
             object_score = self._object(pred, gt) * self.alpha
             region_score = self._region(pred, gt) * (1.0 - self.alpha)
-            return tf.maximum(0.0, object_score + region_score)
+            return tf.maximum(tf.constant(0.0, object_score.dtype), object_score + region_score)
 
         sm = tf.case(
-            [(tf.equal(y, 0.0), all_background), (tf.equal(y, 1.0), all_foreground)],
+            [(tf.equal(y, tf.constant(0.0, y.dtype)), all_background), (tf.equal(y, tf.constant(1.0, y.dtype)), all_foreground)],
             default=mixed,
         )
         return sm
@@ -889,6 +889,10 @@ class TFWeightedFmeasureMetric(Metric):
         self.wfm_sum = self.add_weight(name="wfm_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
+        K = tf_gaussian_kernel((7, 7), sigma=5.0)
+
+        self.K = K
+
 
     def update_state(
         self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = False
@@ -912,6 +916,7 @@ class TFWeightedFmeasureMetric(Metric):
         self.wfm_sum.assign_add(wfm)
         self.count.assign_add(get_one_tensor(gt))
 
+    @tf.autograph.experimental.do_not_convert
     def _cal_wfm(self, pred: tf.Tensor, gt: tf.Tensor) -> tf.Tensor:
         """Calculate the weighted F-measure score.
 
@@ -944,8 +949,7 @@ class TFWeightedFmeasureMetric(Metric):
         Et = tf.tensor_scatter_nd_update(Et, bg_indices, Et_bg_values)
 
         # Gaussian filter
-        K = tf_gaussian_kernel((7, 7), sigma=5.0)
-        EA = tf_convolve2d(Et, K, mode="constant", cval=0.0)
+        EA = tf_convolve2d(Et, self.K, mode="constant", cval=0.0)
 
         # MIN_E_EA
         MIN_E_EA = tf.where(tf.logical_and(gt_bool, EA < E), EA, E)
@@ -953,7 +957,7 @@ class TFWeightedFmeasureMetric(Metric):
         # Pixel importance
         B = tf.where(
             gt_zero,
-            2.0 - tf.exp(tf.math.log(0.5) / 5.0 * Dst),
+            tf.constant(2.0, Dst.dtype) - tf.exp(tf.math.log(tf.constant(0.5, Dst.dtype)) / tf.constant(5.0, Dst.dtype) * Dst),
             tf.ones_like(gt_float),
         )
         Ew = MIN_E_EA * B
