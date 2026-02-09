@@ -9,16 +9,19 @@ All metrics inherit from keras.metrics.Metric and can be used in standard Keras 
 import tensorflow as tf
 from keras.metrics import Metric
 
+import numpy as np
+from scipy.ndimage import convolve
+from scipy.ndimage import distance_transform_edt as bwdist
+
+
 from iseg.metrics.sod.sod_metric_utils import (
     EPS,
     TYPE,
     get_one_tensor,
     get_adaptive_threshold,
     safe_divide,
-    tf_convolve2d,
     tf_count_nonzero,
     tf_count_polygon_control_points,
-    tf_distance_transform_edt,
     tf_filter_conditional_boundary,
     tf_find_contours,
     tf_gaussian_kernel,
@@ -27,6 +30,85 @@ from iseg.metrics.sod.sod_metric_utils import (
     tf_skeletonize,
     validate_and_normalize_input,
 )
+
+
+def _scipy_distance_transform_edt(
+    mask: tf.Tensor,
+    return_indices: bool = False,
+):
+    """Compute Euclidean distance transform via SciPy.
+
+    Args:
+        mask (tf.Tensor): Binary mask where True/1 values are foreground.
+        return_indices (bool): If True, also return indices of nearest background.
+
+    Returns:
+        tf.Tensor: Distance transform.
+        If return_indices is True, also returns (indices_y, indices_x).
+    """
+
+    def _fn(mask_np):
+        dist, inds = bwdist(mask_np, return_indices=True)
+        return (
+            dist.astype(np.float32),
+            inds[0].astype(np.int32),
+            inds[1].astype(np.int32),
+        )
+
+    if return_indices:
+        dist, idx_y, idx_x = tf.numpy_function(
+            _fn,
+            [tf.cast(mask, tf.bool)],
+            [TYPE, tf.int32, tf.int32],
+        )
+        dist.set_shape(mask.shape)
+        idx_y.set_shape(mask.shape)
+        idx_x.set_shape(mask.shape)
+        return dist, (idx_y, idx_x)
+
+    def _fn_dist(mask_np):
+        dist = bwdist(mask_np)
+        return dist.astype(np.float32)
+
+    dist = tf.numpy_function(
+        _fn_dist,
+        [tf.cast(mask, tf.bool)],
+        TYPE,
+    )
+    dist.set_shape(mask.shape)
+    return dist
+
+
+def _scipy_convolve2d(
+    image: tf.Tensor,
+    kernel: tf.Tensor,
+    mode: str = "constant",
+    cval: float = 0.0,
+):
+    """2D convolution via SciPy ndimage.convolve.
+
+    Args:
+        image (tf.Tensor): 2D image tensor.
+        kernel (tf.Tensor): 2D kernel tensor.
+        mode (str): Convolution mode passed to SciPy.
+        cval (float): Constant value used when mode is "constant".
+
+    Returns:
+        tf.Tensor: Convolved image.
+    """
+
+    def _fn(image_np, kernel_np):
+        return convolve(image_np, kernel_np, mode=mode, cval=float(cval)).astype(
+            np.float32
+        )
+
+    result = tf.numpy_function(
+        _fn,
+        [tf.cast(image, TYPE), tf.cast(kernel, TYPE)],
+        TYPE,
+    )
+    result.set_shape(image.shape)
+    return result
 
 
 class TFMAEMetric(Metric):
@@ -834,10 +916,8 @@ class TFFmeasureMetric(Metric):
 
         changeable_fm = tf.reduce_mean(changeable_fm)
 
-        return {
-            "fm": {"adp": adaptive_fm, "curve": changeable_fm},
-            "pr": {"p": precision, "r": recall},
-        }
+        return changeable_fm
+    
 
     def reset_state(self) -> None:
         """Reset the metric state."""
@@ -889,11 +969,6 @@ class TFWeightedFmeasureMetric(Metric):
         self.wfm_sum = self.add_weight(name="wfm_sum", initializer="zeros", dtype=TYPE)
         self.count = self.add_weight(name="count", initializer="zeros", dtype=TYPE)
 
-        K = tf_gaussian_kernel((7, 7), sigma=5.0)
-
-        self.K = K
-
-
     def update_state(
         self, pred: tf.Tensor, gt: tf.Tensor, normalize: bool = False
     ) -> None:
@@ -907,12 +982,16 @@ class TFWeightedFmeasureMetric(Metric):
         pred, gt = validate_and_normalize_input(pred, gt, normalize)
 
         # Check if gt is all background
+
         gt_any = tf.reduce_any(gt)
+
+
         wfm = tf.cond(
             gt_any,
             lambda: self._cal_wfm(pred, gt),
             lambda: tf.constant(0.0, dtype=TYPE),
         )
+
         self.wfm_sum.assign_add(wfm)
         self.count.assign_add(get_one_tensor(gt))
 
@@ -932,7 +1011,7 @@ class TFWeightedFmeasureMetric(Metric):
         gt_zero = tf.equal(gt_float, 0.0)
 
         # Distance transform
-        Dst, (Idxt_y, Idxt_x) = tf_distance_transform_edt(gt_zero, return_indices=True)
+        Dst, (Idxt_y, Idxt_x) = _scipy_distance_transform_edt(gt_zero, return_indices=True)
 
         # Pixel dependency
         E = tf.abs(pred - gt_float)
@@ -949,7 +1028,8 @@ class TFWeightedFmeasureMetric(Metric):
         Et = tf.tensor_scatter_nd_update(Et, bg_indices, Et_bg_values)
 
         # Gaussian filter
-        EA = tf_convolve2d(Et, self.K, mode="constant", cval=0.0)
+        K = tf_gaussian_kernel((7, 7), sigma=5.0)
+        EA = _scipy_convolve2d(Et, K, mode="constant", cval=0.0)
 
         # MIN_E_EA
         MIN_E_EA = tf.where(tf.logical_and(gt_bool, EA < E), EA, E)
