@@ -15,6 +15,8 @@ from iseg.core_model import SegFoundation
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
 from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 
+from iseg.utils.model_utils import create_compiled_model
+
 
 
 def evaluate(
@@ -35,36 +37,23 @@ def evaluate(
 
     ds = prepare_dataset(distribute_strategy, data, batch_size, val_image_count=val_image_count)
 
-   
+    with distribute_strategy.scope():
+        model : keras.Model = create_compiled_model(
+            model=model,
+            num_class=num_class,
+            ignore_label=ignore_label,
+            batch_size=batch_size,
+            jit_compile=False,
+        )
 
+    model.evaluate(
+        ds, 
+        batch_size=batch_size, 
+        verbose=1, 
+        steps=val_image_count // batch_size,
+        use_multiprocessing=True,
+    )
 
-
-@tf.function(autograph=False)
-def eval_step(
-    ds_inputs, 
-    model: SegFoundation, 
-    scale_rates, 
-    flip, 
-    loss_func, 
-    loss_metrics, 
-    mertics, 
-    distribute_strategy
-):
-    def step_fn(inputs):
-        images, labels = inputs
-
-        predictions = model.inference_with_multi_scales(images, training=False, scale_rates=scale_rates, flip=flip)
-
-        # predictions = model.inference(images, False)
-
-        loss = loss_func(labels, predictions)
-
-        loss_metrics.update_state(loss)
-
-        for mertic in mertics:
-            mertic.update_state(labels, predictions)
-
-    return distribute_strategy.run(step_fn, args=(ds_inputs,))
 
 
 def prepare_dataset(distribute_strategy, data, batch_size=16, val_image_count=0):

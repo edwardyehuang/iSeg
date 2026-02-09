@@ -151,12 +151,6 @@ class CoreTrain(object):
             validation_freq=validation_freq,
         )
 
-    def __get_default_metrics(self, num_class, ignore_label):
-
-        iou_metrics = MeanIOU(num_class)
-        iou_metrics = SegMetricWrapper(iou_metrics, num_class=num_class, ignore_label=ignore_label, name="IOU")
-
-        return [iou_metrics]
 
     def prepare_train_dataset(self, model, batch_size=1, shuffle_rate=100):
 

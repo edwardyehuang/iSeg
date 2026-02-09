@@ -26,7 +26,7 @@ def create_compiled_model(
     epoch_steps=1000, 
     initial_epoch=0,
     jit_compile=None,
-    optimizer:keras.optimizers.Optimizer=None,
+    optimizer=None,
 ):
 
     assert isinstance(model, SegFoundation), "Current only support SegFoundation based model"
@@ -65,22 +65,24 @@ def create_compiled_model(
     metrics = metrics_func(num_class, ignore_label)
 
     # Handle no weight decay layers
-    exclude_no_weight_decay_layers_in_optimizer(
-        optimizer=optimizer,
-        model=model
-    )
+
+    if optimizer is not None:
+        exclude_no_weight_decay_layers_in_optimizer(
+            optimizer=optimizer,
+            model=model
+        )
 
     # Compile
 
     model.compile(
-        optimizer=optimizer, 
+        optimizer=optimizer if optimizer is not None else "sgd", 
         metrics=metrics, 
         loss=losses, 
         loss_weights=losses_weights,
         jit_compile=jit_compile,
     )
 
-    if initial_epoch != -1:
+    if initial_epoch != -1 and optimizer is not None:
         model.optimizer.iterations.assign(epoch_steps * initial_epoch)
 
     return model
