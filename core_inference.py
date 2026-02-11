@@ -34,11 +34,13 @@ def extract_seq_input_signatures (inputs):
     return input_signatures
 
 
+@tf.autograph.experimental.do_not_convert
 def internel_inference(inputs, model, training=None):
 
     # input_signatures = extract_seq_input_signatures(inputs)
 
     return model(inputs, training=training)
+
 
 @tf.autograph.experimental.do_not_convert
 def inference_fn(inputs, model, num_class=21, training=False, sliding_window_crop_size=None):
@@ -123,7 +125,7 @@ def multi_results_handler(multi_inputs, seg_map_handler, others_handler=None):
 def multi_results_add(v0, v1):
     return [a + b for a, b in zip(v0, v1)]
 
-@tf.function(autograph=True)
+@tf.function(autograph=False)
 def create_base_tensor_for_cropped_result(tensor, full_size):
     def seg_map_handler(x):
         tensor_shape = tf.shape(x)
@@ -209,7 +211,8 @@ def sliding_window_body(i, inputs, model, slices_list, training=False):
     cropped_inputs = inputs[:, slices_indexs[0] : slices_indexs[1], slices_indexs[2] : slices_indexs[3], :]
 
     cropped_results = internel_inference(cropped_inputs, model, training=training)
-
+    
+    cropped_results = convert_to_list_if_dict(cropped_results)
     cropped_results = convert_to_list_if_single(cropped_results)
 
     return cropped_results

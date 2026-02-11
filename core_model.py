@@ -20,6 +20,32 @@ from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 from iseg.data_process.input_norm_types import InputNormTypes
 
 
+class SegModelInferenceConfig(object):
+
+    def __init__(
+        self,
+        scale_rates=[1.0], 
+        flip=False,
+        use_cpu_cache=False,
+        resize_method="bilinear"
+    ):
+        
+        self.scale_rates = scale_rates
+        self.flip = flip
+        self.use_cpu_cache = use_cpu_cache
+        self.resize_method = resize_method
+    
+
+    def to_dict(self):
+
+        return {
+            "scale_rates": self.scale_rates,
+            "flip": self.flip,
+            "use_cpu_cache": self.use_cpu_cache,
+            "resize_method": self.resize_method,
+        }
+
+
 
 class SegBase(Keras3_Model_Wrapper):
 
@@ -27,6 +53,7 @@ class SegBase(Keras3_Model_Wrapper):
         self, 
         num_class=21, 
         input_norm_type=InputNormTypes.ZERO_MEAN,
+        inference_configs: SegModelInferenceConfig = None,
         **kwargs
     ):
 
@@ -36,6 +63,11 @@ class SegBase(Keras3_Model_Wrapper):
         self.inference_sliding_window_size = None
 
         self.input_norm_type = input_norm_type
+
+        if inference_configs is None:
+            inference_configs = SegModelInferenceConfig()
+        
+        self.inference_configs : SegModelInferenceConfig = inference_configs
         
 
     def build(self, input_shape):
@@ -68,7 +100,12 @@ class SegBase(Keras3_Model_Wrapper):
             data = data_adapter.expand_1d(data)
             x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
 
-            y_pred = self.inference(x, training=False)
+            y_pred = self.inference_with_multi_scales(
+                x, 
+                training=False, 
+                **self.inference_configs.to_dict()
+            )
+
             # Updates stateful loss metrics.
             self.compiled_loss(y, y_pred, sample_weight, regularization_losses=self.losses)
 
@@ -149,7 +186,7 @@ class SegBase(Keras3_Model_Wrapper):
         training=False, 
         scale_rates=[1.0], 
         flip=False,
-        use_cpu_cache=True,
+        use_cpu_cache=False,
         resize_method="bilinear",
     ):
         num_rates = len(scale_rates)

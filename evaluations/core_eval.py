@@ -35,6 +35,10 @@ def evaluate(
     if not isinstance(model, SegFoundation):
         raise ValueError("ALl model must based on SegFoundation")
 
+    model.inference_configs.scale_rates = scale_rates
+    model.inference_configs.flip = flip
+    model.inference_configs.use_cpu_cache = True
+
     ds = prepare_dataset(distribute_strategy, data, batch_size, val_image_count=val_image_count)
 
     with distribute_strategy.scope():
@@ -54,6 +58,7 @@ def evaluate(
         verbose=1, 
         steps=val_image_count // batch_size,
         use_multiprocessing=True,
+        workers=batch_size * 2,
     )
 
 
