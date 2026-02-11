@@ -5,7 +5,6 @@
 
 # This code implemented https://arxiv.org/pdf/2201.03545.pdf
 
-import tensorflow as tf
 import keras
 import numpy as np
 
@@ -36,7 +35,7 @@ class Block(Keras3_Model_Wrapper):
             self.add_weight(
                 name=f"gamma",
                 shape=[self.filters],
-                initializer=keras.initializers.Constant(self.layer_scale_init_value * tf.ones([self.filters])),
+                initializer=keras.initializers.Constant(self.layer_scale_init_value * keras.ops.ones([self.filters])),
                 trainable=True,
             )
             if self.layer_scale_init_value > 0
@@ -55,11 +54,11 @@ class Block(Keras3_Model_Wrapper):
         x = self.pwconv2(x)
 
         if self.gamma is not None:
-            x *= tf.cast(self.gamma, x.dtype)
+            x *= keras.ops.cast(self.gamma, x.dtype)
 
         if self.drop_path_prob != 0.0 and training:
             x = drop_path(x, drop_prob=self.drop_path_prob, training=training)
-        x += tf.cast(inputs, x.dtype)
+        x += keras.ops.cast(inputs, x.dtype)
 
         return x
 
