@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras
 
 def _large_compatible_negative(tensor_type):
     """Large negative number as Tensor.
@@ -69,3 +70,25 @@ def guard_grads (x):
         return x, grad
     
     return guard_grads_func(x)
+
+
+def l2_normalize(x, axis=-1, epsilon=1e-12):
+    
+    tf.name_scope()
+
+    with keras.name_scope("l2_normalize") as scope:
+        x = keras.ops.convert_to_tensor(x)
+        if "complex" in x.dtype.name:
+            square_real = keras.ops.square(keras.ops.real(x))
+            square_imag = keras.ops.square(keras.ops.imag(x))
+            square_sum = keras.ops.real(
+                keras.ops.sum(square_real + square_imag, axis, keepdims=True))
+            x_inv_norm = keras.ops.rsqrt(keras.ops.maximum(square_sum, epsilon))
+            norm_real = keras.ops.multiply(keras.ops.real(x), x_inv_norm)
+            norm_imag = keras.ops.multiply(keras.ops.imag(x), x_inv_norm)
+            return keras.ops.complex(norm_real, norm_imag, name=scope)
+        
+        square_sum = keras.ops.sum(keras.ops.square(x), axis, keepdims=True)
+        x_inv_norm = keras.ops.rsqrt(keras.ops.maximum(square_sum, epsilon))
+
+        return keras.ops.multiply(x, x_inv_norm, name=scope)
