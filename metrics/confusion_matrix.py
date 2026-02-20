@@ -167,12 +167,12 @@ def batch_confusion_matrix(labels, predictions, num_classes=None, weights=None, 
     predictions = tf.cast(predictions, tf.int32)
     labels = tf.cast(labels, tf.int32)
 
-    # Shapes must match and rank must be >= 2 (batch-first inputs).
+    # Shapes must match and rank must be >= 1 (batch-first inputs, including [B]).
     shape_assert = tf.debugging.assert_equal(
         tf.shape(labels), tf.shape(predictions), message="`labels` and `predictions` must have the same shape"
     )
     rank_assert = tf.debugging.assert_greater_equal(
-        tf.rank(labels), 2, message="`labels` and `predictions` must have rank >= 2 (batch first)"
+        tf.rank(labels), 1, message="`labels` and `predictions` must have rank >= 1 (batch first)"
     )
     dep = control_flow_ops.group(shape_assert, rank_assert)
     labels = control_flow_ops.with_dependencies([dep], labels)
