@@ -10,12 +10,14 @@ from distutils.version import LooseVersion
 
 from iseg.utils.common import set_random_seed, enable_mixed_precision
 from iseg.distribution.distribution_utils import get_distribution_strategy, shutdown_tpu_system
+from iseg.distribution.mesh_utils import get_mesh_layout_map
 
 
 def common_env_setup(
     run_eagerly=False,
     gpu_memory_growth=True,
     cuda_visible_devices=None,
+    use_mesh=False,
     use_one_device_strategy=False,
     tpu_name=None,
     random_seed=0,
@@ -57,13 +59,23 @@ def common_env_setup(
     if run_eagerly and LooseVersion(tf.version.VERSION) >= LooseVersion("2.8.0"):
         tf.data.experimental.enable_debug_mode()
 
-    strategy = get_distribution_strategy(
-        gpu_memory_growth=gpu_memory_growth, 
-        cuda_visible_devices=cuda_visible_devices, 
-        use_tpu=use_tpu, 
-        tpu_name=tpu_name,
-        use_one_device_strategy=use_one_device_strategy,
-    )
+    
+    if use_mesh:
+        strategy = get_mesh_layout_map(
+            gpu_memory_growth=gpu_memory_growth, 
+            cuda_visible_devices=cuda_visible_devices, 
+            use_tpu=use_tpu, 
+            tpu_name=tpu_name,
+            use_one_device_strategy=use_one_device_strategy,
+        )
+    else:
+        strategy = get_distribution_strategy(
+            gpu_memory_growth=gpu_memory_growth, 
+            cuda_visible_devices=cuda_visible_devices, 
+            use_tpu=use_tpu, 
+            tpu_name=tpu_name,
+            use_one_device_strategy=use_one_device_strategy,
+        )
 
     if mixed_precision:
         enable_mixed_precision(use_tpu=tpu_name is not None)
