@@ -59,3 +59,9 @@ def get_stable_float_dtype():
 def get_stable_float_dtype_for_loss():
 
     return tf.float32
+
+
+
+def is_float(tensor):
+
+    return "float" in tensor.dtype.name

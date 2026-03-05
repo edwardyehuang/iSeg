@@ -100,6 +100,13 @@ def __check_if_seg_map(tensor):
         (crop_size is None or (crop_size[0] == tensor_shape[1] and crop_size[1] == tensor_shape[2])))
     """
 
+def get_first_tensor(inputs):
+
+    inputs = convert_to_list_if_dict(inputs)
+    inputs = convert_to_list_if_single(inputs)
+
+    return inputs[0]
+    
 
 def result_handler(inputs, seg_map_handler, others_handler=None):
 

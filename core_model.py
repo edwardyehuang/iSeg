@@ -17,6 +17,7 @@ from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_la
 from iseg.losses.ohem import get_ohem_fn
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
+from iseg.utils.tensor_utils import is_float
 from iseg.data_process.input_norm_types import InputNormTypes
 
 
@@ -126,6 +127,45 @@ class SegBase(Keras3_Model_Wrapper):
         )
 
         return results
+    
+
+    def inference_with_scale_inputs_process(
+        self, 
+        inputs, 
+        training=False, 
+        scale_rate=1.0, 
+        flip=False, 
+        resize_method="bilinear"
+    ):
+        inputs = convert_to_list_if_dict(inputs)
+        inputs = convert_to_list_if_single(inputs)
+
+        first_input = inputs[0]
+
+        inputs_size = get_tensor_shape(first_input, return_list=True)[1:3]
+
+        inputs = multi_results_handler(
+            inputs, lambda x: tf.cond(flip, lambda: tf.image.flip_left_right(x), lambda: x)
+        )
+
+        sizes = get_scaled_size(first_input, scale_rate, pad_mode=1)
+
+        inputs = multi_results_handler(
+            inputs, lambda x: tf.cast(x, tf.float32) if is_float(x) else x
+        )
+
+        inputs = multi_results_handler(
+            inputs, 
+            lambda x: resize_image(
+                x, 
+                sizes, 
+                method=resize_method if is_float(x) else "nearest", 
+                name="inference_resize"
+            )
+        )
+
+        return inputs
+
 
     @tf.function(autograph=False, reduce_retracing=True)
     def inference_with_scale(
@@ -139,14 +179,23 @@ class SegBase(Keras3_Model_Wrapper):
         
         print("trace: inference_with_scale")
 
-        inputs_size = get_tensor_shape(inputs, return_list=True)[1:3]
-        
-        inputs = tf.cond(flip, lambda: tf.image.flip_left_right(inputs), lambda: inputs)
+        orignal_inputs_size = get_tensor_shape(
+            get_first_tensor(inputs), return_list=True
+        )[1:3]
 
-        sizes = get_scaled_size(inputs, scale_rate, pad_mode=1)
+        inputs = self.inference_with_scale_inputs_process(
+            inputs, 
+            training=training, 
+            scale_rate=scale_rate, 
+            flip=flip, 
+            resize_method=resize_method
+        )
 
-        inputs = tf.cast(inputs, tf.float32)
-        inputs = resize_image(inputs, sizes, method=resize_method, name="inference_resize")
+        sizes = get_tensor_shape(
+            get_first_tensor(inputs), return_list=True
+        )[1:3]
+
+        inputs = free_from_list_if_single(inputs)
 
         sliding_window_size = self.inference_sliding_window_size
 
@@ -168,7 +217,7 @@ class SegBase(Keras3_Model_Wrapper):
         logits = convert_to_list_if_single(logits)
 
         logits = multi_results_handler(
-            logits, lambda x: resize_image(x, inputs_size, method=resize_method, name="inference_resize_back")
+            logits, lambda x: resize_image(x, orignal_inputs_size, method=resize_method, name="inference_resize_back")
         )
 
         logits = multi_results_handler(
