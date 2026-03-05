@@ -4,6 +4,7 @@
 # ================================================================
 
 import tensorflow as tf
+import keras
 
 from iseg.data_process.augments.data_augment_base import DataAugmentationBase, random_execute_helper
 
@@ -56,8 +57,9 @@ class RandomErasingAugment(DataAugmentationBase):
         if not isinstance(color, list):
             color = [color]
 
-        color = tf.convert_to_tensor(color, dtype=tf.float32)
-        color = tf.reshape(color, [1, 1, -1])
+        
+        color = keras.ops.convert_to_tensor(color, dtype="float32")
+        color = keras.ops.reshape(color, [1, 1, -1])
 
         return color
 
@@ -73,20 +75,20 @@ class RandomErasingAugment(DataAugmentationBase):
     
     def _execute_branch(self, image, label):
 
-        image_shape = tf.shape(image)
+        image_shape = keras.ops.shape(image)
         height = image_shape[0]
         width = image_shape[1]
 
-        height_float = tf.cast(height, tf.float32)
-        width_float = tf.cast(width, tf.float32)
+        height_float = keras.ops.cast(height, "float32")
+        width_float = keras.ops.cast(width, "float32")
 
-        min_area_height = tf.cast(height_float * self.min_area_size, tf.int32)
-        max_area_height = tf.cast(height_float * self.max_area_size, tf.int32)
+        min_area_height = keras.ops.cast(height_float * self.min_area_size, "int32")
+        max_area_height = keras.ops.cast(height_float * self.max_area_size, "int32")
 
-        min_area_width = tf.cast(width_float * self.min_area_size, tf.int32)
-        max_area_width = tf.cast(width_float * self.max_area_size, tf.int32)
+        min_area_width = keras.ops.cast(width_float * self.min_area_size, "int32")
+        max_area_width = keras.ops.cast(width_float * self.max_area_size, "int32")
 
-        num_area = tf.random.uniform([], minval=self.min_area_count, maxval=self.max_area_count, dtype=tf.int32)
+        num_area = keras.random.uniform([], minval=self.min_area_count, maxval=self.max_area_count, dtype="int32")
         
         def inner_loop (_i, _image, _label):
 
