@@ -21,3 +21,5 @@ from iseg.data_process.augments.random_resized_crop_image_augment import RandomR
 from iseg.data_process.augments.resize_short_edge_image_augment import ResizeShortEdgeImageAugment
 from iseg.data_process.augments.center_crop_image_augment import CenterCropImageAugment
 from iseg.data_process.augments.random_flip_image_augment import RandomFlipImageAugment
+from iseg.data_process.augments.random_grayscale_image_augment import RandomGrayscaleImageAugment
+from iseg.data_process.augments.random_gaussian_blur_image_augment import RandomGaussianBlurImageAugment

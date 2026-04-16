@@ -89,6 +89,15 @@ class RandomErasingAugment(DataAugmentationBase):
         max_area_width = keras.ops.cast(width_float * self.max_area_size, "int32")
 
         num_area = keras.random.uniform([], minval=self.min_area_count, maxval=self.max_area_count, dtype="int32")
+
+        has_spatial_label = (
+            label is not None and
+            (label.shape.rank is None or label.shape.rank >= 2)
+        )
+
+        if not has_spatial_label:
+            label = tf.constant(0, dtype=tf.int32)
+
         
         def inner_loop (_i, _image, _label):
 
@@ -120,7 +129,9 @@ class RandomErasingAugment(DataAugmentationBase):
                 fill_color = tf.cast(self._fill_constant_color, _image.dtype)
 
             _image = tf.where(area_mask, fill_color, _image)
-            _label = tf.where(area_mask, self.ignore_label, _label)
+
+            if _label is not None and (_label.shape.rank is None or _label.shape.rank >= 2):
+                _label = tf.where(area_mask, self.ignore_label, _label)
 
             return [_i + 1, _image, _label]
         
@@ -130,5 +141,8 @@ class RandomErasingAugment(DataAugmentationBase):
             [tf.constant(0, tf.int32), image, label],
             maximum_iterations=self.max_area_count,
         )
+        
+        if not has_spatial_label:
+            label = None
         
         return image, label
