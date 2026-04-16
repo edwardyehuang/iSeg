@@ -82,6 +82,51 @@ class AugmentationsPipeLine(object):
         return ds.map(self.process, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
+class ClassificationAugmentationsPipeLine(AugmentationsPipeLine):
+    def __init__(self, target_height=None, target_width=None, augments=None, name=None):
+        super().__init__(
+            target_height=target_height,
+            target_width=target_width,
+            augments=augments if augments is not None else [],
+            perform_post_process=False,
+            name=name,
+        )
+
+    def post_process(self, image, label):
+        image = tf.cast(image, tf.float32)
+
+        has_target_size = self.target_height is not None and self.target_width is not None
+
+        if has_target_size:
+            image.set_shape([self.target_height, self.target_width, image.shape[-1]])
+
+        if label is not None:
+            label = tf.cast(label, tf.int32)
+            label = tf.reshape(label, [])
+
+        return image, label
+
+    @tf.autograph.experimental.do_not_convert
+    def process(self, image, label):
+        processed_arugments = []
+
+        for augment in self.augments:
+            outputs = augment(image, label)
+
+            if isinstance(outputs, tuple) or isinstance(outputs, list):
+                image, label = outputs
+            else:
+                image = outputs
+
+            processed_arugments.append(augment.name)
+
+        if not self._printed_processed_augments:
+            print(f"Processed augments = {processed_arugments}")
+            self._printed_processed_augments = True
+
+        return self.post_process(image, label)
+
+
 class StandardAugmentationsPipeline(AugmentationsPipeLine):
     def __init__(
         self,
