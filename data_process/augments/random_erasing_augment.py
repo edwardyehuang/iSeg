@@ -4,7 +4,6 @@
 # ================================================================
 
 import tensorflow as tf
-import keras
 
 from iseg.data_process.augments.data_augment_base import DataAugmentationBase, random_execute_helper
 
@@ -58,8 +57,8 @@ class RandomErasingAugment(DataAugmentationBase):
             color = [color]
 
         
-        color = keras.ops.convert_to_tensor(color, dtype="float32")
-        color = keras.ops.reshape(color, [1, 1, -1])
+        color = tf.convert_to_tensor(color, dtype=tf.float32)
+        color = tf.reshape(color, [1, 1, -1])
 
         return color
 
@@ -75,34 +74,48 @@ class RandomErasingAugment(DataAugmentationBase):
     
     def _execute_branch(self, image, label):
 
-        image_shape = keras.ops.shape(image)
+        image_shape = tf.shape(image)
         height = image_shape[0]
         width = image_shape[1]
 
-        height_float = keras.ops.cast(height, "float32")
-        width_float = keras.ops.cast(width, "float32")
+        original_label = label
+        label_is_none = label is None
 
-        min_area_height = keras.ops.cast(height_float * self.min_area_size, "int32")
-        max_area_height = keras.ops.cast(height_float * self.max_area_size, "int32")
-
-        min_area_width = keras.ops.cast(width_float * self.min_area_size, "int32")
-        max_area_width = keras.ops.cast(width_float * self.max_area_size, "int32")
-
-        num_area = keras.random.uniform([], minval=self.min_area_count, maxval=self.max_area_count, dtype="int32")
-
-        has_spatial_label = (
-            label is not None and
-            (label.shape.rank is None or label.shape.rank >= 2)
-        )
-
-        if not has_spatial_label:
+        if label_is_none:
             label = tf.constant(0, dtype=tf.int32)
+
+        height_float = tf.cast(height, tf.float32)
+        width_float = tf.cast(width, tf.float32)
+
+        min_area_height = tf.cast(height_float * self.min_area_size, tf.int32)
+        max_area_height = tf.cast(height_float * self.max_area_size, tf.int32)
+
+        min_area_width = tf.cast(width_float * self.min_area_size, tf.int32)
+        max_area_width = tf.cast(width_float * self.max_area_size, tf.int32)
+
+        if self.min_area_count == self.max_area_count:
+            num_area = tf.constant(self.min_area_count, dtype=tf.int32)
+        else:
+            num_area = tf.random.uniform(
+                [],
+                minval=self.min_area_count,
+                maxval=self.max_area_count + 1,
+                dtype=tf.int32,
+            )
 
         
         def inner_loop (_i, _image, _label):
 
-            area_height = tf.random.uniform([], minval=min_area_height, maxval=max_area_height, dtype=tf.int32)
-            area_width = tf.random.uniform([], minval=min_area_width, maxval=max_area_width, dtype=tf.int32)
+            area_height = tf.cond(
+                tf.equal(min_area_height, max_area_height),
+                lambda: min_area_height,
+                lambda: tf.random.uniform([], minval=min_area_height, maxval=max_area_height + 1, dtype=tf.int32),
+            )
+            area_width = tf.cond(
+                tf.equal(min_area_width, max_area_width),
+                lambda: min_area_width,
+                lambda: tf.random.uniform([], minval=min_area_width, maxval=max_area_width + 1, dtype=tf.int32),
+            )
 
             area_height = tf.clip_by_value(area_height, 1, height)
             area_width = tf.clip_by_value(area_width, 1, width)
@@ -141,8 +154,11 @@ class RandomErasingAugment(DataAugmentationBase):
             [tf.constant(0, tf.int32), image, label],
             maximum_iterations=self.max_area_count,
         )
-        
-        if not has_spatial_label:
+
+        if label_is_none:
             label = None
+        elif original_label is not None and original_label.shape.rank is not None and original_label.shape.rank < 2:
+            # Keep scalar classification labels unchanged.
+            label = original_label
         
         return image, label

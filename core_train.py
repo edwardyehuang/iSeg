@@ -12,6 +12,7 @@ import math
 from iseg.metrics.mean_iou import MeanIOU
 from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
+from iseg.data_process.augments.classification_batch_mix_augment import ClassificationBatchMixAugment
 from iseg.callbacks.ckpt_saver import CheckpointSaver
 from iseg.callbacks.time_callback import TimeCallback
 from iseg.callbacks.model_callback import ModelCallback
@@ -159,6 +160,7 @@ class CoreTrain(object):
         ds = ds.shuffle(shuffle_rate)
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
+        ds = self._maybe_apply_classification_batch_mix(ds, model)
 
         ds = self.data_based_shard_policy(ds, self.use_data_shared_policy_for_train)
 
@@ -203,3 +205,46 @@ class CoreTrain(object):
             ds = ds.map(custom_data_process, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         return ds
+
+
+    def _maybe_apply_classification_batch_mix(self, ds, model):
+
+        mixup_alpha = float(getattr(model, "classification_mixup_alpha", 0.0))
+        mixup_prob = float(getattr(model, "classification_mixup_prob", 0.0))
+        cutmix_alpha = float(getattr(model, "classification_cutmix_alpha", 0.0))
+        cutmix_prob = float(getattr(model, "classification_cutmix_prob", 0.0))
+
+        if (mixup_alpha <= 0 + 1e-6 or mixup_prob <= 0 + 1e-6) and (
+            cutmix_alpha <= 0 + 1e-6 or cutmix_prob <= 0 + 1e-6
+        ):
+            return ds
+
+        element_spec = ds.element_spec
+
+        if not isinstance(element_spec, (tuple, list)) or len(element_spec) < 2:
+            return ds
+
+        label_spec = element_spec[1]
+
+        if not isinstance(label_spec, tf.TensorSpec):
+            return ds
+
+        label_rank = label_spec.shape.rank
+
+        if label_rank is not None and label_rank >= 3:
+            print("Skip classification batch mix: detected segmentation-style labels")
+            return ds
+
+        mix_augment = ClassificationBatchMixAugment(
+            num_class=int(getattr(model, "num_class", 1000)),
+            mixup_alpha=mixup_alpha,
+            mixup_prob=mixup_prob,
+            cutmix_alpha=cutmix_alpha,
+            cutmix_prob=cutmix_prob,
+            switch_prob=float(getattr(model, "classification_mix_switch_prob", 0.5)),
+            label_smoothing=float(getattr(model, "classification_label_smoothing", 0.0)),
+        )
+
+        print("Apply classification batch Mixup/CutMix")
+
+        return ds.map(mix_augment, num_parallel_calls=tf.data.experimental.AUTOTUNE)
