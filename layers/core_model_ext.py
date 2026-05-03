@@ -288,7 +288,7 @@ class SegManaged(SegFoundation):
         backbone_inputs = self.build_sub_model_inputs(
             image_tensor, 
             label, 
-            with_label=self.label_as_inputs and self.label_as_backbone_inputs
+            cond=self.label_as_inputs and self.label_as_backbone_inputs
         )
 
         backbone_inputs = self.extract_if_single_element(backbone_inputs)
@@ -304,7 +304,7 @@ class SegManaged(SegFoundation):
         head_inputs = self.build_sub_model_inputs(
             endpoints, 
             label, 
-            with_label=self.label_as_inputs and self.label_as_head_inputs
+            cond=self.label_as_inputs and self.label_as_head_inputs
         )
 
         if self.image_as_head_inputs:
@@ -312,7 +312,7 @@ class SegManaged(SegFoundation):
             head_inputs = self.build_sub_model_inputs(
                 head_inputs, 
                 image_tensor, 
-                with_label=True
+                cond=True
             )
 
         head_inputs = self.extract_if_single_element(head_inputs)
@@ -348,26 +348,26 @@ class SegManaged(SegFoundation):
     def build_sub_model_inputs(
         self, 
         inputs, 
-        label=None,
-        with_label=False
+        value_to_add=None,
+        cond=False
     ):
         
-        if not with_label:
+        if not cond:
             return inputs
 
         is_dict_inputs = isinstance(inputs, dict)
-        is_dict_label = isinstance(label, dict)
+        is_dict_value_to_add = isinstance(value_to_add, dict)
 
-        assert is_dict_inputs == is_dict_label, "Inputs and label must be both dict or not dict"
+        assert is_dict_inputs == is_dict_value_to_add, "Inputs and value_to_add must be both dict or not dict"
 
         if not is_dict_inputs:
             inputs = values_to_list(inputs)
-            label = values_to_list(label)
+            value_to_add = values_to_list(value_to_add)
 
-            return inputs + label
+            return inputs + value_to_add
         
         inputs_dict = inputs.copy()
-        inputs_dict.update(label)
+        inputs_dict.update(value_to_add)
 
         return inputs_dict
     
