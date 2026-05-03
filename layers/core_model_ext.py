@@ -13,7 +13,7 @@ from iseg.utils.common import resize_image
 from iseg.utils.keras_ops import capture_func
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import _N
-from iseg.utils.value_utils import values_to_list
+from iseg.utils.value_utils import values_to_list, add_list_to_flattened_dict
 from iseg.utils.tensor_utils import get_tensor_shape
 
 from iseg.data_process.input_norm_types import InputNormTypes
@@ -52,7 +52,10 @@ class SegManaged(SegFoundation):
         resnet_multi_grids=[1, 2, 4],
         efficientnet_use_top=True,
         dict_inputs_image_key="image",
+        dict_inputs_label_key="label",
         backbone_outputs_dict_key="endpoints",
+        backbone_outputs_dict_flatten_endpoints=False,
+        head_inputs_always_dict=False,
         head_results_direct_output=False,
         use_dict_outputs=False,
         **kwargs,
@@ -132,9 +135,11 @@ class SegManaged(SegFoundation):
         self.layers_for_multi_optimizers = None
 
         self.dict_inputs_image_key = dict_inputs_image_key
+        self.dict_inputs_label_key = dict_inputs_label_key
         self.backbone_outputs_dict_key = backbone_outputs_dict_key
-
+        self.backbone_outputs_dict_flatten_endpoints = backbone_outputs_dict_flatten_endpoints
         self.head_results_direct_output = head_results_direct_output
+        self.head_inputs_always_dict = head_inputs_always_dict
 
         self.use_dict_outputs = use_dict_outputs
 
@@ -164,10 +169,10 @@ class SegManaged(SegFoundation):
     def compute_head_results (self, head_inputs, training=None):
 
         #  replace None in head_inputs with 0
-
-        for i in range(len(head_inputs)):
-            if head_inputs[i] is None:
-                head_inputs[i] = tf.zeros_like((), dtype=tf.float32)
+        if not isinstance(head_inputs, dict):
+            for i in range(len(head_inputs)):
+                if head_inputs[i] is None:
+                    head_inputs[i] = tf.zeros_like((), dtype=tf.float32)
 
         head_results = self.head(head_inputs, training=training)
 
@@ -294,15 +299,29 @@ class SegManaged(SegFoundation):
         backbone_inputs = self.extract_if_single_element(backbone_inputs)
         endpoints = self.compute_backbone_results(backbone_inputs, training=training)
 
+
+        if self.head_inputs_always_dict:
+            is_dict_inputs = True
+
+            if label is not None and not isinstance(label, dict):
+                label = {self.dict_inputs_label_key: label}
+
+
         if is_dict_inputs:
-            endpoints = {self.backbone_outputs_dict_key: endpoints}
+            if self.backbone_outputs_dict_flatten_endpoints:
+                head_inputs = add_list_to_flattened_dict(
+                    self.backbone_outputs_dict_key, 
+                    endpoints, 
+                )
+            else:
+                head_inputs = {self.backbone_outputs_dict_key: endpoints}
         else:
-            endpoints = [endpoints] # for backward compatibility
+            head_inputs = [endpoints] # for backward compatibility
 
         # Compute head results
 
         head_inputs = self.build_sub_model_inputs(
-            endpoints, 
+            head_inputs, 
             label, 
             cond=self.label_as_inputs and self.label_as_head_inputs
         )
