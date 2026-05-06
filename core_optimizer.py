@@ -183,6 +183,8 @@ def __get_optimizer(
                 _optimizer = modern_optimizers.AdamW(weight_decay=0., learning_rate=learning_rate, amsgrad=True, clipnorm=clipnorm, clipvalue=clipvalue)
             elif optimizer == "adamw":
                 _optimizer = modern_optimizers.AdamW(weight_decay=adamw_weight_decay, learning_rate=learning_rate, clipnorm=clipnorm, clipvalue=clipvalue)
+            elif optimizer == "muon":
+                _optimizer = modern_optimizers.Muon(lr=learning_rate, adamw_lr=learning_rate, clipnorm=clipnorm, clipvalue=clipvalue)
             else:
                 raise ValueError(f"Unsupported optimizer {optimizer}")
         return _optimizer
