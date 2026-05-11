@@ -14,10 +14,19 @@ class ClassificationMetricWrapper(keras.metrics.Metric):
         self.metric = metric
         self.num_class = num_class
 
+
     def update_state(self, y_true, y_pred, sample_weight=None):
+        
+        self._update_state_internal(y_true, y_pred, sample_weight=sample_weight)
+
+
+    @tf.autograph.experimental.do_not_convert
+    def _update_state_internal(self, y_true, y_pred, sample_weight=None):
+
         y_true, y_pred = self._prepare_inputs(y_true, y_pred)
 
         self.metric.update_state(y_true, y_pred, sample_weight=sample_weight)
+
 
     def result(self):
         return self.metric.result()
