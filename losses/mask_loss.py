@@ -69,6 +69,15 @@ class MaskLoss (SegLossBase):
         # y_true [batch, h, w]
         # y_pred [batch, h, w, num_class]
 
+        tensor_shapes = get_tensor_shape(y_true, return_list=True)
+
+        if len(tensor_shapes) == 1: # image classification case, reshape to [batch, h, w]
+            y_true = tf.reshape(y_true, [tensor_shapes[0], 1, 1])
+            y_pred = tf.reshape(y_pred, [tensor_shapes[0], 1, 1, tensor_shapes[-1]])
+
+            if valid_mask is not None:
+                valid_mask = tf.reshape(valid_mask, [tensor_shapes[0], 1, 1])
+
         batch_size, height, width, num_class = get_tensor_shape(y_pred)
 
         if self.ignore_label == 0:
