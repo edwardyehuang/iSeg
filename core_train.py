@@ -12,7 +12,7 @@ import math
 from iseg.metrics.mean_iou import MeanIOU
 from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 from iseg.losses.catecrossentropy_ignore_label import catecrossentropy_ignore_label_loss
-from iseg.data_process.augments.classification_batch_mix_augment import ClassificationBatchMixAugment
+
 from iseg.callbacks.ckpt_saver import CheckpointSaver
 from iseg.callbacks.time_callback import TimeCallback
 from iseg.callbacks.model_callback import ModelCallback
@@ -160,7 +160,7 @@ class CoreTrain(object):
         ds = ds.shuffle(shuffle_rate)
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
-        ds = self._maybe_apply_classification_batch_mix(ds, model)
+        ds = self._maybe_apply_post_batch_augment(ds, model)
 
         ds = self.data_based_shard_policy(ds, self.use_data_shared_policy_for_train)
 
@@ -207,16 +207,16 @@ class CoreTrain(object):
         return ds
 
 
-    def _maybe_apply_classification_batch_mix(self, ds, model):
+    def _maybe_apply_post_batch_augment(self, ds, model):
+        """Apply dataset-specific post-batch augmentation if configured.
 
-        mixup_alpha = float(getattr(model, "classification_mixup_alpha", 0.0))
-        mixup_prob = float(getattr(model, "classification_mixup_prob", 0.0))
-        cutmix_alpha = float(getattr(model, "classification_cutmix_alpha", 0.0))
-        cutmix_prob = float(getattr(model, "classification_cutmix_prob", 0.0))
+        Datasets can attach a callable to ``model.post_batch_augment`` via
+        ``Dataset.configure_model(model)``. The callable must accept
+        ``(image, label)`` and return ``(image, label)``.
+        """
+        post_batch_fn = getattr(model, "post_batch_augment", None)
 
-        if (mixup_alpha <= 0 + 1e-6 or mixup_prob <= 0 + 1e-6) and (
-            cutmix_alpha <= 0 + 1e-6 or cutmix_prob <= 0 + 1e-6
-        ):
+        if post_batch_fn is None:
             return ds
 
         element_spec = ds.element_spec
@@ -232,19 +232,9 @@ class CoreTrain(object):
         label_rank = label_spec.shape.rank
 
         if label_rank is not None and label_rank >= 3:
-            print("Skip classification batch mix: detected segmentation-style labels")
+            print("Skip post-batch augment: detected segmentation-style labels")
             return ds
 
-        mix_augment = ClassificationBatchMixAugment(
-            num_class=int(getattr(model, "num_class", 1000)),
-            mixup_alpha=mixup_alpha,
-            mixup_prob=mixup_prob,
-            cutmix_alpha=cutmix_alpha,
-            cutmix_prob=cutmix_prob,
-            switch_prob=float(getattr(model, "classification_mix_switch_prob", 0.5)),
-            label_smoothing=float(getattr(model, "classification_label_smoothing", 0.0)),
-        )
+        print("Apply post-batch augment")
 
-        print("Apply classification batch Mixup/CutMix")
-
-        return ds.map(mix_augment, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        return ds.map(post_batch_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
