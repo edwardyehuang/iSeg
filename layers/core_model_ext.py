@@ -262,7 +262,7 @@ class SegManaged(SegFoundation):
     
 
 
-    def call(self, inputs, training=None):
+    def forward(self, inputs, training=None):
 
         return self._call_internal(inputs, training=training)
     

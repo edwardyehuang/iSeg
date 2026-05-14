@@ -19,6 +19,7 @@ from iseg.utils.version_utils import is_keras3
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 from iseg.utils.tensor_utils import is_float
 from iseg.data_process.input_norm_types import InputNormTypes
+from iseg.data_process.input_norm import normalize_input_value_range
 
 
 class SegModelInferenceConfig(object):
@@ -74,6 +75,39 @@ class SegBase(Keras3_Model_Wrapper):
     def build(self, input_shape):
             
         super().build(input_shape)
+
+
+    def call(self, inputs, training=None):
+        normalized_inputs = self._normalize_inputs(inputs)
+        return self.forward(normalized_inputs, training=training)
+
+
+    def _normalize_inputs(self, inputs):
+        if isinstance(inputs, dict):
+            normalized = dict(inputs)
+            image_key = getattr(self, "dict_inputs_image_key", "image")
+            if image_key in normalized:
+                normalized[image_key] = normalize_input_value_range(
+                    normalized[image_key], self.input_norm_type
+                )
+            return normalized
+        elif isinstance(inputs, (tuple, list)):
+            normalized = list(inputs)
+            if len(normalized) > 0:
+                normalized[0] = normalize_input_value_range(
+                    normalized[0], self.input_norm_type
+                )
+            return type(inputs)(normalized)
+        else:
+            return normalize_input_value_range(inputs, self.input_norm_type)
+
+
+    @tf.autograph.experimental.do_not_convert
+    def forward(self, inputs, training=None):
+        raise NotImplementedError(
+            f"Subclasses of SegBase must implement forward(). "
+            f"{self.__class__.__name__} does not implement it."
+        )
 
 
     def predict_step(self, data):

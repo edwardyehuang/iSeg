@@ -20,7 +20,7 @@ def keras_norm_preprocess(
     std=[58.395, 57.12, 57.375]
 ):
 
-    x = inputs
+    x = tf.cast(inputs, tf.float32)
 
     if scale:
         x /= 255.0
@@ -44,7 +44,7 @@ def keras_norm_preprocess_invert(
     std=[58.395, 57.12, 57.375]
 ):
 
-    x = inputs
+    x = tf.cast(inputs, tf.float32)
 
     if scale:
         mean = [m / 255.0 for m in mean]
@@ -59,7 +59,7 @@ def keras_norm_preprocess_invert(
     if scale:
         x *= 255.0
 
-    return keras.backend.cast(x, dtype=inputs.dtype)
+    return tf.cast(x, dtype=inputs.dtype)
 
 
 
