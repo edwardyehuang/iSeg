@@ -19,6 +19,7 @@ class SegLossBase (keras.losses.Loss):
         reduction=False,
         from_logits=True,
         class_weights=None,
+        from_soft_label=False,
         name=None,
     ):
         
@@ -38,6 +39,7 @@ class SegLossBase (keras.losses.Loss):
         self.batch_size = batch_size
         self.from_logits = from_logits
         self.class_weights = class_weights
+        self.from_soft_label = from_soft_label
 
 
     def call (self, y_true, y_pred):
@@ -48,6 +50,14 @@ class SegLossBase (keras.losses.Loss):
     @tf.autograph.experimental.do_not_convert
     def internal_call (self, y_true, y_pred):
 
+        y_pred_shapes = get_tensor_shape(y_pred, return_list=True)
+
+        if len(y_pred_shapes) == 2:
+            y_true = tf.expand_dims(tf.expand_dims(y_true, axis=1), axis=1)
+            y_pred = tf.expand_dims(tf.expand_dims(y_pred, axis=1), axis=1)
+        elif not (len(y_pred_shapes) == 4):
+            raise ValueError("y_pred should have shape of [batch, h, w, num_class] or [batch, num_class].")
+
         y_true, y_pred, valid_mask = self.internal_preprocess(y_true, y_pred)
 
         return self.compute_loss_forwards(y_true, y_pred, valid_mask=valid_mask)
@@ -57,16 +67,21 @@ class SegLossBase (keras.losses.Loss):
 
         float_dtype = get_stable_float_dtype_for_loss()
 
-        y_true = tf.cast(y_true, tf.int32) # [batch, h, w]
         y_pred = tf.cast(y_pred, float_dtype) # [batch, h, w, num_class]
 
-        _, height, width, _ = get_tensor_shape(y_pred)
+        if not self.from_soft_label:
+            y_true = tf.cast(y_true, tf.int32) # [batch, h, w]
+            
+            _, height, width, _ = get_tensor_shape(y_pred)
 
-        y_true = tf.cast(tf.expand_dims(y_true, axis=-1), float_dtype) # [batch, h, w, 1]
-        y_true = tf.image.resize(y_true, [height, width], method="nearest") # [batch, h, w, 1]
-        y_true = tf.cast(tf.squeeze(y_true, axis=-1), tf.int32) # [batch, h, w]
+            y_true = tf.cast(tf.expand_dims(y_true, axis=-1), float_dtype) # [batch, h, w, 1]
+            y_true = tf.image.resize(y_true, [height, width], method="nearest") # [batch, h, w, 1]
+            y_true = tf.cast(tf.squeeze(y_true, axis=-1), tf.int32) # [batch, h, w]
 
-        valid_mask = self.compute_valid_mask(y_true, dtype=float_dtype) # [batch, h * w]
+            valid_mask = self.compute_valid_mask(y_true, dtype=float_dtype) # [batch, h * w]
+        else:
+            y_true = tf.cast(y_true, float_dtype) # [batch, h, w, num_class]
+            valid_mask = None
 
         y_true, y_pred = self.before_compute_loss_forward(y_true, y_pred)
 

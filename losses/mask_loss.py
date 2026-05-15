@@ -26,6 +26,8 @@ class MaskLoss (SegLossBase):
         apply_focal_sigmoid_loss=True,
         apply_focal_ce_loss=False,
         apply_class_balancing=False,
+        from_soft_label=False,
+        label_smoothing=0.0,
         name=None,
     ):
 
@@ -36,6 +38,7 @@ class MaskLoss (SegLossBase):
             reduction=reduction,
             from_logits=from_logits,
             class_weights=class_weights,
+            from_soft_label=from_soft_label,
             name=name,
         )
 
@@ -52,6 +55,8 @@ class MaskLoss (SegLossBase):
 
         self.apply_class_balancing = apply_class_balancing
 
+        self.label_smoothing = label_smoothing
+
         print("MaskLoss: use_sigmoid_loss = ", self.use_sigmoid_loss)
         print("MaskLoss: use_dice_loss = ", self.use_dice_loss)
         print("MaskLoss: use_ce_loss = ", self.use_ce_loss)
@@ -60,6 +65,8 @@ class MaskLoss (SegLossBase):
         print("MaskLoss: dice_loss_coefficient = ", self.dice_loss_coefficient)
         print("MaskLoss: apply_focal_sigmoid_loss = ", self.apply_focal_sigmoid_loss)
         print("MaskLoss: apply_focal_ce_loss = ", self.apply_focal_ce_loss)
+        print("MaskLoss: from_soft_label = ", self.from_soft_label)
+        print("MaskLoss: label_smoothing = ", self.label_smoothing)
         print("MaskLoss: apply_class_balancing = ", self.apply_class_balancing)
 
 
@@ -69,21 +76,16 @@ class MaskLoss (SegLossBase):
         # y_true [batch, h, w]
         # y_pred [batch, h, w, num_class]
 
-        tensor_shapes = get_tensor_shape(y_true, return_list=True)
-
-        if len(tensor_shapes) == 1: # image classification case, reshape to [batch, h, w]
-            y_true = tf.reshape(y_true, [tensor_shapes[0], 1, 1])
-            y_pred = tf.reshape(y_pred, [tensor_shapes[0], 1, 1, tensor_shapes[-1]])
-
-            if valid_mask is not None:
-                valid_mask = tf.reshape(valid_mask, [tensor_shapes[0], 1, 1])
-
         batch_size, height, width, num_class = get_tensor_shape(y_pred)
 
         if self.ignore_label == 0:
             y_true -= 1
 
-        y_true_one_hot = tf.one_hot(y_true, self.num_class) # [batch, h, w, num_class]
+        if self.from_soft_label:
+            y_true_one_hot = tf.identity(y_true) # [batch, h, w, num_class]
+        else:
+            y_true_one_hot = tf.one_hot(y_true, self.num_class) # [batch, h, w, num_class]
+            
         y_true_one_hot = tf.cast(y_true_one_hot, tf.float32)
         y_true_one_hot = tf.transpose(y_true_one_hot, [0, 3, 1, 2]) # [batch, num_class, h, w]
         y_true_one_hot = tf.reshape(y_true_one_hot, [batch_size, num_class, -1]) # [batch, num_class, h * w]
@@ -102,6 +104,7 @@ class MaskLoss (SegLossBase):
                     y_pred,
                     from_logits=self.from_logits, 
                     apply_class_balancing=self.apply_class_balancing,
+                    label_smoothing=self.label_smoothing,
                     axis=1 # reduce over num_class [batch, h * w]
                 )
             else:
@@ -109,6 +112,7 @@ class MaskLoss (SegLossBase):
                     y_true_one_hot, 
                     y_pred, 
                     from_logits=self.from_logits, 
+                    label_smoothing=self.label_smoothing,
                     axis=1
                 )
 
@@ -146,11 +150,17 @@ class MaskLoss (SegLossBase):
 
             if self.apply_focal_ce_loss:
                 ce_loss = keras.losses.categorical_focal_crossentropy(
-                    y_true_one_hot, y_pred, from_logits=self.from_logits
+                    y_true_one_hot, 
+                    y_pred, 
+                    from_logits=self.from_logits,
+                    label_smoothing=self.label_smoothing,
                 ) # [batch * h * w]
             else:
                 ce_loss = keras.losses.categorical_crossentropy(
-                    y_true_one_hot, y_pred, from_logits=self.from_logits
+                    y_true_one_hot, 
+                    y_pred, 
+                    from_logits=self.from_logits,
+                    label_smoothing=self.label_smoothing,
                 )
 
             ce_loss = tf.reshape(ce_loss, [batch_size, -1]) # [batch, h * w]

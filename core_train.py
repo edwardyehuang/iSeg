@@ -156,11 +156,12 @@ class CoreTrain(object):
     def prepare_train_dataset(self, model, batch_size=1, shuffle_rate=100):
 
         AUTOTUNE = tf.data.experimental.AUTOTUNE
-        ds = self.handle_custom_dataprocess(self.training_dataset, model)
+        ds = self.training_dataset
         ds = ds.shuffle(shuffle_rate)
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
         ds = self._maybe_apply_post_batch_augment(ds, model)
+        ds = self.handle_custom_dataprocess(ds, model)
 
         ds = self.data_based_shard_policy(ds, self.use_data_shared_policy_for_train)
 
