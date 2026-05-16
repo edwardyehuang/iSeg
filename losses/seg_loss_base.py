@@ -6,7 +6,7 @@ from iseg.utils.version_utils import is_keras3
 if not is_keras3():
     from keras.src.utils.losses_utils import ReductionV2 # type: ignore
 
-from iseg.utils.common import get_tensor_shape
+from iseg.utils.common import get_tensor_shape, get_tensor_rank
 from iseg.utils.tensor_utils import get_stable_float_dtype_for_loss
 
 class SegLossBase (keras.losses.Loss):
@@ -49,6 +49,9 @@ class SegLossBase (keras.losses.Loss):
 
     @tf.autograph.experimental.do_not_convert
     def internal_call (self, y_true, y_pred):
+
+        if not self.from_soft_label and get_tensor_rank(y_true) == 2:
+            y_true = tf.squeeze(y_true, axis=-1)
 
         y_pred_shapes = get_tensor_shape(y_pred, return_list=True)
 

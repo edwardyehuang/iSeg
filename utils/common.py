@@ -82,6 +82,14 @@ def get_tensor_shape(x, return_list=False):
 
     return tuple(shapes)
 
+
+def get_tensor_rank(x):
+
+    shapes = get_tensor_shape(x, return_list=True)
+
+    return len(shapes)
+
+
 def isinstance_all (inputs, t):
 
     for x in inputs:
