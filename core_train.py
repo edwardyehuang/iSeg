@@ -156,8 +156,8 @@ class CoreTrain(object):
     def prepare_train_dataset(self, model, batch_size=1, shuffle_rate=100):
 
         AUTOTUNE = tf.data.experimental.AUTOTUNE
-        ds = self.handle_custom_dataprocess(ds, model)
         ds = self.training_dataset
+        ds = self.handle_custom_dataprocess(ds, model)
         ds = ds.shuffle(shuffle_rate)
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
