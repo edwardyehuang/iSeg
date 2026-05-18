@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from iseg.utils.common import get_tensor_shape
+from iseg.utils.common import get_tensor_shape, get_tensor_rank
 
 def dynamic_padding_2d(x, paddings, constant_values=0):
     """
