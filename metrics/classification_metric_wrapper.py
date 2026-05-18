@@ -62,7 +62,7 @@ def classification_top1_metric(num_class=1000, ignore_label=255, name=None):
 
     metric_name = "acc" if name is None or name == "" else f"{name}acc"
 
-    metric = keras.metrics.SparseCategoricalAccuracy(name=metric_name)
+    metric = keras.metrics.CategoricalAccuracy(name=metric_name)
 
     return ClassificationMetricWrapper(metric, num_class=num_class, name=metric_name)
 
