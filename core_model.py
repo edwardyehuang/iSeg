@@ -29,13 +29,18 @@ class SegModelInferenceConfig(object):
         scale_rates=[1.0], 
         flip=False,
         use_cpu_cache=False,
-        resize_method="bilinear"
+        resize_method="bilinear",
+        should_scale_result_back=True,
+        should_flip_result_back=True,
     ):
         
         self.scale_rates = scale_rates
         self.flip = flip
         self.use_cpu_cache = use_cpu_cache
         self.resize_method = resize_method
+
+        self.should_scale_result_back = should_scale_result_back
+        self.should_flip_result_back = should_flip_result_back
     
 
     def to_dict(self):
@@ -45,6 +50,8 @@ class SegModelInferenceConfig(object):
             "flip": self.flip,
             "use_cpu_cache": self.use_cpu_cache,
             "resize_method": self.resize_method,
+            "should_scale_result_back": self.should_scale_result_back,
+            "should_flip_result_back": self.should_flip_result_back,
         }
 
 
@@ -250,13 +257,18 @@ class SegBase(Keras3_Model_Wrapper):
         logits = convert_to_list_if_dict(logits)
         logits = convert_to_list_if_single(logits)
 
-        logits = multi_results_handler(
-            logits, lambda x: resize_image(x, orignal_inputs_size, method=resize_method, name="inference_resize_back")
-        )
+        # resize to original size and flip back if needed for segmentation only
 
-        logits = multi_results_handler(
-            logits, lambda x: tf.cond(flip, lambda: tf.image.flip_left_right(x), lambda: x)
-        )
+        if self.should_scale_result_back:
+            logits = multi_results_handler(
+                logits, lambda x: resize_image(x, orignal_inputs_size, method=resize_method, name="inference_resize_back")
+            )
+
+
+        if self.should_flip_result_back:
+            logits = multi_results_handler(
+                logits, lambda x: tf.cond(flip, lambda: tf.image.flip_left_right(x), lambda: x)
+            )
 
         logits = free_from_list_if_single(logits)
 
