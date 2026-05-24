@@ -259,13 +259,13 @@ class SegBase(Keras3_Model_Wrapper):
 
         # resize to original size and flip back if needed for segmentation only
 
-        if self.should_scale_result_back:
+        if self.inference_configs.should_scale_result_back:
             logits = multi_results_handler(
                 logits, lambda x: resize_image(x, orignal_inputs_size, method=resize_method, name="inference_resize_back")
             )
 
 
-        if self.should_flip_result_back:
+        if self.inference_configs.should_flip_result_back:
             logits = multi_results_handler(
                 logits, lambda x: tf.cond(flip, lambda: tf.image.flip_left_right(x), lambda: x)
             )
