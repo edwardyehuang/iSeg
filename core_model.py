@@ -215,7 +215,9 @@ class SegBase(Keras3_Model_Wrapper):
         training=False, 
         scale_rate=1.0, 
         flip=False, 
-        resize_method="bilinear"
+        resize_method="bilinear",
+        should_scale_result_back=True,
+        should_flip_result_back=True,
     ):
         
         print("trace: inference_with_scale")
@@ -259,13 +261,13 @@ class SegBase(Keras3_Model_Wrapper):
 
         # resize to original size and flip back if needed for segmentation only
 
-        if self.inference_configs.should_scale_result_back:
+        if should_scale_result_back:
             logits = multi_results_handler(
                 logits, lambda x: resize_image(x, orignal_inputs_size, method=resize_method, name="inference_resize_back")
             )
 
 
-        if self.inference_configs.should_flip_result_back:
+        if should_flip_result_back:
             logits = multi_results_handler(
                 logits, lambda x: tf.cond(flip, lambda: tf.image.flip_left_right(x), lambda: x)
             )
@@ -283,6 +285,8 @@ class SegBase(Keras3_Model_Wrapper):
         flip=False,
         use_cpu_cache=False,
         resize_method="bilinear",
+        should_scale_result_back=True,
+        should_flip_result_back=True,
     ):
         num_rates = len(scale_rates)
 
@@ -304,6 +308,8 @@ class SegBase(Keras3_Model_Wrapper):
                 scale_rate=scale_rate, 
                 flip=inner_flip,
                 resize_method=resize_method,
+                should_scale_result_back=should_scale_result_back,
+                should_flip_result_back=should_flip_result_back,
             )
 
             return convert_to_list_if_single(logits_list)
