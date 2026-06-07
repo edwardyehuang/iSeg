@@ -161,7 +161,7 @@ class CoreTrain(object):
         ds = ds.shuffle(shuffle_rate)
         ds = ds.repeat()
         ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
-        # ds = self._maybe_apply_post_batch_augment(ds, model)
+        ds = self._maybe_apply_post_batch_augment(ds, model)
 
         ds = self.data_based_shard_policy(ds, self.use_data_shared_policy_for_train)
 

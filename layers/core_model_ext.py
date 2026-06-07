@@ -27,6 +27,7 @@ class SegManaged(SegFoundation):
         backbone_name=ss.RESNET50,
         backbone_weights_path=None,
         backbone_custom_fn=None,
+        backbone_force_eval_mode=False,
         output_stride=32,
         num_class=21,
         input_norm_type=InputNormTypes.ZERO_MEAN,
@@ -81,6 +82,7 @@ class SegManaged(SegFoundation):
 
         self.backbone_name = backbone_name
         self.backbone_weights_path = backbone_weights_path
+        self.backbone_force_eval_mode = backbone_force_eval_mode
         self.output_stride = output_stride
 
         self.label_as_backbone_inputs = label_as_backbone_inputs
@@ -162,6 +164,9 @@ class SegManaged(SegFoundation):
     
 
     def compute_backbone_results (self, backbone_inputs, training=None):
+
+        if self.backbone_force_eval_mode:
+            training = False
 
         return self.backbone(backbone_inputs, training=training)
         
