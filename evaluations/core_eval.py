@@ -39,7 +39,7 @@ def evaluate(
     model.inference_configs.flip = flip
     model.inference_configs.use_cpu_cache = True
 
-    ds = prepare_dataset(distribute_strategy, data, batch_size, val_image_count=val_image_count)
+    ds = prepare_dataset(distribute_strategy, data, batch_size, val_image_count=val_image_count, use_mesh=getattr(distribute_strategy, "_mesh", None) is not None)
 
     with distribute_strategy.scope():
         model : keras.Model = create_compiled_model(
@@ -63,17 +63,18 @@ def evaluate(
 
 
 
-def prepare_dataset(distribute_strategy, data, batch_size=16, val_image_count=0):
+def prepare_dataset(distribute_strategy, data, batch_size=16, val_image_count=0, use_mesh=False):
 
     AUTOTUNE = tf.data.experimental.AUTOTUNE
 
     ds = data
     # ds = ds.repeat()
-    ds = ds.batch(batch_size, drop_remainder=False)
+    ds = ds.batch(batch_size, drop_remainder=use_mesh)
 
-    options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-    ds = ds.with_options(options)
+    if not use_mesh:
+        options = tf.data.Options()
+        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+        ds = ds.with_options(options)
 
     ds = ds.prefetch(buffer_size=AUTOTUNE)
 

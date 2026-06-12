@@ -22,15 +22,16 @@ from iseg.utils.model_utils import create_compiled_model
 
 class CoreTrain(object):
     def __init__(
-        self, 
-        model_helper, 
-        train_dataset, 
-        val_dataset=None, 
-        val_image_count=0, 
+        self,
+        model_helper,
+        train_dataset,
+        val_dataset=None,
+        val_image_count=0,
         use_tpu=False,
         use_tpu_pod=False,
         use_data_shared_policy_for_train=True,
         use_data_shared_policy_for_val=True,
+        use_mesh=False,
     ):
 
         self.model_helper = model_helper
@@ -40,6 +41,7 @@ class CoreTrain(object):
 
         self.use_tpu = use_tpu
         self.use_tpu_pod = use_tpu_pod
+        self.use_mesh = use_mesh
 
         self.use_data_shared_policy_for_train = use_data_shared_policy_for_train
         self.use_data_shared_policy_for_val = use_data_shared_policy_for_val
@@ -160,7 +162,7 @@ class CoreTrain(object):
         ds = self.handle_custom_dataprocess(ds, model)
         ds = ds.shuffle(shuffle_rate)
         ds = ds.repeat()
-        ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
+        ds = ds.batch(batch_size, drop_remainder=self.use_tpu or self.use_mesh)
         ds = self._maybe_apply_post_batch_augment(ds, model)
 
         ds = self.data_based_shard_policy(ds, self.use_data_shared_policy_for_train)
@@ -177,7 +179,7 @@ class CoreTrain(object):
         AUTOTUNE = tf.data.experimental.AUTOTUNE
         ds = self.handle_custom_dataprocess(self.val_dataset, model)
         ds = ds.repeat()
-        ds = ds.batch(batch_size, drop_remainder=self.use_tpu)
+        ds = ds.batch(batch_size, drop_remainder=self.use_tpu or self.use_mesh)
 
         ds = self.data_based_shard_policy(ds, self.use_data_shared_policy_for_val)
 
@@ -187,7 +189,12 @@ class CoreTrain(object):
     
 
     def data_based_shard_policy(self, ds, use_data_shared_policy=True):
-        
+
+        if self.use_mesh:
+            # DTensor-backed strategies perform data sharding internally via
+            # DTensorDataset; applying AutoShardPolicy conflicts with it.
+            return ds
+
         if self.use_tpu and self.use_tpu_pod and use_data_shared_policy:
             print("Use TPU pod! Set AutoShardPolicy to DATA")
 

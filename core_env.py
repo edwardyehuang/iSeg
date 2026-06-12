@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 
 from iseg.utils.common import set_random_seed, enable_mixed_precision
 from iseg.distribution.distribution_utils import get_distribution_strategy, shutdown_tpu_system
-from iseg.distribution.mesh_utils import get_mesh_layout_map
+from iseg.distribution.mesh_utils import get_dtensor_strategy
 
 
 def common_env_setup(
@@ -42,7 +42,11 @@ def common_env_setup(
             os.environ["TF_DETERMINISTIC_OPS"] = "1"
             os.environ["TF_DISABLE_SEGMENT_REDUCTION_OP_DETERMINISM_EXCEPTIONS"] = "1"  # For 2.5.0+
         else:
-            tf.config.experimental.enable_op_determinism()
+            # When use_mesh=True the TF context will be reset during DTensor
+            # accelerator initialization, so we defer this call until after the
+            # strategy is created.
+            if not use_mesh:
+                tf.config.experimental.enable_op_determinism()
 
         if LooseVersion(tf.version.VERSION) >= LooseVersion("2.5.0"):
             os.environ["TF_CUDNN_USE_FRONTEND"] = "1"
@@ -61,18 +65,43 @@ def common_env_setup(
 
     
     if use_mesh:
-        strategy = get_mesh_layout_map(
-            gpu_memory_growth=gpu_memory_growth, 
-            cuda_visible_devices=cuda_visible_devices, 
-            use_tpu=use_tpu, 
+        strategy = get_dtensor_strategy(
+            gpu_memory_growth=gpu_memory_growth,
+            cuda_visible_devices=cuda_visible_devices,
+            use_tpu=use_tpu,
             tpu_name=tpu_name,
             use_one_device_strategy=use_one_device_strategy,
         )
+        # Initializing the DTensor accelerator system resets the TensorFlow
+        # context, which can undo configuration options set above. Re-apply the
+        # runtime options that are safe to set after context creation.
+        tf.config.run_functions_eagerly(run_eagerly)
+        if run_eagerly and LooseVersion(tf.version.VERSION) >= LooseVersion("2.8.0"):
+            tf.data.experimental.enable_debug_mode()
+        if soft_device_placement:
+            try:
+                tf.config.set_soft_device_placement(soft_device_placement)
+            except RuntimeError as e:
+                print(f"Failed to re-apply soft_device_placement after mesh init: {e}")
+        if num_op_parallelism_threads is not None and num_op_parallelism_threads > 0:
+            try:
+                tf.config.threading.set_inter_op_parallelism_threads(num_op_parallelism_threads)
+                tf.config.threading.set_intra_op_parallelism_threads(num_op_parallelism_threads)
+            except RuntimeError as e:
+                print(f"Failed to re-apply threading options after mesh init: {e}")
+        if use_deterministic and not use_tpu and LooseVersion(tf.version.VERSION) >= LooseVersion("2.8.0"):
+            try:
+                tf.config.experimental.enable_op_determinism()
+            except RuntimeError as e:
+                print(f"Failed to re-apply op determinism after mesh init: {e}")
+        # Re-apply the TensorFlow random seed since DTensor accelerator
+        # initialization resets the TF context.
+        tf.random.set_seed(random_seed)
     else:
         strategy = get_distribution_strategy(
-            gpu_memory_growth=gpu_memory_growth, 
-            cuda_visible_devices=cuda_visible_devices, 
-            use_tpu=use_tpu, 
+            gpu_memory_growth=gpu_memory_growth,
+            cuda_visible_devices=cuda_visible_devices,
+            use_tpu=use_tpu,
             tpu_name=tpu_name,
             use_one_device_strategy=use_one_device_strategy,
         )
@@ -87,11 +116,14 @@ def common_env_setup(
     return strategy
 
 
-def common_env_clean (strategy):
+def common_env_clean(strategy):
 
     if isinstance(strategy, tf.distribute.TPUStrategy):
         shutdown_tpu_system(strategy)
+        return
 
-        # from cloud_tpu_client import Client
-
-        # Client().configure_tpu_version(tf.__version__, restart_type='always')
+    # DTensor-backed MirroredStrategy carries a `_mesh` attribute. For TPU we
+    # need to shut down the DTensor accelerator system.
+    mesh = getattr(strategy, "_mesh", None)
+    if mesh is not None and mesh.device_type() == "TPU":
+        tf.experimental.dtensor.shutdown_accelerator_system()

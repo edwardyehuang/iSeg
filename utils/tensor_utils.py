@@ -43,15 +43,26 @@ def dynamic_padding_2d(x, paddings, constant_values=0):
 
 
 
+def _is_tpu_strategy(strategy):
+    """Return True if the strategy targets TPU devices."""
+    if isinstance(strategy, tf.distribute.TPUStrategy):
+        return True
+    # DTensor-backed strategies expose their mesh; check the device type.
+    mesh = getattr(strategy, "_mesh", None)
+    if mesh is not None and mesh.device_type() == "TPU":
+        return True
+    return False
+
+
 def get_stable_float_dtype():
     """
     Returns the stable float dtype for the current strategy.
     """
     if tf.distribute.has_strategy():
         strategy = tf.distribute.get_strategy()
-        if isinstance(strategy, tf.distribute.TPUStrategy):
+        if _is_tpu_strategy(strategy):
             return tf.bfloat16
-        
+
     return tf.float32
 
 

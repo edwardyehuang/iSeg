@@ -175,6 +175,14 @@ def __get_optimizer(
             else:
                 raise ValueError(f"Unsupported optimizer {optimizer}")
         else:
+            # Custom optimizers (Muon / Lion) are not yet verified with DTensor.
+            is_mesh = getattr(distribute_strategy, "_mesh", None) is not None
+            if is_mesh and optimizer in ("muon", "lion"):
+                raise ValueError(
+                    f"Optimizer '{optimizer}' is not supported in mesh mode. "
+                    "Please use 'sgd', 'adam', or 'adamw'."
+                )
+
             if optimizer == "sgd":
                 _optimizer = modern_optimizers.SGD(learning_rate=learning_rate, momentum=sgd_momentum_rate, clipnorm=clipnorm, clipvalue=clipvalue)
             elif optimizer == "adam":
