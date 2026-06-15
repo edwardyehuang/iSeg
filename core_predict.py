@@ -18,6 +18,7 @@ from iseg.core_inference import *
 from iseg.core_model import SegBase
 from iseg.utils.data_loader import load_image_tensor_from_path
 
+
 def predict_with_dir(
     distribute_strategy : tf.distribute.Strategy,
     batch_size : int,
@@ -46,54 +47,55 @@ def predict_with_dir(
     print("Input dir : ", input_dir)
     print("Output dir : ", output_dir)
 
-    # check if TPU strategy is used
-    if isinstance(distribute_strategy, tf.distribute.TPUStrategy):
+    if _is_tpu_strategy(distribute_strategy):
         keras.backend.set_floatx("bfloat16")
     else:
         keras.backend.set_floatx("float16")
 
     curent_dtype = keras.backend.floatx()
 
-    with distribute_strategy.scope():
+    if not os.path.isdir(input_dir):
+        raise ValueError(f"Input directory {input_dir} does not exist or is not a directory.")
 
-        if not os.path.isdir(input_dir):
-            raise ValueError(f"Input directory {input_dir} does not exist or is not a directory.")
+    paths = get_data_paths(input_dir, image_sets)
+    ds = tf.data.Dataset.from_tensor_slices(paths)
 
-        paths = get_data_paths(input_dir, image_sets)
-        ds = tf.data.Dataset.from_tensor_slices(paths)
+    image_count = len(paths[0])
 
-        image_count = len(paths[0])
+    if image_count == 0:
+        raise ValueError("No images found in the input directory, please check the input directory and image sets.")
 
-        if image_count == 0:
-            raise ValueError("No images found in the input directory, please check the input directory and image sets.")
+    ds = ds.map(
+        data_process(
+            crop_height, 
+            crop_width,
+            resize_height=resize_height,
+            resize_width=resize_width,
+            input_norm_type=model.input_norm_type, 
+            dtype=curent_dtype
+        ), 
+        num_parallel_calls=tf.data.experimental.AUTOTUNE
+    )
 
-        ds = ds.map(
-            data_process(
-                crop_height, 
-                crop_width,
-                resize_height=resize_height,
-                resize_width=resize_width,
-                input_norm_type=model.input_norm_type, 
-                dtype=curent_dtype
-            ), 
-            num_parallel_calls=tf.data.experimental.AUTOTUNE
-        )
+    ds = ds.repeat()
 
-        ds = ds.repeat()
+    num_takes = image_count + image_count % batch_size
 
-        num_takes = image_count + image_count % batch_size
+    print(f"num_takes: {num_takes}")
 
-        print(f"num_takes: {num_takes}")
+    ds = ds.take(image_count + image_count % batch_size)
+    ds = ds.batch(batch_size, drop_remainder=True)
 
-        ds = ds.take(image_count + image_count % batch_size)
-        ds = ds.batch(batch_size, drop_remainder=True)
-
+    # DTensor-backed strategies perform sharding internally; applying an
+    # AutoShardPolicy may conflict with DTensorDataset.
+    if getattr(distribute_strategy, "_mesh", None) is None:
         options = tf.data.Options()
         options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.AUTO
         ds = ds.with_options(options)
 
-        ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-        ds = distribute_strategy.experimental_distribute_dataset(ds)
+    ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+
+    with distribute_strategy.scope():
 
         if compiled_image_predict_func is None:
 
@@ -108,66 +110,104 @@ def predict_with_dir(
                 flip,
             )
 
-        @tf.function(
-            autograph=False, 
-            reduce_retracing=True, 
+    yield from _predict_with_strategy(
+        distribute_strategy=distribute_strategy,
+        ds=ds,
+        compiled_image_predict_func=compiled_image_predict_func,
+        curent_dtype=curent_dtype,
+        batch_size=batch_size,
+        output_dir=output_dir,
+        output_ext=output_ext,
+    )
+
+
+def _predict_with_strategy(
+    distribute_strategy,
+    ds,
+    compiled_image_predict_func,
+    curent_dtype,
+    batch_size,
+    output_dir,
+    output_ext,
+):
+    """Inference path for classic and 1-D DTensor strategies."""
+
+    ds = distribute_strategy.experimental_distribute_dataset(ds)
+
+    @tf.function(
+        autograph=False, 
+        reduce_retracing=True, 
+    )
+    def step_fn(image_tensor):
+
+        image_tensor = tf.cast(image_tensor, curent_dtype)
+
+        result = compiled_image_predict_func(
+            image_tensor,
         )
-        def step_fn(image_tensor):
 
-            image_tensor = tf.cast(image_tensor, curent_dtype)
+        return result
+    
 
-            result = compiled_image_predict_func(
-                image_tensor,
-            )
+    def run_fn (image_tensor):
 
-            return result
+        result = distribute_strategy.run(step_fn, args=(image_tensor,))
+
+        return result
+    
+    for image_tensor, output_size, output_name in ds:
         
+        predicts = run_fn(image_tensor)
 
-        def run_fn (image_tensor):
+        output_name = _maybe_local_results(distribute_strategy, output_name)
+        output_name = tf.concat(output_name, axis=0)
+        output_path = tf.strings.join([output_dir, output_name], separator=os.sep)
 
-            result = distribute_strategy.run(step_fn, args=(image_tensor,))
+        output_size = _maybe_local_results(distribute_strategy, output_size)
+        output_size = tf.concat(output_size, axis=0)
 
-            return result
-        
-        for image_tensor, output_size, output_name in ds:
-            
-            predicts = run_fn(image_tensor)
+        for i in range(len(predicts)):
+            batch_predict = predicts[i]
+            batch_predict = _maybe_local_results(distribute_strategy, batch_predict)
+            batch_predict = tf.concat(batch_predict, axis=0)
 
-            output_name = distribute_strategy.experimental_local_results(
-                output_name
-            )
+            for k in range(batch_size):
+                predict = batch_predict[k]
+                orginal_size = output_size[k]
 
-            output_name = tf.concat(output_name, axis=0)
-            output_path = tf.strings.join([output_dir, output_name], separator=os.sep)
+                predict = tf.image.crop_to_bounding_box(predict, 0, 0, orginal_size[0], orginal_size[1])
+                predict = tf.cast(predict, tf.uint8)
 
-            output_size = distribute_strategy.experimental_local_results(
-                output_size
-            )
-            output_size = tf.concat(output_size, axis=0)
+                png = tf.io.encode_png(predict)
+                path = output_path[k]
 
-            for i in range(len(predicts)):
-                batch_predict = predicts[i]
-                batch_predict = distribute_strategy.experimental_local_results(
-                    batch_predict
-                )
-                batch_predict = tf.concat(batch_predict, axis=0)
+                if i > 0:
+                    path = path + "_{}".format(i)
 
-                for k in range(batch_size):
-                    predict = batch_predict[k]
-                    orginal_size = output_size[k]
+                tf.io.write_file(path + output_ext, png)
 
-                    predict = tf.image.crop_to_bounding_box(predict, 0, 0, orginal_size[0], orginal_size[1])
-                    predict = tf.cast(predict, tf.uint8)
+        yield batch_size
 
-                    png = tf.io.encode_png(predict)
-                    path = output_path[k]
 
-                    if i > 0:
-                        path = path + "_{}".format(i)
+def _maybe_local_results(strategy, value):
+    """Return per-replica tensors that can be concatenated.
 
-                    tf.io.write_file(path + output_ext, png)
+    For distributed strategies ``experimental_local_results`` returns the
+    per-device slices.  For non-distributed values (e.g. string/size tensors
+    from a regular dataset) it returns a single-element tuple so the same
+    ``tf.concat`` pattern can be reused.
+    """
+    try:
+        return strategy.experimental_local_results(value)
+    except (ValueError, NotImplementedError):
+        return (value,)
 
-            yield batch_size
+
+def _is_tpu_strategy(strategy):
+    if isinstance(strategy, tf.distribute.TPUStrategy):
+        return True
+    mesh = getattr(strategy, "_mesh", None)
+    return mesh is not None and mesh.device_type() == "TPU"
 
 
 def get_data_paths(
