@@ -9,6 +9,6 @@ Custom TensorFlow Operations
 This module contains optimized custom operations for iseg.
 """
 
-from . import dcn_v2
+from . import ccl
 
-__all__ = ['dcn_v2']
+__all__ = ["ccl"]
