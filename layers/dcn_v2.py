@@ -1,9 +1,5 @@
 # This code is motified from https://github.com/RuaHU/keras_DCNv2
 # Now support full XLA JIT compilation
-#
-# NOTE: For better performance, consider using the optimized C++ implementation:
-# from iseg.ops.dcn_v2 import DCNv2Optimized
-
 
 import tensorflow as tf
 import keras
