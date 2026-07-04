@@ -8,7 +8,8 @@
 # and "Bag of Tricks for Image Classification with Convolutional Neural Networks", CVPR2019
 
 import iseg.static_strings as ss
-import tensorflow as tf
+import keras
+
 from iseg.layers.normalizations import normalization
 
 from iseg.backbones.resnet_blocks import BlockType1, BlockType2
@@ -19,7 +20,7 @@ from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 BN_EPSILON = 1.001e-5
 
-DEFAULT_CONV_FUNC = tf.keras.layers.Conv2D
+DEFAULT_CONV_FUNC = keras.layers.Conv2D
 
 
 class Stack(Keras3_Model_Wrapper):
@@ -78,7 +79,7 @@ class Stack(Keras3_Model_Wrapper):
 
         x = inputs
 
-        x_before_stride = tf.identity(x, name="before_stride")
+        x_before_stride = x
 
         x = self.blocks[0](x, training=training)
 
@@ -174,7 +175,7 @@ class Stack2(Keras3_Model_Wrapper):
         for block in self.blocks[:-1]:
             x = block(x, training=training)
 
-        x_before_stride = tf.identity(x, name="before_stride")
+        x_before_stride = x
 
         x = self.blocks[-1](x, training=training)
 
@@ -210,9 +211,9 @@ class ResNet(Keras3_Model_Wrapper):
             )
 
         if not replace_7x7_conv:
-            self.poo1_pad = tf.keras.layers.ZeroPadding2D(padding=(1, 1), name="poo1_pad")
+            self.poo1_pad = keras.layers.ZeroPadding2D(padding=(1, 1), name="poo1_pad")
 
-        self.poo1_pool = tf.keras.layers.MaxPooling2D(
+        self.poo1_pool = keras.layers.MaxPooling2D(
             3, strides=2, padding="same" if replace_7x7_conv else "valid", name="pool1_pool"
         )
 
@@ -224,7 +225,7 @@ class ResNet(Keras3_Model_Wrapper):
 
     def build_7x7_resnet(self, depth_multiplier=1, use_bias=True, norm_method=None):
 
-        self.conv1_pad = tf.keras.layers.ZeroPadding2D(padding=(3, 3), name="conv1_pad")
+        self.conv1_pad = keras.layers.ZeroPadding2D(padding=(3, 3), name="conv1_pad")
         self.conv1_conv = self.conv_func(
             int(64 * depth_multiplier), 7, strides=2, use_bias=use_bias, name="conv1_conv"
             )
@@ -236,7 +237,7 @@ class ResNet(Keras3_Model_Wrapper):
         x = self.conv1_pad(inputs)
         x = self.conv1_conv(x)
         x = self.conv1_bn(x, training=training)
-        x = tf.nn.relu(x)
+        x = keras.activations.relu(x)
 
         return x
 
@@ -270,15 +271,15 @@ class ResNet(Keras3_Model_Wrapper):
 
         x = self.conv1_1_conv(inputs)
         x = self.conv1_1_bn(x, training=training)
-        x = tf.nn.relu(x)
+        x = keras.activations.relu(x)
 
         x = self.conv1_2_conv(x)
         x = self.conv1_2_bn(x, training=training)
-        x = tf.nn.relu(x)
+        x = keras.activations.relu(x)
 
         x = self.conv1_3_conv(x)
         x = self.conv1_3_bn(x, training=training)
-        x = tf.nn.relu(x)
+        x = keras.activations.relu(x)
 
         return x
     

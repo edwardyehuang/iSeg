@@ -7,7 +7,7 @@
 # The modifications are refer to https://github.com/tensorflow/models/blob/master/research/deeplab/core/resnet_v1_beta.py
 # and "Bag of Tricks for Image Classification with Convolutional Neural Networks", CVPR2019
 
-import tensorflow as tf
+import keras
 
 from iseg.layers.normalizations import normalization
 from tensorflow.python.keras.utils import conv_utils
@@ -15,7 +15,7 @@ from iseg.utils.keras3_utils import Keras3_Model_Wrapper
 
 BN_EPSILON = 1.001e-5
 
-DEFAULT_CONV_FUNC = tf.keras.layers.Conv2D
+DEFAULT_CONV_FUNC = keras.layers.Conv2D
 
 
 class BlockType1(Keras3_Model_Wrapper):
@@ -91,19 +91,19 @@ class BlockType1(Keras3_Model_Wrapper):
 
         x = self.conv1_conv(inputs)
         x = self.conv1_bn(x, training=training)
-        x = tf.nn.relu(x)
+        x = keras.activations.relu(x)
 
-        tf.assert_equal(x.shape.rank, 4)
+        assert(len(x.shape) == 4)
 
         x = self.conv2_conv(x, training=training)
         x = self.conv2_bn(x, training=training)
-        x = tf.nn.relu(x)
+        x = keras.activations.relu(x)
 
         x = self.conv3_conv(x)
         x = self.conv3_bn(x, training=training)
 
-        x = tf.add(shortcut, x)
-        x = tf.nn.relu(x)
+        x = keras.ops.add(shortcut, x)
+        x = keras.activations.relu(x)
 
         return x
 
@@ -182,24 +182,24 @@ class BlockType2(Keras3_Model_Wrapper):
 
         if self.strides > 1:
             if "avg" in self.downsample_method:
-                shortcut = tf.nn.avg_pool2d(shortcut, self.conv2_conv.strides, self.conv2_conv.strides, "SAME")
+                shortcut = keras.ops.average_pool(shortcut, self.conv2_conv.strides, self.conv2_conv.strides, "SAME")
             elif "max" in self.downsample_method:
-                shortcut = tf.nn.max_pool2d(shortcut, self.conv2_conv.strides, self.conv2_conv.strides, "SAME")
+                shortcut = keras.ops.average_pool(shortcut, self.conv2_conv.strides, self.conv2_conv.strides, "SAME")
             else:
                 raise ValueError("Only max or avg are supported")
 
         x = self.conv1_conv(inputs)
         x = self.conv1_bn(x, training=training)
-        x = tf.nn.relu(x)
+        x = keras.activations.relu(x)
 
         x = self.conv2_conv(x, training=training)
         x = self.conv2_bn(x, training=training)
-        x = tf.nn.relu(x)
+        x = keras.activations.relu(x)
 
         x = self.conv3_conv(x)
         x = self.conv3_bn(x, training=training)
 
-        x = tf.add(shortcut, x)
-        x = tf.nn.relu(x)
+        x = keras.ops.add(shortcut, x)
+        x = keras.activations.relu(x)
 
         return x
