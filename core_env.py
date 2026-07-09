@@ -57,10 +57,10 @@ def common_env_setup(
 
     if soft_device_placement:
         tf.config.set_soft_device_placement(soft_device_placement)
-
+        
     tf.config.run_functions_eagerly(run_eagerly)
 
-    if run_eagerly and LooseVersion(tf.version.VERSION) >= LooseVersion("2.8.0"):
+    if run_eagerly and LooseVersion(tf.version.VERSION) >= LooseVersion("2.8.0"):   
         tf.data.experimental.enable_debug_mode()
 
     

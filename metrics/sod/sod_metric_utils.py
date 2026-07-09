@@ -10,8 +10,8 @@ import tensorflow as tf
 # The different implementation of epsilon between numpy and matlab
 # np.spacing(1) ≈ 2.220446049250313e-16
 TYPE = tf.float32
-EPS = tf.constant(2.220446049250313e-16, dtype=TYPE)
-PI = tf.constant(math.pi, dtype=TYPE)
+EPS = 2.220446049250313e-16
+PI = math.pi
 
 
 def validate_and_normalize_input(
