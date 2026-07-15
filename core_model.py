@@ -414,6 +414,7 @@ class SegFoundation(SegBase):
         assert num_aux_loss >= 0, f"num_aux_loss must >= 0, found {num_aux_loss}"
 
         self.num_aux_loss = num_aux_loss
+        self.discard_aux_outputs_during_inference = False
 
         if isinstance(aux_loss_rate, tuple):
             aux_loss_rate = list(aux_loss_rate)

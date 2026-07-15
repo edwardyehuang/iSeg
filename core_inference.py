@@ -54,7 +54,44 @@ def inference_fn(inputs, model, num_class=21, training=False, sliding_window_cro
 
         # print(inference_with_sliding_window.pretty_printed_concrete_signatures())
 
-    return model_results
+    return _discard_aux_outputs(model_results, model)
+
+
+def _discard_aux_outputs(model_results, model):
+    """Keep only main prediction outputs during inference.
+
+    Auxiliary outputs (e.g., SSS prototypes) are required during training but
+    must not be processed as segmentation maps during inference/evaluation.
+    Dropping them prevents the inference pipeline from resizing or matching
+    them against labels.
+
+    This helper is only active when the model explicitly sets
+    ``discard_aux_outputs_during_inference=True``. Standard models whose aux
+    outputs are valid segmentation maps are left untouched.
+    """
+
+    if not model.discard_aux_outputs_during_inference:
+        return model_results
+
+    num_aux_loss = model.num_aux_loss
+    if num_aux_loss <= 0:
+        return model_results
+
+    if isinstance(model_results, dict):
+        # Dict outputs do not have a well-defined aux/main ordering; leave
+        # the filtering to the caller.
+        return model_results
+
+    results_list = convert_to_list_if_single(model_results)
+    if not isinstance(results_list, (list, tuple)):
+        return model_results
+
+    num_main_outputs = len(results_list) - num_aux_loss
+    if num_main_outputs <= 0:
+        return model_results
+
+    results_list = results_list[:num_main_outputs]
+    return free_from_list_if_single(results_list)
 
 
 def check_if_tuple_or_list(inputs):
@@ -218,7 +255,8 @@ def sliding_window_body(i, inputs, model, slices_list, training=False):
     cropped_inputs = inputs[:, slices_indexs[0] : slices_indexs[1], slices_indexs[2] : slices_indexs[3], :]
 
     cropped_results = internel_inference(cropped_inputs, model, training=training)
-    
+    cropped_results = _discard_aux_outputs(cropped_results, model)
+
     cropped_results = convert_to_list_if_dict(cropped_results)
     cropped_results = convert_to_list_if_single(cropped_results)
 
