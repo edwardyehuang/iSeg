@@ -73,8 +73,6 @@ def guard_grads (x):
 
 
 def l2_normalize(x, axis=-1, epsilon=1e-12):
-    
-    tf.name_scope()
 
     with keras.name_scope("l2_normalize") as scope:
         x = keras.ops.convert_to_tensor(x)
