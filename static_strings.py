@@ -22,6 +22,7 @@ GTA5 = "gta5"
 LIP = "lip"
 MAPILLARYVISTAS = "mapillary_vistas"
 IMAGENET1K = "imagenet1k"
+CIFAR10 = "cifar10"
 
 COD10K = "cod10k"
 
