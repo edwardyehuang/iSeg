@@ -45,6 +45,7 @@ def get_backbone(
     label_shape=None,
     efficientnet_use_top=True,
     moat_use_pos_encoding=False,
+    drop_path_rate=-1.0, # negative value means use default drop path rate for each backbone
 ):
 
     backbone = None
@@ -73,6 +74,11 @@ def get_backbone(
     if ss.MOAT in name:
         general_kwargs.update({
             "use_pos_emb": moat_use_pos_encoding,
+        })
+
+    if ss.CONVNEXT in name and drop_path_rate >= 0.0:
+        general_kwargs.update({
+            "drop_path_rate": drop_path_rate,
         })
 
     backbone_dicts = {

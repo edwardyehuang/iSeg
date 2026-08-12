@@ -28,6 +28,9 @@ class SegManaged(SegFoundation):
         backbone_weights_path=None,
         backbone_custom_fn=None,
         backbone_force_eval_mode=False,
+        backbone_outputs_dict_key="endpoints",
+        backbone_outputs_dict_flatten_endpoints=False,
+        backbone_drop_path_rate=-1.0, # negative value means use default drop path rate for each backbone
         output_stride=32,
         num_class=21,
         input_norm_type=InputNormTypes.ZERO_MEAN,
@@ -54,8 +57,6 @@ class SegManaged(SegFoundation):
         efficientnet_use_top=True,
         dict_inputs_image_key="image",
         dict_inputs_label_key="label",
-        backbone_outputs_dict_key="endpoints",
-        backbone_outputs_dict_flatten_endpoints=False,
         head_inputs_always_dict=False,
         head_results_direct_output=False,
         use_dict_outputs=False,
@@ -122,6 +123,7 @@ class SegManaged(SegFoundation):
             label_shape=label_shape,
             resnet_multi_grids=resnet_multi_grids,
             efficientnet_use_top=efficientnet_use_top,
+            drop_path_rate=backbone_drop_path_rate,
         )
 
         if not self.use_custom_logits:
