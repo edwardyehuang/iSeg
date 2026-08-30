@@ -39,6 +39,12 @@ def model_common_setup(
     if restore_checkpoint:
         model_helper.restore_checkpoint()
 
+        # Post-restore hook (e.g. SSS resets the inherited logit scale when
+        # fine-tuning on a new dataset).
+        on_restored = getattr(model, "on_checkpoint_restored", None)
+        if callable(on_restored):
+            on_restored()
+
     if weight_decay is not None and weight_decay > 0:
         set_weight_decay(model_helper.model, weight_decay, decay_norm_vars)
 
