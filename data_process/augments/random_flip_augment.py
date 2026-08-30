@@ -41,3 +41,37 @@ class RandomFlipAugment(DataAugmentationBase):
         return image, label
 
 
+class RandomFlipWithLabelSwapAugment(RandomFlipAugment):
+    """Random horizontal flip that also swaps label ids of mirrored semantic
+    pairs (e.g. left arm <-> right arm) via a lookup table.
+
+    Unlike the reversed-label approach (which requires precomputed, pre-flipped
+    labels and must run before any spatial augmentation), the swap table is
+    applied on the fly, so this augment can stay at the normal position in the
+    pipeline.
+
+    swap_table: list/array of length 256, mapping each label id to the id it
+    should become after a horizontal flip (identity for symmetric classes).
+    """
+
+    def __init__(self, prob_of_flip=0.5, swap_table=None, name=None):
+
+        super().__init__(prob_of_flip=prob_of_flip, name=name)
+
+        if swap_table is None:
+            swap_table = list(range(256))
+
+        self.swap_table = tf.constant(swap_table, dtype=tf.int32)
+
+
+    def _execute_branch(self, image, label, reversed_label=None):
+
+        image = tf.image.flip_left_right(image)
+
+        if label is not None:
+            label = tf.image.flip_left_right(label)
+            label = tf.gather(self.swap_table, label)
+
+        return image, label
+
+
