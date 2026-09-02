@@ -88,7 +88,20 @@ class MiniMind3Attention(keras.layers.Layer):
         self.q_norm = MiniMind3RMSNorm(epsilon=config.rms_norm_eps, name="q_norm")
         self.k_norm = MiniMind3RMSNorm(epsilon=config.rms_norm_eps, name="k_norm")
 
-    def call(self, x):
+    def call(self, x, cache=None, start_pos=0):
+        """Runs attention.
+
+        Args:
+            x: float tensor [batch, seq_len, hidden_dim].
+            cache: optional (key, value) tuple of cached tensors, each of
+                shape [batch, past_len, num_kv_heads, head_dim].
+            start_pos: int. Position offset of the first token in `x`
+                (equals the cached sequence length during generation).
+
+        Returns:
+            (output, new_cache). `new_cache` is the (key, value) tuple with
+            the current step appended (pre-GQA-repeat layout).
+        """
         batch_size = tf.shape(x)[0]
         seq_len = tf.shape(x)[1]
 
@@ -104,9 +117,15 @@ class MiniMind3Attention(keras.layers.Layer):
         query = self.q_norm(query)
         key = self.k_norm(key)
 
-        positions = tf.range(seq_len, dtype=tf.float32)
+        positions = tf.range(start_pos, start_pos + seq_len, dtype=tf.float32)
         query = apply_rotary_pos_emb(query, positions, self.rope_theta)
         key = apply_rotary_pos_emb(key, positions, self.rope_theta)
+
+        if cache is not None:
+            key = tf.concat([cache[0], key], axis=1)
+            value = tf.concat([cache[1], value], axis=1)
+        new_cache = (key, value)
+        kv_len = tf.shape(key)[1]
 
         # GQA: repeat each kv head `n_rep` times consecutively (torch repeat_kv).
         key = tf.repeat(key, self.n_rep, axis=2)
@@ -120,10 +139,11 @@ class MiniMind3Attention(keras.layers.Layer):
         scores = tf.matmul(query, key, transpose_b=True)
         scores = scores / math.sqrt(float(self.head_dim))
 
-        # Causal mask.
-        causal_mask = tf.linalg.band_part(
-            tf.ones([seq_len, seq_len], dtype=tf.bool), -1, 0
-        )
+        # Causal mask: query at absolute position `start_pos + i` may attend
+        # to key positions `0 .. start_pos + i`.
+        query_positions = tf.range(start_pos, start_pos + seq_len)[:, None]
+        key_positions = tf.range(kv_len)[None, :]
+        causal_mask = key_positions <= query_positions
         scores = tf.where(
             causal_mask[None, None, :, :],
             scores,
@@ -138,7 +158,7 @@ class MiniMind3Attention(keras.layers.Layer):
         output = tf.reshape(
             output, [batch_size, seq_len, self.num_heads * self.head_dim]
         )
-        return self.o_proj(output)
+        return self.o_proj(output), new_cache
 
 
 class MiniMind3MLP(keras.layers.Layer):
@@ -174,7 +194,10 @@ class MiniMind3DecoderBlock(keras.layers.Layer):
         )
         self.mlp = MiniMind3MLP(config, name="mlp")
 
-    def call(self, x):
-        x = x + self.self_attn(self.input_layernorm(x))
+    def call(self, x, cache=None, start_pos=0):
+        attn_output, new_cache = self.self_attn(
+            self.input_layernorm(x), cache=cache, start_pos=start_pos
+        )
+        x = x + attn_output
         x = x + self.mlp(self.post_attention_layernorm(x))
-        return x
+        return x, new_cache

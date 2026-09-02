@@ -37,6 +37,11 @@ def main():
     parser.add_argument("--top_p", type=float, default=0.95)
     parser.add_argument("--top_k", type=int, default=50)
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument(
+        "--no_cache",
+        action="store_true",
+        help="Recompute the full prefix each step instead of using KV cache.",
+    )
     args = parser.parse_args()
 
     config = MiniMind3Config()
@@ -62,6 +67,7 @@ def main():
             top_k=args.top_k,
             eos_token_id=config.eos_token_id,
             seed=args.seed,
+            use_cache=not args.no_cache,
         )
         elapsed = time.time() - start_time
 

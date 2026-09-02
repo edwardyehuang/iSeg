@@ -38,6 +38,43 @@ def sample_next_token(logits, temperature=0.85, top_p=0.95, top_k=50):
     return tf.random.categorical(logits, num_samples=1)
 
 
+def _get_compiled_fns(model):
+    """Returns cached (prefill_fn, decode_fn) tf.functions for `model`.
+
+    Graph compilation removes the per-op eager overhead that otherwise
+    dominates single-token decode steps. Dynamic sequence dimensions keep
+    each function to a single trace.
+    """
+    fns = getattr(model, "_minimind3_compiled_fns", None)
+    if fns is not None:
+        return fns
+
+    num_layers = len(model.blocks)
+    cache_spec = tf.TensorSpec(
+        [1, None, model.config.num_key_value_heads, model.config.head_dim],
+        tf.float32,
+    )
+    caches_spec = [(cache_spec, cache_spec) for _ in range(num_layers)]
+
+    @tf.function(input_signature=[tf.TensorSpec([1, None], tf.int32)])
+    def prefill_fn(input_ids):
+        return model(input_ids, caches=None, start_pos=0)
+
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec([1, 1], tf.int32),
+            caches_spec,
+            tf.TensorSpec([], tf.int32),
+        ]
+    )
+    def decode_fn(token_id, caches, start_pos):
+        return model(token_id, caches=caches, start_pos=start_pos)
+
+    fns = (prefill_fn, decode_fn)
+    model._minimind3_compiled_fns = fns
+    return fns
+
+
 def generate(
     model,
     input_ids,
@@ -47,28 +84,58 @@ def generate(
     top_k=50,
     eos_token_id=2,
     seed=None,
+    use_cache=True,
 ):
-    """Naive sampling loop without KV cache (recomputes the full prefix).
+    """Sampling loop with optional KV cache.
 
     Args:
-        model: `MiniMind3Model` returning logits [batch, seq_len, vocab].
+        model: `MiniMind3Model` returning (logits, caches).
         input_ids: list of ints (single sequence, batch size 1).
         max_new_tokens: maximum number of tokens to generate.
         temperature / top_p / top_k: sampling hyperparameters.
         eos_token_id: stop token id.
         seed: optional int for reproducible sampling.
+        use_cache: if True, only the newly generated token is fed at each
+            step (KV cache, graph compiled); if False, the full prefix is
+            recomputed eagerly each step.
 
     Returns:
         List of generated token ids (excluding the prompt).
     """
     if seed is not None:
         tf.random.set_seed(seed)
+    prompt_len = len(input_ids)
+
+    if use_cache:
+        prefill_fn, decode_fn = _get_compiled_fns(model)
+        logits, caches = prefill_fn(tf.constant([input_ids], dtype=tf.int32))
+        generated = []
+        for step in range(max_new_tokens):
+            next_token = sample_next_token(
+                logits[:, -1, :],
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+            )
+            next_id = int(next_token[0, 0].numpy())
+            generated.append(next_id)
+            if eos_token_id is not None and next_id == eos_token_id:
+                break
+            if step + 1 < max_new_tokens:
+                logits, caches = decode_fn(
+                    tf.constant([[next_id]], dtype=tf.int32),
+                    caches,
+                    tf.constant(prompt_len + step, dtype=tf.int32),
+                )
+        return generated
+
+    # No-cache path: recompute the full prefix each step (eager).
     ids = tf.constant([input_ids], dtype=tf.int32)
     generated = []
     for _ in range(max_new_tokens):
-        logits = model(ids, training=False)[:, -1, :]
+        logits, _ = model(ids, caches=None, start_pos=0)
         next_token = sample_next_token(
-            logits, temperature=temperature, top_p=top_p, top_k=top_k
+            logits[:, -1, :], temperature=temperature, top_p=top_p, top_k=top_k
         )
         next_id = int(next_token[0, 0].numpy())
         generated.append(next_id)

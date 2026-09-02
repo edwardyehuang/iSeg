@@ -75,7 +75,7 @@ def convert(npz_path, output_path):
     assert not leftover, f"Unconverted weights left in npz: {leftover}"
 
     # Sanity check: forward pass on a dummy token.
-    logits = model(tf.constant([[1, 2]], dtype=tf.int32))
+    logits, _ = model(tf.constant([[1, 2]], dtype=tf.int32))
     print(f"Sanity forward: logits shape {logits.shape}, "
           f"mean {float(tf.reduce_mean(logits)):.4f}, "
           f"std {float(tf.math.reduce_std(logits)):.4f}")

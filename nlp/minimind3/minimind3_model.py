@@ -12,7 +12,8 @@ class MiniMind3Model(keras.Model):
     """minimind-3 decoder-only language model (dense, Qwen3-style).
 
     The lm head is tied to the token embedding, as in the original model.
-    `call(input_ids)` returns logits of shape [batch, seq_len, vocab_size].
+    `call(input_ids)` returns `(logits, caches)`, where logits have shape
+    [batch, seq_len, vocab_size].
     """
 
     def __init__(self, config: MiniMind3Config = None, **kwargs):
@@ -32,14 +33,28 @@ class MiniMind3Model(keras.Model):
             epsilon=self.config.rms_norm_eps, name="norm"
         )
 
-    def call(self, input_ids):
+    def call(self, input_ids, caches=None, start_pos=0):
+        """Runs the model.
+
+        Args:
+            input_ids: int tensor [batch, seq_len].
+            caches: optional list of per-layer (key, value) cache tuples.
+            start_pos: int. Position offset of the first input token.
+
+        Returns:
+            (logits, new_caches): logits [batch, seq_len, vocab_size] and
+            the updated per-layer caches.
+        """
         x = self.embed_tokens(input_ids)
-        for block in self.blocks:
-            x = block(x)
+        new_caches = []
+        for i, block in enumerate(self.blocks):
+            cache = caches[i] if caches is not None else None
+            x, new_cache = block(x, cache=cache, start_pos=start_pos)
+            new_caches.append(new_cache)
         x = self.norm(x)
         # Tied lm head: logits = hidden @ embedding^T.
         logits = tf.matmul(x, self.embed_tokens.embeddings, transpose_b=True)
-        return logits
+        return logits, new_caches
 
     def build_model(self):
         """Builds all weights eagerly (input shape [batch, seq_len])."""
