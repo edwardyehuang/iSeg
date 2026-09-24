@@ -29,6 +29,7 @@ CIFAR10 = "cifar10"
 COD10K = "cod10k"
 
 SEMANTICDRONE = "semantic_drone"
+UNIFIED_WIRE = "unified_wire"
 TEMPSET = "tempset"
 PSEUDO = "pseudo"
 
