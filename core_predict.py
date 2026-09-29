@@ -265,11 +265,6 @@ def data_process (
         
         )
 
-        image_tensor = normalize_input_value_range(
-            image_tensor, 
-            input_norm_type=input_norm_type,
-        )
-
         image_tensor = tf.cast(image_tensor, dtype)
 
         return image_tensor, image_size, filename_wo_ext

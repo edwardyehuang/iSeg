@@ -138,7 +138,6 @@ def simple_process_image (
     mean_pixel = get_mean_pixel(input_norm_type)
 
     pad_image_tensor = pad_to_bounding_box(image_tensor, 0, 0, pad_height, pad_width, pad_value=mean_pixel)
-    pad_image_tensor = normalize_input_value_range(pad_image_tensor, input_norm_type=input_norm_type)
 
     if label_tensor is not None:
         label_tensor = pad_to_bounding_box(label_tensor, 0, 0, pad_height, pad_width, pad_value=ignore_label)
