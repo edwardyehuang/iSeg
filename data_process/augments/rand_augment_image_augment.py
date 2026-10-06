@@ -115,6 +115,10 @@ class RandAugmentImageAugment(DataAugmentationBase):
         return image
 
     def _rotate(self, image, level, sign):
+        return self._apply_projective_transform(image, self._rotate_matrix(image, level, sign))
+
+    def _rotate_matrix(self, image, level, sign):
+        # image: [H, W, C], only its spatial size is needed
         shape = tf.shape(image)
         height = tf.cast(shape[0], tf.float32)
         width = tf.cast(shape[1], tf.float32)
@@ -122,13 +126,18 @@ class RandAugmentImageAugment(DataAugmentationBase):
         angle_radian = sign * level * self.max_rotate_degree * (3.14159265 / 180.0)
         angle_radian = tf.reshape(angle_radian, [1])
 
-        matrix = get_rotation_matrix(angle_radian, height, width)
-
-        return self._apply_projective_transform(image, matrix)
+        # [1, 8] projective transform (output -> input mapping)
+        return get_rotation_matrix(angle_radian, height, width)
 
     def _shear_x(self, image, level, sign):
+        return self._apply_projective_transform(image, self._shear_x_matrix(image, level, sign))
+
+    def _shear_x_matrix(self, image, level, sign):
+        del image
         shear = sign * level * self.max_shear_ratio
-        matrix = tf.reshape(
+
+        # [1, 8] projective transform
+        return tf.reshape(
             tf.stack([
                 tf.constant(1.0, dtype=tf.float32),
                 shear,
@@ -141,12 +150,16 @@ class RandAugmentImageAugment(DataAugmentationBase):
             ]),
             [1, 8],
         )
-
-        return self._apply_projective_transform(image, matrix)
 
     def _shear_y(self, image, level, sign):
+        return self._apply_projective_transform(image, self._shear_y_matrix(image, level, sign))
+
+    def _shear_y_matrix(self, image, level, sign):
+        del image
         shear = sign * level * self.max_shear_ratio
-        matrix = tf.reshape(
+
+        # [1, 8] projective transform
+        return tf.reshape(
             tf.stack([
                 tf.constant(1.0, dtype=tf.float32),
                 tf.constant(0.0, dtype=tf.float32),
@@ -160,14 +173,16 @@ class RandAugmentImageAugment(DataAugmentationBase):
             [1, 8],
         )
 
-        return self._apply_projective_transform(image, matrix)
-
     def _translate_x(self, image, level, sign):
+        return self._apply_projective_transform(image, self._translate_x_matrix(image, level, sign))
+
+    def _translate_x_matrix(self, image, level, sign):
         shape = tf.shape(image)
         width = tf.cast(shape[1], tf.float32)
         shift = sign * level * self.max_translate_ratio * width
 
-        matrix = tf.reshape(
+        # [1, 8] projective transform
+        return tf.reshape(
             tf.stack([
                 tf.constant(1.0, dtype=tf.float32),
                 tf.constant(0.0, dtype=tf.float32),
@@ -181,14 +196,16 @@ class RandAugmentImageAugment(DataAugmentationBase):
             [1, 8],
         )
 
-        return self._apply_projective_transform(image, matrix)
-
     def _translate_y(self, image, level, sign):
+        return self._apply_projective_transform(image, self._translate_y_matrix(image, level, sign))
+
+    def _translate_y_matrix(self, image, level, sign):
         shape = tf.shape(image)
         height = tf.cast(shape[0], tf.float32)
         shift = sign * level * self.max_translate_ratio * height
 
-        matrix = tf.reshape(
+        # [1, 8] projective transform
+        return tf.reshape(
             tf.stack([
                 tf.constant(1.0, dtype=tf.float32),
                 tf.constant(0.0, dtype=tf.float32),
@@ -201,8 +218,6 @@ class RandAugmentImageAugment(DataAugmentationBase):
             ]),
             [1, 8],
         )
-
-        return self._apply_projective_transform(image, matrix)
 
     def _color(self, image, level, sign):
         factor = 1.0 + sign * level * self.max_enhance_delta

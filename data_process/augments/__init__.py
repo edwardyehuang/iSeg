@@ -24,3 +24,5 @@ from iseg.data_process.augments.random_flip_image_augment import RandomFlipImage
 from iseg.data_process.augments.random_grayscale_image_augment import RandomGrayscaleImageAugment
 from iseg.data_process.augments.random_gaussian_blur_image_augment import RandomGaussianBlurImageAugment
 from iseg.data_process.augments.rand_augment_image_augment import RandAugmentImageAugment
+from iseg.data_process.augments.rand_augment_seg_augment import RandAugmentSegAugment
+from iseg.data_process.augments.panoptic_copy_paste import PanopticCopyPasteAugment

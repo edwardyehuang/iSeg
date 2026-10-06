@@ -146,6 +146,9 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
         scale_factor_step_size=0.1,
         random_brightness=False,
         photo_metric_distortions=False,
+        seg_rand_augment=False,
+        seg_rand_augment_num_layers=2,
+        seg_rand_augment_magnitude=9.0,
         random_erase=True,
         random_jepg_quality=False,
         random_noisy_eval_level=0,
@@ -183,6 +186,16 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
 
             if photo_metric_distortions:
                 augments.append(RandomPhotoMetricDistortions())
+
+            # Label-aware RandAugment sits with the photometric augments:
+            # after the scale jitter, before pad/crop (same relative position
+            # as autoaugment in the official deeplab2 kMaX recipe).
+            if seg_rand_augment:
+                augments.append(RandAugmentSegAugment(
+                    num_layers=seg_rand_augment_num_layers,
+                    magnitude=seg_rand_augment_magnitude,
+                    ignore_label=ignore_label,
+                ))
 
         pad_value = tf.reshape(mean_pixel, [1, 1, 3])
 
