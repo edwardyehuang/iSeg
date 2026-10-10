@@ -31,8 +31,10 @@
 #   preprocessed (random scale with the donor's scale range multiplied by
 #   panoptic_copy_paste_scale=0.5, then pad/crop to crop size). Here it is
 #   applied on the raw decoded tensors at the DATASET level, before the
-#   standard augment pipeline; the donor is resized to the host's spatial
-#   size (image bilinear, label nearest) and the shared subsequent random
+#   standard augment pipeline; the donor keeps its NATIVE scale (center-crop
+#   or pad to the host canvas, never stretched — an earlier version resized
+#   the donor to the host's exact (H, W), distorting every pasted instance
+#   whenever the aspect ratios differed) and the shared subsequent random
 #   scale jitter provides the scale diversity the official donor rescaling
 #   provides.
 # - `prob` adds a per-sample execution probability (panoptic_copy_paste_prob
@@ -129,6 +131,56 @@ def panoptic_copy_paste(
     return image, label
 
 
+def _fit_donor_to_canvas(donor_image, donor_label, host_hw, ignore_label):
+    """Center-crop/pad the donor to the host canvas WITHOUT rescaling.
+
+    Pasted segments keep their native pixel scale (official deeplab2 behavior:
+    the donor goes through its own aspect-preserving preprocessing and is
+    pasted as-is). Overflow is center-cropped, underflow is padded with void
+    labels; the padded region holds no segments and never contributes.
+
+    Args:
+        donor_image: `[Hd, Wd, 3]` float tensor.
+        donor_label: `[Hd, Wd, 2]` int32 tensor.
+        host_hw: `[2]` int tensor, the host's (H, W).
+        ignore_label: Void class id used to pad the label (both channels).
+
+    Returns:
+        `(donor_image, donor_label)` at `[H, W, 3]` / `[H, W, 2]`.
+    """
+
+    donor_hw = tf.shape(donor_image)[:2]  # [2] = (Hd, Wd)
+
+    # Crop to at most the host size.
+    crop_hw = tf.minimum(donor_hw, host_hw)  # [2]
+    top_left = (donor_hw - crop_hw) // 2  # [2]
+    donor_image = donor_image[
+        top_left[0] : top_left[0] + crop_hw[0],
+        top_left[1] : top_left[1] + crop_hw[1],
+    ]  # [h, w, 3]
+    donor_label = donor_label[
+        top_left[0] : top_left[0] + crop_hw[0],
+        top_left[1] : top_left[1] + crop_hw[1],
+    ]  # [h, w, 2]
+
+    # Pad to the host size; the padded region is void (class 255) in the
+    # label and black in the image — it holds no segments by construction.
+    pad_hw = host_hw - crop_hw  # [2]
+    pad_top = pad_hw[0] // 2
+    pad_left = pad_hw[1] // 2
+    donor_image = tf.pad(
+        donor_image,
+        [[pad_top, pad_hw[0] - pad_top], [pad_left, pad_hw[1] - pad_left], [0, 0]],
+    )  # [H, W, 3]
+    donor_label = tf.pad(
+        donor_label,
+        [[pad_top, pad_hw[0] - pad_top], [pad_left, pad_hw[1] - pad_left], [0, 0]],
+        constant_values=ignore_label,
+    )  # [H, W, 2]
+
+    return donor_image, donor_label
+
+
 def _panoptic_copy_paste_internal(
     image,
     label,
@@ -145,10 +197,16 @@ def _panoptic_copy_paste_internal(
 
     host_hw = tf.shape(image)[:2]  # [2]
 
-    # Bring the donor onto the host canvas (adaptation of the official donor
-    # preprocessing, see module docstring).
-    donor_image = tf.image.resize(donor_image, host_hw, method="bilinear")  # [H, W, 3]
-    donor_label = tf.image.resize(donor_label, host_hw, method="nearest")  # [H, W, 2], int32 stays exact
+    # Keep the donor at its NATIVE scale: the previous version resized it to
+    # the exact host (H, W), which anisotropically stretches every pasted
+    # instance whenever the donor's aspect ratio differs from the host's —
+    # teaching distorted shape priors to the model. Official deeplab2 runs the
+    # donor through its own (aspect-preserving) preprocessing and pastes at
+    # native scale. Overflow is center-cropped, underflow is padded with void
+    # (those pixels hold no segments, so they never contribute to the paste).
+    donor_image, donor_label = _fit_donor_to_canvas(
+        donor_image, donor_label, host_hw, ignore_label
+    )  # [H, W, 3], [H, W, 2]
     donor_image = tf.cast(donor_image, image.dtype)  # [H, W, 3]
 
     donor_class = donor_label[..., 0]  # [H, W]

@@ -167,6 +167,8 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
 
         super().__init__(target_height=crop_height, target_width=crop_width, name=name)
 
+        self.ignore_label = ignore_label
+
         augments = []
 
         if max_resize_height or max_resize_width:
@@ -226,3 +228,20 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
                 augments.append(RandomNoisyEvalAugment(noise_level=random_noisy_eval_level))
 
         self.augments = augments
+
+    def post_process(self, image, label):
+
+        image, label = super().post_process(image, label)
+
+        # Panoptic two-channel labels ([H, W, 2]): pad/erase/geometric
+        # augments fill BOTH channels with ignore_label, but the contract is
+        # that the instance channel is meaningful only where the class
+        # channel is not ignore. Restore it here (after every augment) so
+        # downstream consumers (SSS seed losses, kMaX gt targets, PQ metric)
+        # can rely on "void <=> instance id 0".
+        if label is not None and label.shape.rank == 3 and label.shape[-1] == 2:
+            is_void = tf.equal(label[..., 0], self.ignore_label)  # [H, W]
+            instance = tf.where(is_void, tf.zeros_like(label[..., 1]), label[..., 1])  # [H, W]
+            label = tf.stack([label[..., 0], instance], axis=-1)  # [H, W, 2]
+
+        return image, label
