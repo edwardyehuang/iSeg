@@ -74,12 +74,31 @@ class RandAugmentSegAugment(RandAugmentImageAugment):
         if self.num_layers <= 0:
             return image, label
 
-        # Fall back to image-only behavior when there is no spatial label
-        # (e.g. classification-style scalar labels).
-        if label is None or (label.shape.rank is not None and label.shape.rank < 2):
-            return super().call(image, label)
-
         original_image_shape = image.shape
+
+        # Fall back to image-only behavior when there is no spatial label
+        # (e.g. classification-style scalar labels). The parent's call() can
+        # NOT be reused: its while_loop resolves _apply_one_layer and
+        # _execute_random_op on this subclass (both require a label), so the
+        # parent's versions are bound explicitly here.
+        if label is None or (label.shape.rank is not None and label.shape.rank < 2):
+
+            def _image_only_layer(img):
+                return random_execute_helper(
+                    self.op_execute_prob,
+                    lambda: RandAugmentImageAugment._execute_random_op(self, img),
+                    lambda: img,
+                )
+
+            _, image = tf.while_loop(
+                lambda i, img: i < self.num_layers,
+                lambda i, img: [i + 1, _image_only_layer(img)],
+                [tf.constant(0, dtype=tf.int32), image],
+                maximum_iterations=self.num_layers,
+            )
+            image = tf.clip_by_value(image, 0.0, 255.0)
+            image.set_shape(original_image_shape)
+            return image, label
         original_label_shape = label.shape
 
         _, image, label = tf.while_loop(
