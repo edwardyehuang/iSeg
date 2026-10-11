@@ -193,6 +193,19 @@ class StandardAugmentationsPipeline(AugmentationsPipeLine):
             # after the scale jitter, before pad/crop (same relative position
             # as autoaugment in the official deeplab2 kMaX recipe).
             if seg_rand_augment:
+                if random_brightness or photo_metric_distortions:
+                    # RandAugment's photometric ops (brightness/contrast/color)
+                    # duplicate RandomBrightnessAugment /
+                    # RandomPhotoMetricDistortions: two stacked photometric
+                    # sources over-distort the color distribution. Turn one
+                    # side off via cfg (random_brightness=False /
+                    # photo_metric_distortion=False).
+                    print(
+                        "WARNING: seg_rand_augment is ON together with "
+                        "random_brightness/photo_metric_distortions — their "
+                        "photometric ops overlap (two photometric sources "
+                        "stacked). Consider disabling one side in the cfg."
+                    )
                 augments.append(RandAugmentSegAugment(
                     num_layers=seg_rand_augment_num_layers,
                     magnitude=seg_rand_augment_magnitude,
