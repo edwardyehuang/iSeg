@@ -228,12 +228,24 @@ class RandAugmentImageAugment(DataAugmentationBase):
     def _contrast(self, image, level, sign):
         factor = 1.0 + sign * level * self.max_enhance_delta
 
-        return tf.image.adjust_contrast(image, factor)
+        # PIL ImageEnhance.Contrast semantics: the pivot is the mean of the
+        # GRAYSCALE image (one scalar for all channels);
+        # tf.image.adjust_contrast pivots per channel, which deviates.
+        gray_mean = tf.reduce_mean(tf.image.rgb_to_grayscale(image))
+
+        return tf.clip_by_value(
+            gray_mean + factor * (image - gray_mean), 0.0, 255.0
+        )
 
     def _brightness(self, image, level, sign):
-        delta = sign * level * self.max_enhance_delta * 255.0
+        # Canonical brightness (PIL ImageEnhance.Brightness / timm / deeplab2)
+        # is MULTIPLICATIVE: image * (1 +/- max_enhance_delta * level).
+        # An earlier version was additive (+/- level * 0.9 * 255), which at
+        # the default magnitude 9 shifted every pixel by ~207 and destroyed
+        # the image (all-white/all-black) while leaving the label untouched.
+        factor = 1.0 + sign * level * self.max_enhance_delta
 
-        return image + delta
+        return self._blend(tf.zeros_like(image), image, factor)
 
     def _sharpness(self, image, level, sign):
         factor = 1.0 + sign * level * self.max_enhance_delta
