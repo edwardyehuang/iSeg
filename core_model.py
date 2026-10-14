@@ -208,6 +208,25 @@ class SegBase(Keras3_Model_Wrapper):
         return inputs
 
 
+    def get_scale_back_resize_method(self, output_index, default_method):
+        """Resize method for scaling an output back to the input size.
+
+        Called per model output by `inference_with_scale` when results are
+        scaled back after scaled/flip inference. Override in subclasses whose
+        outputs are categorical index maps (e.g. PanopticSegManaged returns
+        "nearest" for its panoptic (class, instance-id) map, since bilinear
+        would blend the ids).
+
+        Args:
+            output_index: Index of the output inside the model's output list.
+            default_method: The harness's default resize method ("bilinear").
+
+        Returns:
+            The resize method string for this output.
+        """
+
+        return default_method
+
     @tf.function(autograph=False, reduce_retracing=True)
     def inference_with_scale(
         self, 
@@ -262,9 +281,13 @@ class SegBase(Keras3_Model_Wrapper):
         # resize to original size and flip back if needed for segmentation only
 
         if should_scale_result_back:
-            logits = multi_results_handler(
-                logits, lambda x: resize_image(x, orignal_inputs_size, method=resize_method, name="inference_resize_back")
-            )
+            resized_logits = []
+            for i, x in enumerate(logits):
+                method = self.get_scale_back_resize_method(i, resize_method)
+                resized_logits.append(
+                    resize_image(x, orignal_inputs_size, method=method, name="inference_resize_back")
+                )
+            logits = resized_logits
 
 
         if should_flip_result_back:
