@@ -31,12 +31,14 @@
 #   preprocessed (random scale with the donor's scale range multiplied by
 #   panoptic_copy_paste_scale=0.5, then pad/crop to crop size). Here it is
 #   applied on the raw decoded tensors at the DATASET level, before the
-#   standard augment pipeline; the donor keeps its NATIVE scale (center-crop
-#   or pad to the host canvas, never stretched — an earlier version resized
+#   standard augment pipeline; the donor is resized (aspect-preserving) to
+#   the host's scale baseline, jittered by the host's scale range x
+#   `donor_scale` (0.5, i.e. systematically smaller pasted instances, exactly
+#   as the official halved donor range), then center-cropped/padded to the
+#   host canvas without any further rescaling (an earlier version resized
 #   the donor to the host's exact (H, W), distorting every pasted instance
-#   whenever the aspect ratios differed) and the shared subsequent random
-#   scale jitter provides the scale diversity the official donor rescaling
-#   provides.
+#   whenever the aspect ratios differed). The shared subsequent random
+#   scale jitter then applies to the merged image as a whole, as official.
 # - `prob` adds a per-sample execution probability (panoptic_copy_paste_prob
 #   flag); the official version applies copy-paste unconditionally once
 #   enabled.
@@ -47,6 +49,7 @@
 import tensorflow as tf
 
 from iseg.data_process.augments.data_augment_base import DataAugmentationBase, random_execute_helper
+from iseg.utils.common import resize_image
 
 # Option semantics mirrored from deeplab2 sample_generator._get_panoptic_copy_paste.
 OPTION_NONE = "none"
@@ -71,6 +74,8 @@ def panoptic_copy_paste(
     thing_option=OPTION_ALL,
     stuff_option=OPTION_RANDOM,
     void_option=OPTION_NONE,
+    donor_scale_min=0.25,
+    donor_scale_max=1.0,
 ):
     """Merges donor segments into a host sample. See module docstring.
 
@@ -85,6 +90,9 @@ def panoptic_copy_paste(
             (have instances), [num_thing_classes, ignore_label) are "stuff".
         ignore_label: void/ignore class id (never pasted).
         thing_option/stuff_option/void_option: one of "all", "random", "none".
+        donor_scale_min/donor_scale_max: jitter range of the donor's scale
+            relative to the host's canvas baseline (official: the host's
+            jitter range x 0.5, i.e. 0.15-0.85 for a 0.3-1.7 host range).
 
     Returns:
         (merged_image, merged_label) with the same shapes/dtypes as
@@ -97,6 +105,11 @@ def panoptic_copy_paste(
         raise ValueError(f"Invalid stuff_option = {stuff_option}, must be one of {_VALID_OPTIONS}")
     if void_option not in _VALID_OPTIONS:
         raise ValueError(f"Invalid void_option = {void_option}, must be one of {_VALID_OPTIONS}")
+
+    if donor_scale_min <= 0 or donor_scale_max < donor_scale_min:
+        raise ValueError(
+            f"Invalid donor scale range [{donor_scale_min}, {donor_scale_max}]"
+        )
 
     if label.shape.rank is not None and (label.shape.rank != 3 or label.shape[-1] != 2):
         raise ValueError(
@@ -121,6 +134,8 @@ def panoptic_copy_paste(
             thing_option=thing_option,
             stuff_option=stuff_option,
             void_option=void_option,
+            donor_scale_min=donor_scale_min,
+            donor_scale_max=donor_scale_max,
         ),
         lambda: (image, label),
     )
@@ -131,29 +146,52 @@ def panoptic_copy_paste(
     return image, label
 
 
-def _fit_donor_to_canvas(donor_image, donor_label, host_hw, ignore_label):
-    """Center-crop/pad the donor to the host canvas WITHOUT rescaling.
+def _fit_donor_to_canvas(
+    donor_image, donor_label, host_hw, ignore_label, donor_scale_min, donor_scale_max
+):
+    """Baseline-normalize, scale-jitter, then center-crop/pad the donor.
 
-    Pasted segments keep their native pixel scale (official deeplab2 behavior:
-    the donor goes through its own aspect-preserving preprocessing and is
-    pasted as-is). Overflow is center-cropped, underflow is padded with void
-    labels; the padded region holds no segments and never contributes.
+    Official deeplab2 behavior (`panoptic_copy_paste_scale=0.5`): the donor
+    goes through the same aspect-preserving preprocessing as the host but
+    with the scale-jitter range multiplied by 0.5, so pasted instances are
+    systematically SMALLER than host content. Mirrored here on raw tensors:
+    the donor is first resized (aspect-preserving) so its longest side
+    matches the host's (a common scale baseline), then scaled by
+    s ~ Uniform(donor_scale_min, donor_scale_max), then center-cropped/padded
+    to the host canvas without any further rescaling.
 
     Args:
         donor_image: `[Hd, Wd, 3]` float tensor.
         donor_label: `[Hd, Wd, 2]` int32 tensor.
         host_hw: `[2]` int tensor, the host's (H, W).
         ignore_label: Void class id used to pad the label (both channels).
+        donor_scale_min/donor_scale_max: Donor jitter range relative to the
+            common baseline.
 
     Returns:
         `(donor_image, donor_label)` at `[H, W, 3]` / `[H, W, 2]`.
     """
 
     donor_hw = tf.shape(donor_image)[:2]  # [2] = (Hd, Wd)
+    host_hw = tf.cast(host_hw, tf.int32)
+
+    # Common scale baseline: donor longest side -> host longest side.
+    baseline_scale = tf.cast(tf.reduce_max(host_hw), tf.float32) / tf.cast(
+        tf.reduce_max(donor_hw), tf.float32
+    )
+    jitter = tf.random.uniform([], donor_scale_min, donor_scale_max)
+    scale = baseline_scale * jitter
+
+    new_hw = tf.cast(tf.cast(donor_hw, tf.float32) * scale, tf.int32)
+    new_hw = tf.maximum(new_hw, 1)
+
+    donor_image = resize_image(donor_image, new_hw, method="bilinear")
+    donor_label = resize_image(donor_label, new_hw, method="nearest")
+    donor_label = tf.cast(donor_label, tf.int32)
 
     # Crop to at most the host size.
-    crop_hw = tf.minimum(donor_hw, host_hw)  # [2]
-    top_left = (donor_hw - crop_hw) // 2  # [2]
+    crop_hw = tf.minimum(new_hw, host_hw)  # [2]
+    top_left = (new_hw - crop_hw) // 2  # [2]
     donor_image = donor_image[
         top_left[0] : top_left[0] + crop_hw[0],
         top_left[1] : top_left[1] + crop_hw[1],
@@ -191,21 +229,19 @@ def _panoptic_copy_paste_internal(
     thing_option,
     stuff_option,
     void_option,
+    donor_scale_min,
+    donor_scale_max,
 ):
     # image: [H, W, 3] float; label: [H, W, 2] int32
     # donor_image: [Hd, Wd, 3] float; donor_label: [Hd, Wd, 2] int32
 
     host_hw = tf.shape(image)[:2]  # [2]
 
-    # Keep the donor at its NATIVE scale: the previous version resized it to
-    # the exact host (H, W), which anisotropically stretches every pasted
-    # instance whenever the donor's aspect ratio differs from the host's —
-    # teaching distorted shape priors to the model. Official deeplab2 runs the
-    # donor through its own (aspect-preserving) preprocessing and pastes at
-    # native scale. Overflow is center-cropped, underflow is padded with void
-    # (those pixels hold no segments, so they never contribute to the paste).
+    # Baseline-normalize + jitter the donor scale (official halved-range
+    # behavior), then fit it to the host canvas (see `_fit_donor_to_canvas`).
     donor_image, donor_label = _fit_donor_to_canvas(
-        donor_image, donor_label, host_hw, ignore_label
+        donor_image, donor_label, host_hw, ignore_label,
+        donor_scale_min, donor_scale_max,
     )  # [H, W, 3], [H, W, 2]
     donor_image = tf.cast(donor_image, image.dtype)  # [H, W, 3]
 
@@ -284,6 +320,8 @@ class PanopticCopyPasteAugment(DataAugmentationBase):
         thing_option=OPTION_ALL,
         stuff_option=OPTION_RANDOM,
         void_option=OPTION_NONE,
+        donor_scale_min=0.25,
+        donor_scale_max=1.0,
         name=None,
     ):
         super().__init__(name=name)
@@ -294,6 +332,8 @@ class PanopticCopyPasteAugment(DataAugmentationBase):
         self.thing_option = thing_option
         self.stuff_option = stuff_option
         self.void_option = void_option
+        self.donor_scale_min = float(donor_scale_min)
+        self.donor_scale_max = float(donor_scale_max)
 
     def call(self, image, label, donor_image, donor_label):
         return panoptic_copy_paste(
@@ -307,6 +347,8 @@ class PanopticCopyPasteAugment(DataAugmentationBase):
             thing_option=self.thing_option,
             stuff_option=self.stuff_option,
             void_option=self.void_option,
+            donor_scale_min=self.donor_scale_min,
+            donor_scale_max=self.donor_scale_max,
         )
 
 
@@ -319,6 +361,8 @@ def apply_panoptic_copy_paste_to_dataset(
     thing_option=OPTION_ALL,
     stuff_option=OPTION_RANDOM,
     void_option=OPTION_NONE,
+    donor_scale_min=0.25,
+    donor_scale_max=1.0,
 ):
     """Zips a per-sample (image, label) dataset with a reshuffled copy of
     itself and pastes donor segments onto each sample.
@@ -326,6 +370,11 @@ def apply_panoptic_copy_paste_to_dataset(
     This mirrors deeplab2's input_reader, which duplicates the dataset with
     another random order and zips them together. Must be called on the raw
     decoded stream, BEFORE the standard augment pipeline.
+
+    donor_scale_min/max follow the official `panoptic_copy_paste_scale=0.5`
+    semantics: the donor's jitter range = the host's scale-jitter range x 0.5
+    (0.25-1.0 for the repo's 0.5-2.0 default host range; 0.15-0.85 for the
+    official 0.3-1.7).
     """
 
     augment = PanopticCopyPasteAugment(
@@ -335,12 +384,14 @@ def apply_panoptic_copy_paste_to_dataset(
         thing_option=thing_option,
         stuff_option=stuff_option,
         void_option=void_option,
+        donor_scale_min=donor_scale_min,
+        donor_scale_max=donor_scale_max,
     )
 
     donor_ds = ds.shuffle(shuffle_buffer_size, reshuffle_each_iteration=True)
     zipped_ds = tf.data.Dataset.zip((ds, donor_ds))
 
-    print(f"Applied panoptic copy-paste augment (prob = {prob}, donor shuffle buffer = {shuffle_buffer_size})")
+    print(f"Applied panoptic copy-paste augment (prob = {prob}, donor shuffle buffer = {shuffle_buffer_size}, donor scale range = [{donor_scale_min}, {donor_scale_max}])")
 
     return zipped_ds.map(
         _copy_paste_map_fn(augment),
