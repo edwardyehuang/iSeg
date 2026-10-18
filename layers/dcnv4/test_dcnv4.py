@@ -260,6 +260,20 @@ def run_self_checks():
     print(f"  train smoke: loss {losses[0]:.4f} -> {losses[-1]:.4f}")
     assert losses[-1] < losses[0], "loss did not decrease"
 
+    # custom offset path (as used by FaPN): offset feature with its own channels
+    offset = tf.random.normal([2, 32, 24, 32])
+    for jit in [False, True]:
+        layer = DCNv4(kernel_size=3, group=4, use_custom_offset=True, use_jit_compile=jit)
+        x_var = tf.Variable(x.numpy())
+        o_var = tf.Variable(offset.numpy())
+        with tf.GradientTape() as tape:
+            y = layer([x_var, o_var])
+            loss = tf.reduce_mean(y)
+        grads = tape.gradient(loss, layer.trainable_variables + [x_var, o_var])
+        assert y.shape == (2, 32, 24, 64), y.shape
+        assert all(g is not None and tf.reduce_all(tf.math.is_finite(g)) for g in grads)
+    print("  custom offset: OK")
+
 
 def main():
     parser = argparse.ArgumentParser()

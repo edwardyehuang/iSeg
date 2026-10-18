@@ -201,6 +201,7 @@ class DCNv4(Keras3_Layer_Wrapper):
         remove_center=False,
         output_bias=True,
         without_pointwise=False,
+        use_custom_offset=False,
         use_jit_compile=False,
         **kwargs,
     ):
@@ -219,6 +220,7 @@ class DCNv4(Keras3_Layer_Wrapper):
         self.remove_center = remove_center
         self.output_bias = output_bias
         self.without_pointwise = without_pointwise
+        self.use_custom_offset = use_custom_offset
 
         if is_keras3():
             use_jit_compile = False
@@ -241,6 +243,13 @@ class DCNv4(Keras3_Layer_Wrapper):
 
     def build(self, input_shape):
 
+        if self.use_custom_offset:
+            # inputs = [x, offset_feature]
+            input_shape, offset_input_shape = input_shape
+            offset_channels = offset_input_shape[-1]
+        else:
+            offset_channels = input_shape[-1]
+
         channels = input_shape[-1]
 
         if channels % self.group != 0:
@@ -254,14 +263,14 @@ class DCNv4(Keras3_Layer_Wrapper):
         if self.dw_kernel_size is not None:
             self.offset_mask_dw_kernel = self.add_weight(
                 name="offset_mask_dw_kernel",
-                shape=(self.dw_kernel_size, self.dw_kernel_size, channels, 1),
+                shape=(self.dw_kernel_size, self.dw_kernel_size, offset_channels, 1),
                 initializer="glorot_uniform",
                 trainable=True,
                 dtype="float32",
             )
             self.offset_mask_dw_bias = self.add_weight(
                 name="offset_mask_dw_bias",
-                shape=(channels,),
+                shape=(offset_channels,),
                 initializer="zeros",
                 trainable=True,
                 dtype="float32",
@@ -269,7 +278,7 @@ class DCNv4(Keras3_Layer_Wrapper):
 
         self.offset_mask_kernel = self.add_weight(
             name="offset_mask_kernel",
-            shape=(channels, self.offset_mask_dim),
+            shape=(offset_channels, self.offset_mask_dim),
             initializer="zeros",
             trainable=True,
             dtype="float32",
@@ -332,8 +341,8 @@ class DCNv4(Keras3_Layer_Wrapper):
         super().build(input_shape)
 
     @tf.function(jit_compile=True, autograph=False)
-    def _xla_forward(self, x):
-        return self._forward(x)
+    def _xla_forward(self, x, offset):
+        return self._forward(x, offset)
 
     def _linear(self, x, kernel, bias=None):
         # flatten to 2D so that the weight gradient is a plain GEMM
@@ -346,7 +355,7 @@ class DCNv4(Keras3_Layer_Wrapper):
         x = tf.reshape(x, out_shape)
         return x
 
-    def _forward(self, x):
+    def _forward(self, x, offset):
 
         bs, height, width, channels = get_tensor_shape(x)
 
@@ -360,16 +369,16 @@ class DCNv4(Keras3_Layer_Wrapper):
 
         if self.dw_kernel_size is not None:
             offset_mask_input = tf.nn.depthwise_conv2d(
-                x,
-                tf.cast(self.offset_mask_dw_kernel, x.dtype),
+                offset,
+                tf.cast(self.offset_mask_dw_kernel, offset.dtype),
                 strides=(1, 1, 1, 1),
                 padding="SAME",
             )
             offset_mask_input = tf.add(
-                offset_mask_input, tf.cast(self.offset_mask_dw_bias, x.dtype)
+                offset_mask_input, tf.cast(self.offset_mask_dw_bias, offset.dtype)
             )
         else:
-            offset_mask_input = x
+            offset_mask_input = offset
 
         offset_mask = self._linear(
             offset_mask_input, self.offset_mask_kernel, self.offset_mask_bias
@@ -407,15 +416,23 @@ class DCNv4(Keras3_Layer_Wrapper):
 
     def call(self, inputs, training=None):
 
-        if self.use_jit_compile:
-            return self._xla_forward(inputs)
+        if self.use_custom_offset:
+            x, offset = tuple(inputs)
+        else:
+            x = offset = inputs
 
-        return self._forward(inputs)
+        if self.use_jit_compile:
+            return self._xla_forward(x, offset)
+
+        return self._forward(x, offset)
 
     def compute_output_shape(self, input_shape):
 
         # guarded by the stride/pad validation in __init__: output keeps the
         # input resolution
+        if self.use_custom_offset:
+            return tuple(input_shape[0])
+
         return tuple(input_shape)
 
     def get_config(self):
@@ -432,6 +449,7 @@ class DCNv4(Keras3_Layer_Wrapper):
             "remove_center": self.remove_center,
             "output_bias": self.output_bias,
             "without_pointwise": self.without_pointwise,
+            "use_custom_offset": self.use_custom_offset,
             "use_jit_compile": self.use_jit_compile,
         }
 

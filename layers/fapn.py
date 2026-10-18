@@ -3,6 +3,7 @@ import keras
 
 from iseg.layers.se import SqueezeAndExcitationModule
 from iseg.layers.dcn_v2 import DCNv2
+from iseg.layers.dcnv4 import DCNv4
 
 from iseg.utils.common import resize_image
 from iseg.utils.keras3_utils import Keras3_Model_Wrapper
@@ -43,10 +44,12 @@ class FeatureSelectionModule(SqueezeAndExcitationModule):
 
 class FeatureAlignment (Keras3_Model_Wrapper):
 
-    def __init__(self, filters=128, name=None):
+    def __init__(self, filters=128, use_dcnv4=False, dcnv4_group=4, name=None):
         super().__init__(name=name)
 
         self.filters = filters
+        self.use_dcnv4 = use_dcnv4
+        self.dcnv4_group = dcnv4_group
 
     
     def build(self, input_shape):
@@ -54,7 +57,16 @@ class FeatureAlignment (Keras3_Model_Wrapper):
         self.lateral_conv = FeatureSelectionModule(filters=self.filters, name="lateral_conv")
         self.offset_conv = keras.layers.Conv2D(self.filters, (1, 1),  use_bias=False, name="offset_conv")
 
-        self.depack_l2 = DCNv2(self.filters, (3, 3), use_custom_offset=True, use_jit_compile=True, name="depack_l2")
+        if self.use_dcnv4:
+            self.depack_l2 = DCNv4(
+                kernel_size=3,
+                group=self.dcnv4_group,
+                use_custom_offset=True,
+                use_jit_compile=True,
+                name="depack_l2",
+            )
+        else:
+            self.depack_l2 = DCNv2(self.filters, (3, 3), use_custom_offset=True, use_jit_compile=True, name="depack_l2")
         
         super().build(input_shape)
 
@@ -83,12 +95,16 @@ class FeatureAlignedPyramidNet (Keras3_Model_Wrapper):
         skip_conv_filters=256,
         trainable=True,
         warp_coarse_feature=False,
+        use_dcnv4=False,
+        dcnv4_group=4,
         name=None
     ):
         super().__init__(name=name, trainable=trainable)
 
         self.skip_conv_filters = skip_conv_filters
         self.warp_coarse_feature = warp_coarse_feature
+        self.use_dcnv4 = use_dcnv4
+        self.dcnv4_group = dcnv4_group
 
     def build(self, input_shape):
 
@@ -97,7 +113,12 @@ class FeatureAlignedPyramidNet (Keras3_Model_Wrapper):
         self.align_modules = []
 
         for i in range(len(feature_map_shapes) - 1):
-            align_module = FeatureAlignment(self.skip_conv_filters, name=f"skip_conv_filters{i}")
+            align_module = FeatureAlignment(
+                self.skip_conv_filters,
+                use_dcnv4=self.use_dcnv4,
+                dcnv4_group=self.dcnv4_group,
+                name=f"skip_conv_filters{i}",
+            )
             self.align_modules += [align_module]
 
         if self.warp_coarse_feature:
