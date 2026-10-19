@@ -17,7 +17,7 @@ sys.path.insert(1, rootpath)
 import tensorflow as tf
 
 from iseg.layers.dcnv4 import DCNv4
-from iseg.layers.dcn_v2 import DCNv2
+from iseg.layers.dcnv2 import DCNv2
 
 
 def make_fwd(layer, xla):

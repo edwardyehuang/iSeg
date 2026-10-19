@@ -9,13 +9,13 @@
 import os
 import sys
 
-rootpath = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+rootpath = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
 sys.path.insert(1, rootpath)
 
 import tensorflow as tf
 
-from iseg.layers.dcn_v2 import DCNv2
-from iseg.layers.dcnv2_flash import DCNv2_Flash
+from iseg.layers.dcnv2.dcnv2 import DCNv2
+from iseg.layers.dcnv2.dcnv2_flash import DCNv2_Flash
 
 
 def _build_pair(filters, use_custom_offset, x_shape, dilation=1):

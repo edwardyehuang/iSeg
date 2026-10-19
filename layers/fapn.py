@@ -2,7 +2,7 @@ import tensorflow as tf
 import keras
 
 from iseg.layers.se import SqueezeAndExcitationModule
-from iseg.layers.dcn_v2 import DCNv2
+from iseg.layers.dcnv2 import DCNv2
 from iseg.layers.dcnv4 import DCNv4
 
 from iseg.utils.common import resize_image

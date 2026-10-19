@@ -28,7 +28,7 @@ import tensorflow as tf
 from iseg.distribution.distribution_utils import get_tpu_strategy
 from iseg.layers.dcnv4 import DCNv4
 from iseg.layers.dcnv4.dcnv4_tpu import DCNv4_TPU
-from iseg.layers.dcn_v2 import DCNv2
+from iseg.layers.dcnv2 import DCNv2
 
 
 def build_layers(C, group):
