@@ -36,7 +36,203 @@ T_HW = 2 * WINDOW_RADIUS + 4
 NUM_TAPS = T_HW * T_HW
 
 
+def set_radius(r):
+    global WINDOW_RADIUS, T_HW, NUM_TAPS
+    WINDOW_RADIUS = r
+    T_HW = 2 * WINDOW_RADIUS + 4
+    NUM_TAPS = T_HW * T_HW
+
+
+def _loopacc_core(value, offset_mask):
+    """Full dcnv4_core_tpu equivalent, but the aggregation accumulates over
+    taps in a python loop (no patches tensor is materialized): lets XLA tile
+    from the small value buffer instead of an 8.6GB stack."""
+
+    bs, height, width, channels = get_tensor_shape(value)
+    group = GROUP
+    group_channels = channels // group
+    num_points = 9
+
+    hout, wout = height, width
+
+    compute_dtype = tf.float32
+    weight_dtype = value.dtype if value.dtype == tf.bfloat16 else compute_dtype
+
+    offset_mask = offset_mask[..., : group * num_points * 3]
+    offset_mask = tf.cast(offset_mask, compute_dtype)
+    offset_mask = tf.reshape(offset_mask, [bs, hout, wout, group, 3 * num_points])
+
+    offsets = tf.reshape(offset_mask[..., : 2 * num_points], [bs, hout, wout, group, num_points, 2])
+    mask = offset_mask[..., 2 * num_points :]
+
+    off_x = offsets[..., 0]
+    off_y = offsets[..., 1]
+
+    R = float(WINDOW_RADIUS)
+    over_x = tf.abs(off_x) - R
+    off_x = tf.where(over_x <= 0.0, off_x, tf.sign(off_x) * (R + tf.tanh(over_x)))
+    over_y = tf.abs(off_y) - R
+    off_y = tf.where(over_y <= 0.0, off_y, tf.sign(off_y) * (R + tf.tanh(over_y)))
+
+    point = tf.constant([-1.0, 0.0, 1.0], dtype=compute_dtype)
+    point_dx = tf.reshape(tf.tile(point[:, None], [1, 3]), [-1])
+    point_dy = tf.reshape(tf.tile(point[None, :], [3, 1]), [-1])
+
+    rel_x = off_x + point_dx[None, None, None, None, :]
+    rel_y = off_y + point_dy[None, None, None, None, :]
+
+    q = tf.range(hout, dtype=compute_dtype)
+    pos_x = q[None, None, :, None, None] + rel_x
+    pos_y = q[None, :, None, None, None] + rel_y
+
+    hw_f = tf.cast(height, compute_dtype)
+    point_ok = (pos_x > -1.0) & (pos_x < hw_f) & (pos_y > -1.0) & (pos_y < hw_f)
+    point_ok = tf.cast(point_ok, compute_dtype)
+
+    tap = tf.constant(list(range(-1 - WINDOW_RADIUS, WINDOW_RADIUS + 3)), dtype=weight_dtype)
+
+    rel_x_w = tf.cast(rel_x, weight_dtype)
+    rel_y_w = tf.cast(rel_y, weight_dtype)
+
+    hat_x = rel_x_w[..., None] - tap[None, None, None, None, None, :]
+    hat_x = tf.maximum(1.0 - tf.abs(hat_x), 0.0)
+    hat_y = rel_y_w[..., None] - tap[None, None, None, None, None, :]
+    hat_y = tf.maximum(1.0 - tf.abs(hat_y), 0.0)
+
+    weights = (
+        hat_y[..., :, None]
+        * hat_x[..., None, :]
+        * tf.cast(mask * point_ok, weight_dtype)[..., None, None]
+    )
+    weights = tf.reduce_sum(weights, axis=4)  # [B, H, W, G, T_h, T_w]
+
+    pad_top = WINDOW_RADIUS + 1
+    pad_bottom = WINDOW_RADIUS + 2
+    value_padded = tf.pad(
+        value, [[0, 0], [pad_top, pad_bottom], [pad_top, pad_bottom], [0, 0]]
+    )
+
+    out = tf.zeros([bs, hout, wout, channels], dtype=weight_dtype)
+    for ty in range(T_HW):
+        for tx in range(T_HW):
+            w_t = weights[..., ty, tx]  # [B, H, W, G]
+            w_t = w_t[..., None]  # [B, H, W, G, 1]
+            slice_t = value_padded[:, ty : ty + hout, tx : tx + wout, :]
+            slice_t = tf.reshape(slice_t, [bs, hout, wout, group, group_channels])
+            out = out + tf.reshape(w_t * slice_t, [bs, hout, wout, channels])
+
+    return tf.reduce_mean(tf.cast(out, tf.float32))
+
+
+def _separable_core(value, offset_mask):
+    """Full dcnv4_core_tpu equivalent via the exactly-separable bilinear hat:
+    hat(pos - tap) = hat_y(pos_y - ty) * hat_x(pos_x - tx).
+
+    Correct factorization (weights attach to the OUTPUT position, value
+    slides):
+      GY[b,h,w,g,k,d] = sum_ty shy[b,h,w,g,k,ty] * Vpad[b,h+ty,w,g,d]
+      out[b,h,w,g,d]  = sum_k sum_tx hax[b,h,w,g,k,tx] * GY[b,h,w+tx,g,k,d]
+    The big 2-D patches tensor [B,H,W,C,T^2] never exists; the largest
+    intermediate is GY [B,H,W,G,K,D] (= 9/64 of it for K=9, T=8).
+    """
+
+    bs, height, width, channels = get_tensor_shape(value)
+    group = GROUP
+    group_channels = channels // group
+    num_points = 9
+
+    hout, wout = height, width
+
+    compute_dtype = tf.float32
+    weight_dtype = value.dtype if value.dtype == tf.bfloat16 else compute_dtype
+
+    offset_mask = offset_mask[..., : group * num_points * 3]
+    offset_mask = tf.cast(offset_mask, compute_dtype)
+    offset_mask = tf.reshape(offset_mask, [bs, hout, wout, group, 3 * num_points])
+
+    offsets = tf.reshape(offset_mask[..., : 2 * num_points], [bs, hout, wout, group, num_points, 2])
+    mask = offset_mask[..., 2 * num_points :]
+
+    off_x = offsets[..., 0]
+    off_y = offsets[..., 1]
+
+    R = float(WINDOW_RADIUS)
+    over_x = tf.abs(off_x) - R
+    off_x = tf.where(over_x <= 0.0, off_x, tf.sign(off_x) * (R + tf.tanh(over_x)))
+    over_y = tf.abs(off_y) - R
+    off_y = tf.where(over_y <= 0.0, off_y, tf.sign(off_y) * (R + tf.tanh(over_y)))
+
+    point = tf.constant([-1.0, 0.0, 1.0], dtype=compute_dtype)
+    point_dx = tf.reshape(tf.tile(point[:, None], [1, 3]), [-1])
+    point_dy = tf.reshape(tf.tile(point[None, :], [3, 1]), [-1])
+
+    rel_x = off_x + point_dx[None, None, None, None, :]
+    rel_y = off_y + point_dy[None, None, None, None, :]
+
+    q = tf.range(hout, dtype=compute_dtype)
+    pos_x = q[None, None, :, None, None] + rel_x
+    pos_y = q[None, :, None, None, None] + rel_y
+
+    hw_f = tf.cast(height, compute_dtype)
+    point_ok = (pos_x > -1.0) & (pos_x < hw_f) & (pos_y > -1.0) & (pos_y < hw_f)
+    point_ok = tf.cast(point_ok, compute_dtype)
+
+    tap = tf.constant(list(range(-1 - WINDOW_RADIUS, WINDOW_RADIUS + 3)), dtype=weight_dtype)
+
+    rel_x_w = tf.cast(rel_x, weight_dtype)
+    rel_y_w = tf.cast(rel_y, weight_dtype)
+
+    hat_x = rel_x_w[..., None] - tap[None, None, None, None, None, :]
+    hat_x = tf.maximum(1.0 - tf.abs(hat_x), 0.0)  # [B, H, W, G, K, T_w]
+    hat_y = rel_y_w[..., None] - tap[None, None, None, None, None, :]
+    hat_y = tf.maximum(1.0 - tf.abs(hat_y), 0.0)  # [B, H, W, G, K, T_h]
+
+    s = tf.cast(mask * point_ok, weight_dtype)  # [B, H, W, G, K]
+    shy = s[..., None] * hat_y  # [B, H, W, G, K, T_h]
+
+    pad_top = WINDOW_RADIUS + 1
+    pad_bottom = WINDOW_RADIUS + 2
+    value_padded = tf.pad(
+        value, [[0, 0], [pad_top, pad_bottom], [pad_top, pad_bottom], [0, 0]]
+    )
+
+    # pass 1 (H window): GY[b,h,w,g,k,d] = sum_ty shy[...,ty] * Vpad[b,h+ty,w,g,d]
+    gy = tf.zeros([bs, hout, wout, group, num_points, group_channels], dtype=weight_dtype)
+    for ty in range(T_HW):
+        shy_t = shy[..., ty][..., None]  # [B, H, W, G, K, 1]
+        slice_t = value_padded[:, ty : ty + hout, pad_top : pad_top + wout, :]
+        slice_t = tf.reshape(slice_t, [bs, hout, wout, group, 1, group_channels])
+        gy = gy + shy_t * slice_t
+
+    # pad GY along W for the tx window
+    gy_padded = tf.pad(
+        gy, [[0, 0], [0, 0], [pad_top, pad_bottom], [0, 0], [0, 0], [0, 0]]
+    )
+
+    # pass 2 (W window): out[b,h,w,g,d] = sum_k sum_tx hax[...,tx] * GY[b,h,w+tx,g,k,d]
+    out = tf.zeros([bs, hout, wout, group, group_channels], dtype=weight_dtype)
+    for tx in range(T_HW):
+        hx_t = hat_x[..., tx][..., None]  # [B, H, W, G, K, 1]
+        slice_t = gy_padded[:, :, tx : tx + wout, :, :, :]  # [B, H, W, G, K, D]
+        out = out + tf.reduce_sum(hx_t * slice_t, axis=4)  # over K
+
+    out = tf.reshape(out, [bs, hout, wout, channels])
+    return tf.reduce_mean(tf.cast(out, tf.float32))
+
+
 def stage_fn(value, offset_mask, stage, patches_src=None):
+
+    if stage == "v1_full":
+        from iseg.layers.dcnv4.dcnv4_tpu import dcnv4_core_tpu
+
+        y = dcnv4_core_tpu(value, offset_mask, group=GROUP, window_radius=WINDOW_RADIUS)
+        return tf.reduce_mean(tf.cast(y, tf.float32))
+
+    if stage == "v2_loopacc":
+        return _loopacc_core(value, offset_mask)
+
+    if stage == "v3_separable":
+        return _separable_core(value, offset_mask)
 
     bs, height, width, channels = get_tensor_shape(value)
     group = GROUP
@@ -204,12 +400,15 @@ def main():
     parser.add_argument("--tpu_name", default=os.environ.get("TPU_NAME", "node4"))
     parser.add_argument("--stages", default="a_offset,b_weights,c_stack,d_full,e_agg_only")
     parser.add_argument("--size", default="128,128,128")
+    parser.add_argument("--radius", type=int, default=2)
+    parser.add_argument("--batch_per_replica", type=int, default=1)
     args = parser.parse_args()
 
     strategy = get_tpu_strategy(args.tpu_name)
     print("num replicas:", strategy.num_replicas_in_sync, flush=True)
 
-    B = strategy.num_replicas_in_sync
+    set_radius(args.radius)
+    B = strategy.num_replicas_in_sync * args.batch_per_replica
     H, W, C = [int(v) for v in args.size.split(",")]
 
     print(f"config: B={B} H={H} W={W} C={C}", flush=True)
