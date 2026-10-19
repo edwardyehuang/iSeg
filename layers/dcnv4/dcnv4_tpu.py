@@ -49,7 +49,7 @@ import tensorflow as tf
 
 from iseg.utils import get_tensor_shape
 
-from iseg.layers.dcnv4.dcnv4 import DCNv4, _output_hw
+from iseg.layers.dcnv4.dcnv4_base import DCNv4_Base
 
 
 def _soft_clip(x, radius):
@@ -468,13 +468,13 @@ def _window_aggregate(
     return _agg(value_padded, s, hat_arg_x, hat_arg_y)
 
 
-class DCNv4_TPU(DCNv4):
+class DCNv4_TPU(DCNv4_Base):
     """DCNv4 layer backed by the dense window-based TPU core.
 
-    Semantics vs the reference DCNv4, controlled by window_radius:
+    Semantics vs the reference DCNv4_Base, controlled by window_radius:
       - "exact"  : bit-for-bit the reference gather-based core (no clamping,
                    slow on TPU; use for parity checks / fallback)
-      - an int R : numerically identical to DCNv4 for scaled offsets within
+      - an int R : numerically identical to DCNv4_Base for scaled offsets within
                    [-R, R] px; larger offsets are soft-clamped toward the
                    window edge with a smooth (tanh) transition so gradients
                    keep flowing. R=2 ("balanced") and R=1 ("ultra") are the
@@ -488,80 +488,21 @@ class DCNv4_TPU(DCNv4):
         super().__init__(*args, **kwargs)
         self.window_radius = window_radius
 
-    def _forward(self, x, offset):
-
-        bs, height, width, channels = get_tensor_shape(x)
-
-        hout = _output_hw(height, self.kernel_size[0], self.stride[0], self.pad[0], self.dilation[0])
-        wout = _output_hw(width, self.kernel_size[1], self.stride[1], self.pad[1], self.dilation[1])
-
-        if not self.without_pointwise:
-            value = self._linear(x, self.value_proj_kernel, self.value_proj_bias)
-        else:
-            value = x
-
-        if self.dw_kernel_size is not None:
-            offset_mask_input = tf.nn.depthwise_conv2d(
-                offset,
-                tf.cast(self.offset_mask_dw_kernel, offset.dtype),
-                strides=(1, 1, 1, 1),
-                padding="SAME",
-            )
-            offset_mask_input = tf.add(
-                offset_mask_input, tf.cast(self.offset_mask_dw_bias, offset.dtype)
-            )
-        else:
-            offset_mask_input = offset
-
-        offset_mask = self._linear(
-            offset_mask_input, self.offset_mask_kernel, self.offset_mask_bias
-        )
-
+    def _aggregate_core(self, value, offset_mask):
         if self.window_radius == "exact":
-            from iseg.layers.dcnv4.dcnv4 import dcnv4_core
-
-            output = dcnv4_core(
-                value,
-                offset_mask,
-                kernel_size=self.kernel_size,
-                stride=self.stride,
-                pad=self.pad,
-                dilation=self.dilation,
-                group=self.group,
-                offset_scale=self.offset_scale,
-                remove_center=self.remove_center,
-            )
-        else:
-            output = dcnv4_core_tpu(
-                value,
-                offset_mask,
-                kernel_size=self.kernel_size,
-                stride=self.stride,
-                pad=self.pad,
-                dilation=self.dilation,
-                group=self.group,
-                offset_scale=self.offset_scale,
-                remove_center=self.remove_center,
-                window_radius=self.window_radius,
-            )
-
-        if self.center_feature_scale:
-            scale = self._linear(
-                output, self.center_feature_scale_kernel, self.center_feature_scale_bias
-            )
-            scale = tf.nn.sigmoid(scale)
-            scale = tf.repeat(scale[..., None], self.group_channels, axis=-1)
-            scale = tf.reshape(scale, [bs, hout, wout, channels])
-            output = output * (1.0 - scale) + value * scale
-
-        if not self.without_pointwise:
-            output = self._linear(
-                output,
-                self.output_proj_kernel,
-                self.output_proj_bias if self.output_bias else None,
-            )
-
-        return output
+            return super()._aggregate_core(value, offset_mask)
+        return dcnv4_core_tpu(
+            value,
+            offset_mask,
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            pad=self.pad,
+            dilation=self.dilation,
+            group=self.group,
+            offset_scale=self.offset_scale,
+            remove_center=self.remove_center,
+            window_radius=self.window_radius,
+        )
 
     def get_config(self):
 

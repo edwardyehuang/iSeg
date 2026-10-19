@@ -187,7 +187,11 @@ def dcnv4_core(
     return output
 
 
-class DCNv4(Keras3_Layer_Wrapper):
+class DCNv4_Base(Keras3_Layer_Wrapper):
+    """DCNv4 with the gather-based core (GPU-friendly).
+
+    Use iseg.layers.dcnv4.DCNv4 for the auto-routing (TPU/GPU) interface.
+    """
     def __init__(
         self,
         kernel_size=3,
@@ -355,6 +359,19 @@ class DCNv4(Keras3_Layer_Wrapper):
         x = tf.reshape(x, out_shape)
         return x
 
+    def _aggregate_core(self, value, offset_mask):
+        return dcnv4_core(
+            value,
+            offset_mask,
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            pad=self.pad,
+            dilation=self.dilation,
+            group=self.group,
+            offset_scale=self.offset_scale,
+            remove_center=self.remove_center,
+        )
+
     def _forward(self, x, offset):
 
         bs, height, width, channels = get_tensor_shape(x)
@@ -384,17 +401,7 @@ class DCNv4(Keras3_Layer_Wrapper):
             offset_mask_input, self.offset_mask_kernel, self.offset_mask_bias
         )
 
-        output = dcnv4_core(
-            value,
-            offset_mask,
-            kernel_size=self.kernel_size,
-            stride=self.stride,
-            pad=self.pad,
-            dilation=self.dilation,
-            group=self.group,
-            offset_scale=self.offset_scale,
-            remove_center=self.remove_center,
-        )
+        output = self._aggregate_core(value, offset_mask)
 
         if self.center_feature_scale:
             scale = self._linear(
