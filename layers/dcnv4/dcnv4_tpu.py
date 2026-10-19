@@ -239,19 +239,29 @@ def _window_aggregate(value_padded, weights, t_h, t_w, group, hout, wout, group_
     @tf.custom_gradient
     def _agg(vp, w):
 
-        slices = []
-        for ty in range(t_h):
-            for tx in range(t_w):
-                slices.append(vp[:, ty : ty + hout, tx : tx + wout, :])
-        patches = tf.stack(slices, axis=-1)  # [B, Hout, Wout, C, T2]
-        patches = tf.reshape(patches, [bs, hout, wout, group, group_channels, num_taps])
+        def build_patches(v):
+            slices = []
+            for ty in range(t_h):
+                for tx in range(t_w):
+                    slices.append(v[:, ty : ty + hout, tx : tx + wout, :])
+            p = tf.stack(slices, axis=-1)  # [B, Hout, Wout, C, T2]
+            return tf.reshape(p, [bs, hout, wout, group, group_channels, num_taps])
+
+        patches = build_patches(vp)
 
         out = tf.reduce_sum(patches * tf.cast(w[..., None, :], patches.dtype), axis=-1)
 
         def grad(dout):
             # d_weights[b,h,w,g,t] = sum_d patches[b,h,w,g,d,t] * dout[b,h,w,g,d]
+            # Rebuild patches here instead of capturing the forward one: the
+            # captured copy would live across the fwd/bwd boundary and XLA
+            # offloads such long-lived buffers to host memory (measured ~10ms
+            # of S(3) host traffic per step at 256x256x256 bf16). Recomputing
+            # costs the slices+stack again but keeps the tensor's live range
+            # local to the backward.
+            patches_bwd = build_patches(vp)
             d_weights = tf.reduce_sum(
-                patches * tf.cast(dout[..., None], patches.dtype), axis=4
+                patches_bwd * tf.cast(dout[..., None], patches_bwd.dtype), axis=4
             )
             d_weights = tf.cast(d_weights, w.dtype)
 
