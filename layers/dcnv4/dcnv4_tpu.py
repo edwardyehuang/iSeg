@@ -189,7 +189,11 @@ def dcnv4_core_tpu(
         * hat_x[..., None, :]
         * (mask * point_ok)[..., None, None]
     )
-    weights = tf.reshape(weights, [bs, hout, wout, group, num_points, num_taps])
+
+    # k collapses into the weights first (exact: k appears only in weights):
+    # out = sum_t patches[t] * sum_k weights[k, t]
+    weights = tf.reduce_sum(weights, axis=4)  # [B, Hout, Wout, G, T_h, T_w]
+    weights = tf.reshape(weights, [bs, hout, wout, group, num_taps])
 
     # ---- static window extraction (im2col, no dynamic indexing) ------------
     value_padded = tf.pad(
@@ -209,12 +213,13 @@ def dcnv4_core_tpu(
     )
 
     # ---- dense aggregation ---------------------------------------------------
-    # out[b,h,w,g,d] = sum_{k,t} weights[b,h,w,g,k,t] * patches[b,h,w,t,g,d]
-    output = tf.einsum(
-        "bhwgkt,bhwtgd->bhwgd",
-        tf.cast(weights, patches.dtype),
-        patches,
-    )
+    # out[b,h,w,g,d] = sum_t weights[b,h,w,g,t] * patches[b,h,w,t,g,d]
+    # (fused broadcast-multiply-reduce; no batched matmul, which XLA:TPU
+    # lowers poorly for millions of tiny per-position dots)
+    weights_bc = tf.transpose(weights, [0, 1, 2, 4, 3])  # [B, Hout, Wout, T, G]
+    weights_bc = tf.cast(weights_bc[..., None], patches.dtype)
+
+    output = tf.reduce_sum(patches * weights_bc, axis=3)  # [B, Hout, Wout, G, D]
 
     output = tf.reshape(output, [bs, hout, wout, channels])
 
