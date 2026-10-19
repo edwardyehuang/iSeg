@@ -34,6 +34,7 @@
 
 import math
 
+import numpy as np
 import tensorflow as tf
 
 from iseg.utils import get_tensor_shape
@@ -205,31 +206,39 @@ def dcnv4_core_tpu(
 
     # ---- static window extraction (im2col, no dynamic indexing) ------------
     # NOTE: tf.image.extract_patches lowers terribly on XLA:TPU (measured
-    # +59ms at 128x128x128); T^2 static slices + stack do the same job at
-    # ~zero extra cost (fused away by XLA).
+    # +59ms at 128x128x128), and a T^2 slices+tf.stack has a cheap forward
+    # but a pathological backward (+46ms at 256x256x256: 64 slice-grad pads
+    # + adds). Instead use a depthwise conv with a constant one-hot filter:
+    # output channel (c, m) = input shifted by tap m == the m-th window
+    # slice. Depthwise conv fwd AND bwd are native fast paths on TPU.
     value_padded = tf.pad(
         value, [[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]]
     )
 
-    slices = []
+    onehot = np.zeros((t_h, t_w, 1, num_taps), dtype="float32")
     for ty in range(t_h):
         for tx in range(t_w):
-            slices.append(value_padded[:, ty : ty + hout, tx : tx + wout, :])
+            onehot[ty, tx, 0, ty * t_w + tx] = 1.0
+    onehot = np.broadcast_to(onehot, (t_h, t_w, channels, num_taps))
 
-    patches = tf.stack(slices, axis=3)  # [B, Hout, Wout, T_h * T_w, C]
+    patches = tf.nn.depthwise_conv2d(
+        value_padded,
+        tf.constant(onehot, dtype=value.dtype),
+        strides=(1, 1, 1, 1),
+        padding="VALID",
+    )  # [B, Hout, Wout, C * T^2], channel order (c, m) with m = ty * T_w + tx
 
     patches = tf.reshape(
-        patches, [bs, hout, wout, num_taps, group, group_channels]
+        patches, [bs, hout, wout, group, group_channels, num_taps]
     )
 
     # ---- dense aggregation ---------------------------------------------------
-    # out[b,h,w,g,d] = sum_t weights[b,h,w,g,t] * patches[b,h,w,t,g,d]
-    # (fused broadcast-multiply-reduce; no batched matmul, which XLA:TPU
-    # lowers poorly for millions of tiny per-position dots)
-    weights_bc = tf.transpose(weights, [0, 1, 2, 4, 3])  # [B, Hout, Wout, T, G]
-    weights_bc = tf.cast(weights_bc[..., None], patches.dtype)
+    # out[b,h,w,g,d] = sum_t weights[b,h,w,g,t] * patches[b,h,w,g,d,t]
+    # (fused broadcast-multiply-reduce over the last axis; no batched matmul,
+    # which XLA:TPU lowers poorly for millions of tiny per-position dots)
+    weights_bc = tf.cast(weights[..., None, :], patches.dtype)  # [B, Hout, Wout, G, 1, T]
 
-    output = tf.reduce_sum(patches * weights_bc, axis=3)  # [B, Hout, Wout, G, D]
+    output = tf.reduce_sum(patches * weights_bc, axis=-1)  # [B, Hout, Wout, G, D]
 
     output = tf.reshape(output, [bs, hout, wout, channels])
 

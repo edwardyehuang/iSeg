@@ -3,17 +3,18 @@
 # Copyright (c) 2024 edwardyehuang (https://github.com/edwardyehuang)
 # ===================================================================
 
-# Stage-by-stage profiling of dcnv4_core_tpu on TPU.
+# Stage-by-stage profiling of dcnv4_core_tpu on TPU (on-device inputs, no
+# infeed bottleneck).
 #
-# Stages (cumulative):
+# Stages (cumulative unless noted):
 #   a_offset   - offset decode + soft clip + rel + point_ok (small tensors)
 #   b_weights  - + hat weights + k-collapse reduce
-#   c_patches  - + pad + window extraction + reshape (no final aggregation)
+#   c_stack    - + pad + slices+stack window extraction (no aggregation)
 #   d_full     - + final mul+reduce aggregation
-#   c_slices   - c_patches but window extraction via T^2 slices + stack
-#   d_slices   - d_full but window extraction via T^2 slices + stack
+#   e_agg_only - d_full but patches from a random tensor (no slices stack):
+#                isolates mul+reduce from the stack construction
 #
-#   python -u iseg/layers/dcnv4/profile_core_tpu.py [--tpu_name=node4]
+#   python -u iseg/layers/dcnv4/profile_core_tpu.py [--size 256,256,256]
 
 import argparse
 import os
@@ -31,19 +32,21 @@ from iseg.utils import get_tensor_shape
 
 GROUP = 4
 WINDOW_RADIUS = 2
+T_HW = 2 * WINDOW_RADIUS + 4
+NUM_TAPS = T_HW * T_HW
 
 
-def stage_fn(value, offset_mask, stage):
+def stage_fn(value, offset_mask, stage, patches_src=None):
 
     bs, height, width, channels = get_tensor_shape(value)
     group = GROUP
     group_channels = channels // group
-    kernel_size = (3, 3)
     num_points = 9
 
     hout, wout = height, width
 
     compute_dtype = tf.float32
+    weight_dtype = value.dtype if value.dtype == tf.bfloat16 else compute_dtype
 
     offset_mask = offset_mask[..., : group * num_points * 3]
     offset_mask = tf.cast(offset_mask, compute_dtype)
@@ -61,7 +64,6 @@ def stage_fn(value, offset_mask, stage):
     over_y = tf.abs(off_y) - R
     off_y = tf.where(over_y <= 0.0, off_y, tf.sign(off_y) * (R + tf.tanh(over_y)))
 
-    center_off = 1
     point = tf.constant([-1.0, 0.0, 1.0], dtype=compute_dtype)
     point_dx = tf.reshape(tf.tile(point[:, None], [1, 3]), [-1])  # width outer
     point_dy = tf.reshape(tf.tile(point[None, :], [3, 1]), [-1])
@@ -80,52 +82,46 @@ def stage_fn(value, offset_mask, stage):
     if stage == "a_offset":
         return tf.reduce_mean(point_ok) + tf.reduce_mean(rel_x) * 1e-30
 
-    tap_x = tf.range(-1 - WINDOW_RADIUS, 1 + WINDOW_RADIUS + 2, dtype=compute_dtype)  # [T]
-    t_h = t_w = 2 * WINDOW_RADIUS + 4
-    num_taps = t_h * t_w
+    tap = tf.constant(list(range(-1 - WINDOW_RADIUS, WINDOW_RADIUS + 3)), dtype=weight_dtype)
 
-    hat_x = rel_x[..., None] - tap_x[None, None, None, None, None, :]
+    rel_x_w = tf.cast(rel_x, weight_dtype)
+    rel_y_w = tf.cast(rel_y, weight_dtype)
+
+    hat_x = rel_x_w[..., None] - tap[None, None, None, None, None, :]
     hat_x = tf.maximum(1.0 - tf.abs(hat_x), 0.0)
-    hat_y = rel_y[..., None] - tap_x[None, None, None, None, None, :]
+    hat_y = rel_y_w[..., None] - tap[None, None, None, None, None, :]
     hat_y = tf.maximum(1.0 - tf.abs(hat_y), 0.0)
 
-    weights = hat_y[..., :, None] * hat_x[..., None, :] * (mask * point_ok)[..., None, None]
+    weights = (
+        hat_y[..., :, None]
+        * hat_x[..., None, :]
+        * tf.cast(mask * point_ok, weight_dtype)[..., None, None]
+    )
     weights = tf.reduce_sum(weights, axis=4)  # [B, H, W, G, T_h, T_w]
-    weights = tf.reshape(weights, [bs, hout, wout, group, num_taps])
+    weights = tf.reshape(weights, [bs, hout, wout, group, NUM_TAPS])
 
     if stage == "b_weights":
-        return tf.reduce_mean(weights)
+        return tf.reduce_mean(tf.cast(weights, tf.float32))
 
-    use_slices = stage.endswith("slices")
-    want_full = stage.startswith("d")
-
-    # window extraction; taps span [-1-R, R+2] -> asymmetric pad
-    pad_top = WINDOW_RADIUS + 1
-    pad_bottom = WINDOW_RADIUS + 2
-    value_padded = tf.pad(
-        value, [[0, 0], [pad_top, pad_bottom], [pad_top, pad_bottom], [0, 0]]
-    )
-
-    if use_slices:
-        slices = []
-        for ty in range(t_h):
-            for tx in range(t_w):
-                slices.append(
-                    value_padded[:, ty : ty + hout, tx : tx + wout, :]
-                )
-        patches = tf.stack(slices, axis=3)  # [B, H, W, T2, C]
+    if stage == "e_agg_only":
+        patches = tf.cast(patches_src, weight_dtype)
     else:
-        patches = tf.image.extract_patches(
-            value_padded,
-            sizes=[1, t_h, t_w, 1],
-            strides=[1, 1, 1, 1],
-            rates=[1, 1, 1, 1],
-            padding="VALID",
+        pad_top = WINDOW_RADIUS + 1
+        pad_bottom = WINDOW_RADIUS + 2
+        value_padded = tf.pad(
+            value, [[0, 0], [pad_top, pad_bottom], [pad_top, pad_bottom], [0, 0]]
         )
 
-    patches = tf.reshape(patches, [bs, hout, wout, num_taps, group, group_channels])
+        slices = []
+        for ty in range(T_HW):
+            for tx in range(T_HW):
+                slices.append(value_padded[:, ty : ty + hout, tx : tx + wout, :])
 
-    if not want_full:
+        patches = tf.stack(slices, axis=3)  # [B, H, W, T2, C]
+
+    patches = tf.reshape(patches, [bs, hout, wout, NUM_TAPS, group, group_channels])
+
+    if stage == "c_stack":
         return tf.reduce_mean(tf.cast(patches, tf.float32))
 
     weights_bc = tf.transpose(weights, [0, 1, 2, 4, 3])
@@ -136,31 +132,36 @@ def stage_fn(value, offset_mask, stage):
     return tf.reduce_mean(tf.cast(output, tf.float32))
 
 
-def make_run_steps(strategy, it, stage, fwd_bwd):
+def make_run_steps(strategy, stage, fwd_bwd, value_rep, offset_rep, patches_rep):
 
-    def step_fn(inputs):
-        value, offset_mask = inputs
+    def step_fn(value, offset_mask):
 
         if fwd_bwd:
             with tf.GradientTape() as tape:
                 tape.watch([value, offset_mask])
-                y = stage_fn(value, offset_mask, stage)
+                y = stage_fn(value, offset_mask, stage, patches_rep)
             grads = tape.gradient(y, [value, offset_mask])
-            return y, grads
+            x_new = value + 1e-30 * tf.cast(y, value.dtype)
+            return y, grads, x_new
 
-        return stage_fn(value, offset_mask, stage)
+        y = stage_fn(value, offset_mask, stage, patches_rep)
+        x_new = value + 1e-30 * tf.cast(y, value.dtype)
+        return y, x_new
 
     @tf.function(input_signature=[tf.TensorSpec([], tf.int32)])
     def run_steps(n):
         acc = tf.zeros([], tf.float32)
+        inputs = strategy.experimental_distribute_values_from_function(
+            lambda ctx: (tf.identity(value_rep), tf.identity(offset_rep))
+        )
 
         for _ in tf.range(n):
-            inputs = next(it)
-            out = strategy.run(step_fn, args=(inputs,))
+            value, offset_mask = inputs
+            out = strategy.run(step_fn, args=(value, offset_mask))
 
             if fwd_bwd:
-                loss, grads = out
-                acc += strategy.reduce(tf.distribute.ReduceOp.SUM, loss, axis=None)
+                loss, grads, x_new = out
+                acc += strategy.experimental_local_results(loss)[0]
                 grads_r0 = strategy.experimental_local_results(grads)[0]
                 grads_r0 = [g for g in grads_r0 if g is not None]
                 if grads_r0:
@@ -168,7 +169,10 @@ def make_run_steps(strategy, it, stage, fwd_bwd):
                         [tf.reduce_sum(tf.cast(g, tf.float32)) for g in grads_r0]
                     ) * 1e-30
             else:
-                acc += strategy.reduce(tf.distribute.ReduceOp.SUM, out, axis=None)
+                loss, x_new = out
+                acc += strategy.experimental_local_results(loss)[0]
+
+            inputs = (x_new, offset_mask)
 
         return acc
 
@@ -177,13 +181,14 @@ def make_run_steps(strategy, it, stage, fwd_bwd):
 
 def bench_stage(strategy, stage, B, H, W, C, fwd_bwd, warmup=10, iters=50):
 
-    with strategy.scope():
-        value = tf.random.normal([B, H, W, C])
-        offset_mask = tf.random.normal([B, H, W, GROUP * 9 * 3], stddev=0.5)
-        ds = tf.data.Dataset.from_tensors((value, offset_mask)).repeat()
-        it = iter(strategy.experimental_distribute_dataset(ds))
+    per_replica = B // strategy.num_replicas_in_sync
 
-        run_steps = make_run_steps(strategy, it, stage, fwd_bwd)
+    with strategy.scope():
+        value_rep = tf.random.normal([per_replica, H, W, C])
+        offset_rep = tf.random.normal([per_replica, H, W, GROUP * 9 * 3], stddev=0.5)
+        patches_rep = tf.random.normal([per_replica, H, W, NUM_TAPS * C]) if stage == "e_agg_only" else None
+
+        run_steps = make_run_steps(strategy, stage, fwd_bwd, value_rep, offset_rep, patches_rep)
 
         run_steps(tf.constant(1, tf.int32)).numpy()
         run_steps(tf.constant(warmup, tf.int32)).numpy()
@@ -197,7 +202,7 @@ def bench_stage(strategy, stage, B, H, W, C, fwd_bwd, warmup=10, iters=50):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tpu_name", default=os.environ.get("TPU_NAME", "node4"))
-    parser.add_argument("--stages", default="a_offset,b_weights,c_patches,d_full,c_slices,d_slices")
+    parser.add_argument("--stages", default="a_offset,b_weights,c_stack,d_full,e_agg_only")
     parser.add_argument("--size", default="128,128,128")
     args = parser.parse_args()
 
