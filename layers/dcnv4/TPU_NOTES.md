@@ -35,10 +35,30 @@
   - 4 次独立 gather + 6D tensor 的 reduce
   - bf16 下 gather 带宽减半但仍受限于行宽
 
+## 基线实测（bf16 mixed precision，B=4=每replica 1个）
+
+Config 1：B=4, 128×128, C=128, G=4
+- dcnv2: fwd=5.62ms, fwd+bwd=6.82ms（backward 几乎免费！）
+- dcnv4: fwd=9.14ms, fwd+bwd=64.42ms（backward 55ms，灾难）
+- dcnv4 vs dcnv2: fwd 0.61x，fwd+bwd 0.11x
+
+Config 2：B=4, 256×256, C=256, G=4
+- dcnv2: fwd=140.06ms, fwd+bwd=139.49ms
+- dcnv4: fwd=138.62ms, fwd+bwd=259.71ms
+- dcnv4 vs dcnv2: fwd 1.01x，fwd+bwd 0.54x
+
+关键结论：
+- 大尺寸下两者 fwd 打平且都被 gather 卡死：2.4G 元素 gather 实测 ~140ms → 有效带宽仅 ~9GB/s/chip（TPU v4 HBM 标称 ~1.2TB/s），说明 XLA:TPU 的 gather lowering 是 per-slice 开销主导的，极慢
+- dcnv2 的 backward 真免费（CPU 验证过 grads 非空非零），dcnv4 的 backward（4 次 scatter + 权重反传）慢得离谱
+- **方向确定：彻底消除 per-position 动态 gather/scatter，改走 dense window + einsum 路线**（im2col 式静态切片 + 动态 dense 权重 + matmul，全是 TPU 原生快路径）
+
 ## 进展日志
 
 - 2026-10-19：
   - 创建 branch `dcnv4-tpu`
   - 摸清 TPU 连接方式（TFRC，grpc://localhost:8470 由 tpu-runtime 容器提供；resolver 用 TPU_NAME=node4）
   - 踩坑：客户端 jit_compile 会把服务端搞崩 → 确认必须走 strategy.run 路线
-  - 下一步：写 `benchmark_dcnv4_tpu.py`（TPUStrategy + tf.data + strategy.run，无客户端 jit_compile），先测 DCNv2 vs DCNv4 基线
+  - 写 `benchmark_dcnv4_tpu.py`（TPUStrategy + tf.data + strategy.run，无客户端 jit_compile）
+  - 踩坑2：`*0.0` 强制作梯度会被 XLA DCE 掉 → 改 `*1e-30`；`tf.constant` 传参会 retrace → `input_signature` 固定一次 trace
+  - 基线数据（见上）：dcnv4 fwd+bwd 比 dcnv2 慢 2~9 倍
+  - 写 `profile_core_tpu.py` 消融脚本（定位 gather/index/weights 占比）
