@@ -371,16 +371,37 @@ def _window_aggregate(
                 tf.cast(dout, patches_bwd.dtype), [bs, hout, wout, group, group_channels]
             )
 
-            terms = []
-            for ty in range(t_h):
-                for tx in range(t_w):
-                    term = w_bwd[..., ty, tx][..., None] * dout_e  # [B,H,W,G,D]
-                    term = tf.reshape(term, [bs, hout, wout, channels])
-                    term = tf.pad(
-                        term,
-                        [[0, 0], [ty, t_h - 1 - ty], [tx, t_w - 1 - tx], [0, 0]],
-                    )
-                    terms.append(term)
+            # At small spatial sizes the 64-term (mul -> pad -> add_n) chain is
+            # launch-bound (~192 HLO ops); materializing dp = w * dout in one
+            # big broadcast-mul trades a D*T2-sized tensor for ~64 fewer
+            # kernel launches. At large sizes that tensor is too big, so keep
+            # the per-tap broadcast multiplies there.
+            hoist_dp = (hout * wout * channels) <= (1 << 22)
+
+            if hoist_dp:
+                dp = w_bwd[..., None, :, :] * tf.reshape(
+                    dout_e, [bs, hout, wout, group, group_channels, 1, 1]
+                )  # [B,H,W,G,D,Th,Tw]
+                dp = tf.reshape(dp, [bs, hout, wout, channels, t_h, t_w])
+                terms = []
+                for ty in range(t_h):
+                    for tx in range(t_w):
+                        term = tf.pad(
+                            dp[..., ty, tx],
+                            [[0, 0], [ty, t_h - 1 - ty], [tx, t_w - 1 - tx], [0, 0]],
+                        )
+                        terms.append(term)
+            else:
+                terms = []
+                for ty in range(t_h):
+                    for tx in range(t_w):
+                        term = w_bwd[..., ty, tx][..., None] * dout_e  # [B,H,W,G,D]
+                        term = tf.reshape(term, [bs, hout, wout, channels])
+                        term = tf.pad(
+                            term,
+                            [[0, 0], [ty, t_h - 1 - ty], [tx, t_w - 1 - tx], [0, 0]],
+                        )
+                        terms.append(term)
 
             d_vp = tf.add_n(terms)  # [B, Hp, Wp, C]
 
