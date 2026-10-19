@@ -34,7 +34,6 @@
 
 import math
 
-import numpy as np
 import tensorflow as tf
 
 from iseg.utils import get_tensor_shape
@@ -204,45 +203,91 @@ def dcnv4_core_tpu(
     weights = tf.reduce_sum(weights, axis=4)  # [B, Hout, Wout, G, T_h, T_w]
     weights = tf.reshape(weights, [bs, hout, wout, group, num_taps])
 
-    # ---- static window extraction (im2col, no dynamic indexing) ------------
-    # NOTE: tf.image.extract_patches lowers terribly on XLA:TPU (measured
-    # +59ms at 128x128x128), and a T^2 slices+tf.stack has a cheap forward
-    # but a pathological backward (+46ms at 256x256x256: 64 slice-grad pads
-    # + adds). Instead use a depthwise conv with a constant one-hot filter:
-    # output channel (c, m) = input shifted by tap m == the m-th window
-    # slice. Depthwise conv fwd AND bwd are native fast paths on TPU.
+    # ---- static window extraction + dense aggregation -----------------------
+    # out[b,h,w,g,d] = sum_t weights[b,h,w,g,t] * value_padded[b,h+ty,w+tx,g,d]
+    #
+    # XLA:TPU lowering notes (all measured):
+    # - tf.image.extract_patches: catastrophic (+59ms at 128x128x128)
+    # - one-hot depthwise conv: catastrophic (75ms fwd at 128x128x128)
+    # - T^2 slices + stack: fast forward, but the autodiff backward is 64
+    #   slice-grad pads + adds (+46ms at 256x256x256 f32)
+    # So the forward uses slices+stack and the value-path backward is written
+    # by hand as (mul -> static pad) -> add_n, which XLA fuses far better
+    # than its own autodiff output.
     value_padded = tf.pad(
         value, [[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]]
     )
 
-    onehot = np.zeros((t_h, t_w, 1, num_taps), dtype="float32")
-    for ty in range(t_h):
-        for tx in range(t_w):
-            onehot[ty, tx, 0, ty * t_w + tx] = 1.0
-    onehot = np.broadcast_to(onehot, (t_h, t_w, channels, num_taps))
-
-    patches = tf.nn.depthwise_conv2d(
-        value_padded,
-        tf.constant(onehot, dtype=value.dtype),
-        strides=(1, 1, 1, 1),
-        padding="VALID",
-    )  # [B, Hout, Wout, C * T^2], channel order (c, m) with m = ty * T_w + tx
-
-    patches = tf.reshape(
-        patches, [bs, hout, wout, group, group_channels, num_taps]
+    output = _window_aggregate(
+        value_padded, weights, t_h, t_w, group, hout, wout, group_channels
     )
-
-    # ---- dense aggregation ---------------------------------------------------
-    # out[b,h,w,g,d] = sum_t weights[b,h,w,g,t] * patches[b,h,w,g,d,t]
-    # (fused broadcast-multiply-reduce over the last axis; no batched matmul,
-    # which XLA:TPU lowers poorly for millions of tiny per-position dots)
-    weights_bc = tf.cast(weights[..., None, :], patches.dtype)  # [B, Hout, Wout, G, 1, T]
-
-    output = tf.reduce_sum(patches * weights_bc, axis=-1)  # [B, Hout, Wout, G, D]
 
     output = tf.reshape(output, [bs, hout, wout, channels])
 
     return output
+
+
+def _window_aggregate(value_padded, weights, t_h, t_w, group, hout, wout, group_channels):
+    """out[b,h,w,g,d] = sum_{ty,tx} weights[b,h,w,g,ty,tx] * vp[b,h+ty,w+tx,g,d]
+
+    value_padded: [B, Hp, Wp, C] with C = G * D
+    weights:      [B, Hout, Wout, G, T2], tap order (ty, tx) row-major
+    returns:      [B, Hout, Wout, G, D]
+    """
+
+    bs = get_tensor_shape(value_padded)[0]
+    channels = group * group_channels
+    num_taps = t_h * t_w
+
+    @tf.custom_gradient
+    def _agg(vp, w):
+
+        slices = []
+        for ty in range(t_h):
+            for tx in range(t_w):
+                slices.append(vp[:, ty : ty + hout, tx : tx + wout, :])
+        patches = tf.stack(slices, axis=-1)  # [B, Hout, Wout, C, T2]
+        patches = tf.reshape(patches, [bs, hout, wout, group, group_channels, num_taps])
+
+        out = tf.reduce_sum(patches * tf.cast(w[..., None, :], patches.dtype), axis=-1)
+
+        def grad(dout):
+            # d_weights[b,h,w,g,t] = sum_d patches[b,h,w,g,d,t] * dout[b,h,w,g,d]
+            d_weights = tf.reduce_sum(
+                patches * tf.cast(dout[..., None], patches.dtype), axis=4
+            )
+            d_weights = tf.cast(d_weights, w.dtype)
+
+            # value adjoint:
+            #   dVpad[b,Y,X,c] = sum_{ty,tx} ( w[...,ty,tx] * dout )[b, Y-ty, X-tx, c]
+            # handwritten as (mul -> static zero-pad) summed with one add_n
+            wc = tf.cast(w, patches.dtype)  # [B, Hout, Wout, G, T2]
+            wc = tf.reshape(wc, [bs, hout, wout, group, t_h, t_w])
+            dout_e = tf.reshape(tf.cast(dout, patches.dtype), [bs, hout, wout, channels])
+
+            wc_c = tf.reshape(wc, [bs, hout, wout, group, 1, t_h, t_w])
+            wc_c = tf.broadcast_to(
+                wc_c, [bs, hout, wout, group, group_channels, t_h, t_w]
+            )
+            wc_c = tf.reshape(wc_c, [bs, hout, wout, channels, t_h, t_w])
+
+            terms = []
+            for ty in range(t_h):
+                for tx in range(t_w):
+                    term = wc_c[..., ty, tx] * dout_e  # [B, Hout, Wout, C]
+                    term = tf.pad(
+                        term,
+                        [[0, 0], [ty, t_h - 1 - ty], [tx, t_w - 1 - tx], [0, 0]],
+                    )
+                    terms.append(term)
+
+            d_vp = tf.add_n(terms)  # [B, Hp, Wp, C]
+
+            return d_vp, d_weights
+
+        return out, grad
+
+    return _agg(value_padded, weights)
 
 
 class DCNv4_TPU(DCNv4):
