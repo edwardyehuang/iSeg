@@ -39,7 +39,16 @@ def build_layers(C, group):
     }
 
 
-def make_step_fn(layer, fwd_bwd):
+def make_run_steps(strategy, layer, fwd_bwd, x_rep):
+    """Benchmark loop that keeps the input ON DEVICE between iterations.
+
+    Feeding the input through tf.data each step makes the benchmark
+    infeed-bound (measured: 134MB/step -> ~140ms/step at 256x256x256, which
+    swamps all layer compute). Instead we capture a per-replica input once
+    and make it loop-carried: x <- x + 1e-30 * y. The tiny perturbation
+    keeps XLA from hoisting the layer out of the while loop (loop-invariant
+    code motion) without changing the measured math.
+    """
 
     if fwd_bwd:
 
@@ -48,42 +57,36 @@ def make_step_fn(layer, fwd_bwd):
                 y = layer(x, training=True)
                 loss = tf.reduce_mean(tf.square(tf.cast(y, tf.float32)))
             grads = tape.gradient(loss, layer.trainable_variables)
-            return loss, grads
+            x_new = x + 1e-30 * tf.cast(y, x.dtype)
+            return loss, grads, x_new
 
     else:
 
         def step_fn(x):
             y = layer(x, training=True)
-            return tf.reduce_mean(tf.cast(y, tf.float32))
+            x_new = x + 1e-30 * tf.cast(y, x.dtype)
+            return tf.reduce_mean(tf.cast(y, tf.float32)), x_new
 
-    return step_fn
-
-
-def make_run_steps(strategy, it, layer, fwd_bwd):
-
-    step_fn = make_step_fn(layer, fwd_bwd)
-
-    # input_signature fixes the trace count to 1 per (layer, mode); passing
-    # different tf.constant values for n would otherwise retrace per value
     @tf.function(input_signature=[tf.TensorSpec([], tf.int32)])
     def run_steps(n):
         acc = tf.zeros([], tf.float32)
+        x = strategy.experimental_distribute_values_from_function(
+            lambda ctx: tf.identity(x_rep)
+        )
 
         for _ in tf.range(n):
-            x = next(it)
             out = strategy.run(step_fn, args=(x,))
 
             if fwd_bwd:
-                loss, grads = out
+                loss, grads, x = out
                 acc += strategy.reduce(tf.distribute.ReduceOp.SUM, loss, axis=None)
-                # force grads to be computed & materialized (no *0.0: XLA
-                # would simplify it away and DCE the whole backward)
                 grads_r0 = strategy.experimental_local_results(grads)[0]
                 acc += tf.add_n(
                     [tf.reduce_sum(tf.cast(g, tf.float32)) for g in grads_r0]
                 ) * 1e-30
             else:
-                acc += strategy.reduce(tf.distribute.ReduceOp.SUM, out, axis=None)
+                loss, x = out
+                acc += strategy.reduce(tf.distribute.ReduceOp.SUM, loss, axis=None)
 
         return acc
 
@@ -92,14 +95,13 @@ def make_run_steps(strategy, it, layer, fwd_bwd):
 
 def bench_layer(strategy, layer, global_batch, H, W, C, fwd_bwd, warmup=10, iters=50):
     """Returns per-iteration time in ms, measured with `iters` sequential
-    strategy.run steps inside one tf.function (no host dispatch in the loop)."""
+    strategy.run steps inside one tf.function (no host dispatch, no infeed)."""
+
+    per_replica = global_batch // strategy.num_replicas_in_sync
 
     with strategy.scope():
-        x = tf.random.normal([global_batch, H, W, C])
-        ds = tf.data.Dataset.from_tensors(x).repeat()
-        it = iter(strategy.experimental_distribute_dataset(ds))
-
-        run_steps = make_run_steps(strategy, it, layer, fwd_bwd)
+        x_rep = tf.random.normal([per_replica, H, W, C])
+        run_steps = make_run_steps(strategy, layer, fwd_bwd, x_rep)
 
         # build + compile + realistic offsets (non-zero, see GPU benchmark)
         run_steps(tf.constant(1, tf.int32)).numpy()
