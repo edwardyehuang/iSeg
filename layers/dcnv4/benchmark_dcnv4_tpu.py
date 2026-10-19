@@ -36,6 +36,7 @@ def build_layers(C, group):
         "dcnv2": DCNv2(filters=C, kernel_size=(3, 3)),
         "dcnv4": DCNv4(kernel_size=3, group=group),
         "dcnv4_tpu": DCNv4_TPU(kernel_size=3, group=group, window_radius=2),
+        "dcnv4_tpu_r1": DCNv4_TPU(kernel_size=3, group=group, window_radius=1),
     }
 
 
