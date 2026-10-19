@@ -191,16 +191,12 @@ def dcnv4_core_tpu(
     point_ok = (pos_x > -1.0) & (pos_x < width_f) & (pos_y > -1.0) & (pos_y < height_f)
     point_ok = tf.cast(point_ok, compute_dtype)  # [B, Hout, Wout, G, K]
 
-    # [B, Hout, Wout, G, K, T_h, T_w]
-    weights = (
-        hat_y[..., :, None]
-        * hat_x[..., None, :]
-        * tf.cast(mask * point_ok, weight_dtype)[..., None, None]
-    )
-
     # k collapses into the weights first (exact: k appears only in weights):
-    # out = sum_t patches[t] * sum_k weights[k, t]
-    weights = tf.reduce_sum(weights, axis=4)  # [B, Hout, Wout, G, T_h, T_w]
+    # out = sum_t patches[t] * sum_k weights[k, t]. tmp stays small; the
+    # K x T_h x T_w product only exists inside the fused reduce below.
+    s = tf.cast(mask * point_ok, weight_dtype)  # [B, Hout, Wout, G, K]
+    tmp = hat_y * s[..., None]  # [B, Hout, Wout, G, K, T_h]
+    weights = tf.reduce_sum(tmp[..., :, None] * hat_x[..., None, :], axis=4)
     weights = tf.reshape(weights, [bs, hout, wout, group, num_taps])
 
     # ---- static window extraction + dense aggregation -----------------------
@@ -209,11 +205,11 @@ def dcnv4_core_tpu(
     # XLA:TPU lowering notes (all measured):
     # - tf.image.extract_patches: catastrophic (+59ms at 128x128x128)
     # - one-hot depthwise conv: catastrophic (75ms fwd at 128x128x128)
-    # - T^2 slices + stack: fast forward, but the autodiff backward is 64
-    #   slice-grad pads + adds (+46ms at 256x256x256 f32)
-    # So the forward uses slices+stack and the value-path backward is written
-    # by hand as (mul -> static pad) -> add_n, which XLA fuses far better
-    # than its own autodiff output.
+    # - T^2 slices + stack: fast forward, but materializing the patches
+    #   tensor (T2 x value) triggers remat/host-offload in the backward
+    # So no patches tensor is materialized anywhere: the forward loop-
+    # accumulates over slices, and the backward is written by hand
+    # (d_weights via slice mul+reduce; value adjoint as mul->pad->add_n).
     value_padded = tf.pad(
         value, [[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]]
     )
@@ -237,48 +233,47 @@ def _window_aggregate(value_padded, weights, t_h, t_w, group, hout, wout, group_
 
     bs = get_tensor_shape(value_padded)[0]
     channels = group * group_channels
-    num_taps = t_h * t_w
 
     @tf.custom_gradient
     def _agg(vp, w):
 
-        slices = []
-        for ty in range(t_h):
-            for tx in range(t_w):
-                slices.append(vp[:, ty : ty + hout, tx : tx + wout, :])
-        patches = tf.stack(slices, axis=-1)  # [B, Hout, Wout, C, T2]
-        patches = tf.reshape(patches, [bs, hout, wout, group, group_channels, num_taps])
+        def slice_t(t):
+            ty, tx = divmod(t, t_w)
+            return vp[:, ty : ty + hout, tx : tx + wout, :]
 
-        out = tf.reduce_sum(patches * tf.cast(w[..., None, :], patches.dtype), axis=-1)
+        # forward: loop-accumulate, no patches tensor
+        out = tf.zeros([bs, hout, wout, group, group_channels], dtype=vp.dtype)
+        wc = tf.cast(w, vp.dtype)  # [B, Hout, Wout, G, T2]
+
+        for t in range(t_h * t_w):
+            w_t = wc[..., t][..., None]  # [B, Hout, Wout, G, 1]
+            v_t = tf.reshape(slice_t(t), [bs, hout, wout, group, group_channels])
+            out = out + w_t * v_t
 
         def grad(dout):
-            # d_weights[b,h,w,g,t] = sum_d patches[b,h,w,g,d,t] * dout[b,h,w,g,d]
-            d_weights = tf.reduce_sum(
-                patches * tf.cast(dout[..., None], patches.dtype), axis=4
-            )
-            d_weights = tf.cast(d_weights, w.dtype)
+            dout_e = tf.reshape(tf.cast(dout, vp.dtype), [bs, hout, wout, group, group_channels])
+            wc2 = tf.reshape(wc, [bs, hout, wout, group, t_h, t_w])
 
-            # value adjoint:
-            #   dVpad[b,Y,X,c] = sum_{ty,tx} ( w[...,ty,tx] * dout )[b, Y-ty, X-tx, c]
-            # handwritten as (mul -> static zero-pad) summed with one add_n.
-            # NB: slice wc per tap and broadcast over D at multiply time;
-            # broadcasting wc to all channels first materializes a C*T2-times
-            # -weights tensor plus a huge XLA layout copy (measured 8.7ms at
-            # 256x256x256 f32).
-            wc = tf.cast(w, patches.dtype)  # [B, Hout, Wout, G, T2]
-            wc = tf.reshape(wc, [bs, hout, wout, group, t_h, t_w])
-            dout_e = tf.reshape(tf.cast(dout, patches.dtype), [bs, hout, wout, group, group_channels])
-
+            # d_weights[b,h,w,g,t] = sum_d slice_t(vp)[b,h,w,g,d] * dout[b,h,w,g,d]
+            # value adjoint: dVpad = sum_t pad(w_t * dout) over the tap grid
+            d_weights = []
             terms = []
-            for ty in range(t_h):
-                for tx in range(t_w):
-                    term = wc[..., ty, tx][..., None] * dout_e  # [B, Hout, Wout, G, D]
-                    term = tf.reshape(term, [bs, hout, wout, channels])
-                    term = tf.pad(
-                        term,
-                        [[0, 0], [ty, t_h - 1 - ty], [tx, t_w - 1 - tx], [0, 0]],
-                    )
-                    terms.append(term)
+            for t in range(t_h * t_w):
+                ty, tx = divmod(t, t_w)
+                v_t = tf.reshape(slice_t(t), [bs, hout, wout, group, group_channels])
+                d_weights.append(
+                    tf.reduce_sum(v_t * dout_e, axis=-1)
+                )
+                term = wc2[..., ty, tx][..., None] * dout_e  # [B, Hout, Wout, G, D]
+                term = tf.reshape(term, [bs, hout, wout, channels])
+                term = tf.pad(
+                    term,
+                    [[0, 0], [ty, t_h - 1 - ty], [tx, t_w - 1 - tx], [0, 0]],
+                )
+                terms.append(term)
+
+            d_weights = tf.stack(d_weights, axis=-1)  # [B, Hout, Wout, G, T2]
+            d_weights = tf.cast(d_weights, w.dtype)
 
             d_vp = tf.add_n(terms)  # [B, Hp, Wp, C]
 
