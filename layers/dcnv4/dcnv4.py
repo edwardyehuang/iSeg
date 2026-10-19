@@ -19,6 +19,13 @@ import tensorflow as tf
 from iseg.layers.dcnv4.dcnv4_base import DCNv4_Base, dcnv4_core  # re-exported
 from iseg.layers.dcnv4.dcnv4_tpu import dcnv4_core_tpu
 
+# Memory safety valve: the window core materializes a patches tensor of
+# value_volume x T^2 (up to 64x); at very large feature volumes this alone
+# can dominate TPU HBM in a full model. Above this per-replica value volume,
+# fall back to the gather core (no amplification). FaPN-scale production
+# (56x56x256 at 64/replica -> 12.8M) stays on the window core.
+_WINDOW_CORE_MAX_VOLUME = 1 << 25  # 33.5M
+
 
 def _is_tpu_context():
     """True when the ambient distribution strategy targets TPUs."""
@@ -47,18 +54,28 @@ class DCNv4(DCNv4_Base):
 
     def _aggregate_core(self, value, offset_mask):
         if self.window_radius != "exact" and _is_tpu_context():
-            return dcnv4_core_tpu(
-                value,
-                offset_mask,
-                kernel_size=self.kernel_size,
-                stride=self.stride,
-                pad=self.pad,
-                dilation=self.dilation,
-                group=self.group,
-                offset_scale=self.offset_scale,
-                remove_center=self.remove_center,
-                window_radius=self.window_radius,
-            )
+            bs, h, w, c = value.shape
+            volume = int(bs) * int(h) * int(w) * int(c)
+            # Memory safety valve: the window core materializes a patches
+            # tensor of value x T^2 (up to 64x). Only fall back to the gather
+            # core at huge volumes AND small spatial maps -- the gather core's
+            # scatter backward is catastrophically slow at large spatial maps,
+            # so it is never a win there; the valve exists to keep a full
+            # model's TPU HBM from blowing up at small-map/huge-batch extremes.
+            use_window = volume <= _WINDOW_CORE_MAX_VOLUME or max(h, w) > 64
+            if use_window:
+                return dcnv4_core_tpu(
+                    value,
+                    offset_mask,
+                    kernel_size=self.kernel_size,
+                    stride=self.stride,
+                    pad=self.pad,
+                    dilation=self.dilation,
+                    group=self.group,
+                    offset_scale=self.offset_scale,
+                    remove_center=self.remove_center,
+                    window_radius=self.window_radius,
+                )
         return super()._aggregate_core(value, offset_mask)
 
     def call(self, inputs, training=None):
