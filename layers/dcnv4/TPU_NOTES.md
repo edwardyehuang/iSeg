@@ -78,7 +78,27 @@ Config 2：B=4, 256×256, C=256, G=4
   - wc_c 广播物化 [B,H,W,C,T2] 4.3GB + 8.7ms 布局拷贝（f32）→ 改为按 tap 切片、乘时广播（-4.5ms @256² bf16）
   - 跨 fwd/bwd 边界的长生命 buffer 被 XLA 卸到 host（S(3)）：collapsed weights 134MB×2、hat 张量 151MB×2、value、聚合输出 —— ~10ms/step 的 host 搬运
   - XLA 整体内存 op 有效带宽 ~30%（元素/访存 kernel 天花板），MXU 路（GEMM）才是全速 —— 但本算子数学上不构成 GEMM（双 per-position 张量）
-- v10（当前）：**base-hat 技巧**（整数网格时 K 个 hat = 共享 base hat 的静态切片，off 相同仅网格平移；非整数 offset_scale 自动回退）+ **权重路径反向全部手写进自定义梯度**（ds/dhay/dhax + base-hat 散射回传），跨 fwd/bwd 边界的只剩 ≤138MB 小张量。CPU parity：f64 exact，梯度 exact。
+- v10：**base-hat 技巧**（整数网格时 K 个 hat = 共享 base hat 的静态切片，off 相同仅网格平移；非整数 offset_scale 自动回退）+ **权重路径反向全部手写进自定义梯度**（ds/dhay/dhax + base-hat 散射回传），跨 fwd/bwd 边界的只剩 ≤138MB 小张量。效果：与 v9-best 持平（R=2 略差 R=1 略好）。
+- v11（当前）：v10 + **小尺寸 adjoint 用 dp 一次物化**（H*W*C ≤ 4M 时 1 次大 mul 替代 64 次小 mul，缓解小分辨率的 launch-bound）。
+
+## 重要负面结果 / 死路
+
+- 客户端 `tf.function(jit_compile=True)`：把 tpu-runtime 服务端搞崩（Host transfer manager 缺失 → poison → segfault）
+- tf.data 逐步喂数据做 benchmark：infeed 瓶颈（134MB/step → 140ms floor），必须 on-device 循环依赖输入
+- `* 0.0` 强制计算梯度：被 XLA DCE 掉（用 `* 1e-30`）
+- tf.image.extract_patches：+59ms @128²（XLA:TPU lowering 灾难）
+- 批量小 dot einsum（百万级 batch）：63ms @128²
+- one-hot depthwise conv（multiplier=64）：75ms fwd @128²
+- separable 2-pass 分解：数学上不成立（per-position 权重挂在输出位置，1D 分解必然错位）
+- 反向 col2im 的 conv/matmul 化：one-hot filter 的 regular conv2d_backprop_input 有 C× 冗余 → 146 TFLOP，死路；depthwise backprop 同死路
+- 全循环聚合（64 次乘加替代 stack）：40ms fwd+bwd @256²，不融合
+- 分块 add_n / NCHW 布局：各 ~4-5%，不值得
+
+## 工具链备忘
+
+- **profiler 打通**：worker 有 profiler service（grpc://localhost:8470），`tf.profiler.experimental.client.trace` 可抓；logdir 要 chmod 777（容器内 uid 2000 写 /tmp 共享目录）；xplane 用 TF 自带 `tensorflow.core.profiler.protobuf.xplane_pb2` 解析
+- **依赖事故**：pip install tensorboard_plugin_profile 会拉 protobuf 7.x 打爆 TF 2.15 → 修复：`pip install "protobuf==4.25.3" "grpcio==1.54.3" "grpcio-status==1.54.3" --upgrade pyOpenSSL`
+- **每个 python 进程用完 TPU 后其退出清理可能挂住**（TFRC 已知问题），且 runtime 会被用过的客户端"污染" → 每个进程跑完都要 `sudo systemctl restart tpu-runtime.service`，多个 python 进程不能顺序共用同一 runtime 实例
 
 ## 全量覆盖实测（bf16，B=1/replica 除 x2，dcnv2 vs dcnv4_tpu(R2)/r1(R1)）
 
