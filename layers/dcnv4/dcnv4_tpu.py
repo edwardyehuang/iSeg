@@ -3,7 +3,7 @@
 # Copyright (c) 2024 edwardyehuang (https://github.com/edwardyehuang)
 # ===================================================================
 
-# TPU-optimized DCNv4.
+# TPU-optimized DCNv4 (layer: DCNv4_TPU, core: dcnv4_core_tpu).
 #
 # Why: on TPU, XLA lowers the dynamic tf.gather / scatter (backward) of the
 # reference dcnv4_core to per-slice loops with catastrophic throughput
@@ -17,20 +17,31 @@
 #   sample(p) = sum_j value[j] * max(0, 1 - |p - j|)   (bilinear "hat")
 #
 # computed over a static local window of T x T taps around each output
-# position (im2col-style static slices), followed by one einsum:
+# position (im2col-style static slices), with the K kernel points collapsed
+# into the weights first (exact, since K only appears in weights):
 #
-#   out[b,h,w,g,d] = sum_{k,t} w[b,h,w,g,k,t] * U[b,h,w,t,g,d]
+#   out[b,h,w,g,d] = sum_t W[b,h,w,g,t] * U[b,h,w,t,g,d]
 #
 # No dynamic gather/scatter anywhere -> forward AND backward are dense.
+# The backward is handwritten via tf.custom_gradient: the value adjoint as
+# (mul -> static pad) -> add_n, and the weights-path backward in closed
+# form, so no large buffer lives across the fwd/bwd boundary (XLA offloads
+# such buffers to host memory, which is the dominant TPU-specific cost).
 #
-# Numerics vs dcnv4_core:
-#   - identical whenever the (scaled) learned offsets satisfy |off| <= R
-#     (window_radius, default 2 pixels)
-#   - beyond R, offsets are soft-clamped: |off| -> R + tanh(|off| - R), so
-#     sampling stays at the window edge and gradients keep flowing
-#     (hard clamp would kill the gradient for out-of-window offsets)
+# Semantics vs dcnv4_core (window_radius):
+#   - "exact": bit-for-bit the reference gather-based core (no clamping,
+#     slow on TPU; for parity checks / fallback)
+#   - an int R: identical whenever the (scaled) learned offsets satisfy
+#     |off| <= R; beyond R, offsets are soft-clamped:
+#     |off| -> R + tanh(|off| - R), so sampling stays at the window edge
+#     and gradients keep flowing (a hard clamp would kill them).
 #   - boundary handling identical: zero padding == corner zeroing, and the
 #     whole point is dropped outside (-1, W) x (-1, H) as in the official op
+#
+# Recommended tiers: R=2 "balanced", R=1 "ultra" (faster, exact range +/-1).
+# Measured on TPU v4-8 (bf16, per-replica batch 1): 2.7-4.3x fwd and
+# 1.5-3.5x fwd+bwd vs DCNv2 at >=128x128 feature maps; small maps (~64x64)
+# are fwd-competitive but fwd+bwd is launch-bound (see TPU_NOTES.md).
 
 import math
 
