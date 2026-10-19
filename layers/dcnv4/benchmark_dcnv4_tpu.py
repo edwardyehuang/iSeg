@@ -79,14 +79,14 @@ def make_run_steps(strategy, layer, fwd_bwd, x_rep):
 
             if fwd_bwd:
                 loss, grads, x = out
-                acc += strategy.reduce(tf.distribute.ReduceOp.SUM, loss, axis=None)
+                acc += strategy.experimental_local_results(loss)[0]
                 grads_r0 = strategy.experimental_local_results(grads)[0]
                 acc += tf.add_n(
                     [tf.reduce_sum(tf.cast(g, tf.float32)) for g in grads_r0]
                 ) * 1e-30
             else:
                 loss, x = out
-                acc += strategy.reduce(tf.distribute.ReduceOp.SUM, loss, axis=None)
+                acc += strategy.experimental_local_results(loss)[0]
 
         return acc
 

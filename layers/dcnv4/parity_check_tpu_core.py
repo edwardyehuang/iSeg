@@ -72,4 +72,15 @@ g_new = tape.gradient(loss2, [value, om_in])
 print("grad value diff:", float(tf.reduce_max(tf.abs(g_ref[0] - g_new[0]))))
 print("grad offset_mask diff:", float(tf.reduce_max(tf.abs(g_ref[1] - g_new[1]))))
 
+# 8) bf16 path vs f32 reference: should be close within bf16 tolerance
+om_b = tf.random.normal([B, H, W, G * 9 * 3], stddev=0.3, dtype=tf.float32)
+v_b = tf.random.normal([B, H, W, C], dtype=tf.float32)
+ref32 = dcnv4_core(v_b, om_b, group=G)
+new32 = dcnv4_core_tpu(v_b, om_b, group=G, window_radius=2)
+d32 = float(tf.reduce_max(tf.abs(ref32 - new32)))
+new_bf16 = dcnv4_core_tpu(tf.cast(v_b, tf.bfloat16), tf.cast(om_b, tf.bfloat16), group=G, window_radius=2)
+d_bf16 = float(tf.reduce_max(tf.abs(tf.cast(new_bf16, tf.float32) - ref32)))
+scale = float(tf.reduce_max(tf.abs(ref32)))
+print(f"f32 path diff: {d32:.2e}; bf16 path diff: {d_bf16:.2e} (out scale {scale:.1f})")
+
 print("CPU parity checks done")

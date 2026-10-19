@@ -160,12 +160,20 @@ def dcnv4_core_tpu(
     pad_right = (wout + t_w - 1) - width - pad_left
 
     # ---- hat weights over the window ----------------------------------------
-    tap_x = tf.range(tap_x0, tap_x1 + 1, dtype=compute_dtype)  # [T_w]
-    tap_y = tf.range(tap_y0, tap_y1 + 1, dtype=compute_dtype)  # [T_h]
+    # build the big weight tensors in the value dtype (bf16 under mixed
+    # precision): halves HBM traffic vs float32. f32/f64 inputs keep full
+    # precision (parity path).
+    weight_dtype = value.dtype if value.dtype == tf.bfloat16 else compute_dtype
 
-    hat_x = rel_x[..., None] - tap_x[None, None, None, None, None, :]
+    tap_x = tf.constant(list(range(tap_x0, tap_x1 + 1)), dtype=weight_dtype)  # [T_w]
+    tap_y = tf.constant(list(range(tap_y0, tap_y1 + 1)), dtype=weight_dtype)  # [T_h]
+
+    rel_x_w = tf.cast(rel_x, weight_dtype)
+    rel_y_w = tf.cast(rel_y, weight_dtype)
+
+    hat_x = rel_x_w[..., None] - tap_x[None, None, None, None, None, :]
     hat_x = tf.maximum(1.0 - tf.abs(hat_x), 0.0)  # [B, Hout, Wout, G, K, T_w]
-    hat_y = rel_y[..., None] - tap_y[None, None, None, None, None, :]
+    hat_y = rel_y_w[..., None] - tap_y[None, None, None, None, None, :]
     hat_y = tf.maximum(1.0 - tf.abs(hat_y), 0.0)  # [B, Hout, Wout, G, K, T_h]
 
     # whole point dropped outside (-1, W) x (-1, H), same as official
@@ -187,7 +195,7 @@ def dcnv4_core_tpu(
     weights = (
         hat_y[..., :, None]
         * hat_x[..., None, :]
-        * (mask * point_ok)[..., None, None]
+        * tf.cast(mask * point_ok, weight_dtype)[..., None, None]
     )
 
     # k collapses into the weights first (exact: k appears only in weights):
