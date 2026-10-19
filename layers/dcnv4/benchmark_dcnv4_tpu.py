@@ -186,14 +186,6 @@ def main():
 
     print("\nbenchmark done", flush=True)
 
-    if args.full:
-        bench_config(strategy, B, 64, 64, 64)
-        bench_config(strategy, B, 256, 256, 64)
-        bench_config(strategy, B, 96, 96, 192)
-        bench_config(strategy, B, 128, 128, 256)
-
-    print("\nbenchmark done", flush=True)
-
 
 if __name__ == "__main__":
     main()
