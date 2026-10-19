@@ -69,7 +69,49 @@ Config 2：B=4, 256×256, C=256, G=4
 - v2：**K 先坍缩进权重**（数学上精确：out = Σ_t U[t]·Σ_k w[k,t]，因为 k 只出现在权重里）→ 权重 [B,H,W,G,T2]，聚合用 broadcast-mul + reduce_sum。CPU parity 全过（窗口内 exact ~1e-14）。
 - v3（extract_patches 换 slices+stack）：**突破** — extract_patches 在 XLA:TPU 上 +59ms @128²；T² 次 slice+stack 同样语义几乎免费。fwd 1.55ms @128²（3.58x vs dcnv2）。
 - v4（one-hot depthwise conv 做窗口提取）：**失败** — multiplier=T² 的 depthwise 在 TPU 上是慢路径，fwd=75ms @128²。
-- v5（当前最佳）：slices+stack 前向 + **tf.custom_gradient 手写 value adjoint**（64 项 mul→pad→add_n，替代 autodiff 的 slice-backward）。@128²: fwd 1.47ms / fwd+bwd 4.15ms（4.15x / 1.69x vs dcnv2）；@256²C=256: fwd 12.5ms / fwd+bwd 31.7ms（2.70x / 1.36x）。
+- v5：slices+stack 前向 + **tf.custom_gradient 手写 value adjoint**（64 项 mul→pad→add_n，替代 autodiff 的 slice-backward）。@128²: fwd 1.47ms / fwd+bwd 4.15ms；@256²C=256: fwd 12.5ms / fwd+bwd 31.7ms。
+- v6（分块 add_n）：仅快 4%，不是融合粒度问题。
+- v7（NCHW）：仅快 5%，XLA 布局分配本来就处理了。
+- v8（消融）：64 项 adjoint 只值 ~5ms，d_weights 只值 ~1.5ms → 反向大头在别处。
+- v9（全循环不 materialize patches）：**更差**（64 次乘加不融合），回滚。
+- **trace 证据（xplane 抓到了，方法见下）**：
+  - wc_c 广播物化 [B,H,W,C,T2] 4.3GB + 8.7ms 布局拷贝（f32）→ 改为按 tap 切片、乘时广播（-4.5ms @256² bf16）
+  - 跨 fwd/bwd 边界的长生命 buffer 被 XLA 卸到 host（S(3)）：collapsed weights 134MB×2、hat 张量 151MB×2、value、聚合输出 —— ~10ms/step 的 host 搬运
+  - XLA 整体内存 op 有效带宽 ~30%（元素/访存 kernel 天花板），MXU 路（GEMM）才是全速 —— 但本算子数学上不构成 GEMM（双 per-position 张量）
+- v10（当前）：**base-hat 技巧**（整数网格时 K 个 hat = 共享 base hat 的静态切片，off 相同仅网格平移；非整数 offset_scale 自动回退）+ **权重路径反向全部手写进自定义梯度**（ds/dhay/dhax + base-hat 散射回传），跨 fwd/bwd 边界的只剩 ≤138MB 小张量。CPU parity：f64 exact，梯度 exact。
+
+## 全量覆盖实测（bf16，B=1/replica 除 x2，dcnv2 vs dcnv4_tpu(R2)/r1(R1)）
+
+| config | dcnv2 fwd/bwd | R2 fwd/bwd | R1 fwd/bwd | R2 加速比 | R1 加速比 |
+|---|---|---|---|---|---|
+| 128² C=128 | 5.5/7.0 | 1.45/3.53 | 1.59/2.05 | 3.8x/2.0x | 3.5x/3.4x |
+| 256² C=256 (P3) | 33.8/43.1 | 12.3/26.3 | 8.2/16.9 | 2.8x/1.6x | 4.1x/2.6x |
+| 128² C=256 (P4) | (见日志) | 5.30x(r1 fwd) | | | |
+| 64² C=256 (P5) | 2.24/2.75 | 2.15/5.96 | 2.06/3.43 | 1.0x/0.46x | 1.1x/0.80x |
+| 32² C=256 (P6) | 1.53/1.96 | 1.32/1.99 | 1.34/1.82 | 1.2x/0.98x | 1.1x/1.07x |
+| 128² C=512 | 12.4/17.7 | 10.8/21.3 | (见日志) | 1.15x/0.83x | 1.67x/1.37x |
+| 64² C=512 | (见日志) | | | 1.49x/0.69x | 2.24x/1.20x |
+| 128² C=256 x2 | (见日志) | | | 3.20x/1.61x | 3.85x/3.06x |
+
+**规律**：大分辨率大胜（P3/P4 级别），小分辨率（P5/P6）和 C=512 的 fwd+bwd 落后——小尺寸时 64 项 adjoint 链是 launch-bound（~192 个 HLO op 的发射开销），C=512 时 adjoint 项是 [B,H,W,512] 大张量。
+
+## 进展日志
+
+- 2026-10-19：
+  - 创建 branch `dcnv4-tpu`
+  - 摸清 TPU 连接方式（TFRC，grpc://localhost:8470 由 tpu-runtime 容器提供；resolver 用 TPU_NAME=node4）
+  - 踩坑：客户端 jit_compile 会把服务端搞崩 → 确认必须走 strategy.run 路线
+  - 写 `benchmark_dcnv4_tpu.py`（TPUStrategy + tf.data + strategy.run，无客户端 jit_compile）
+  - 踩坑2：`*0.0` 强制作梯度会被 XLA DCE 掉 → 改 `*1e-30`；`tf.constant` 传参会 retrace → `input_signature` 固定一次 trace
+  - 基线数据（见上）：dcnv4 fwd+bwd 比 dcnv2 慢 2~9 倍
+  - 写 `profile_core_tpu.py` 消融脚本（定位 gather/index/weights 占比）
+  - dense window 路线确立 → `dcnv4_tpu.py`：CPU parity（窗口内 f64 exact ~1e-14，bf16 ~0.7%）
+  - extract_patches 定位 → slices+stack；infeed 瓶颈定位 → on-device benchmark
+  - 自定义梯度修 backward；wc 广播修复（trace 定位）
+  - **profiler 打通**：worker 有 profiler service（grpc://localhost:8470），`tf.profiler.experimental.client.trace` 可抓；logdir 要 chmod 777（容器内 uid 2000 写 /tmp 共享目录）；xplane 用 TF 自带 `tensorflow.core.profiler.protobuf.xplane_pb2` 解析
+  - **依赖事故**：pip install tensorboard_plugin_profile 会拉 protobuf 7.x 打爆 TF 2.15 → 修复：`pip install "protobuf==4.25.3" "grpcio==1.54.3" "grpcio-status==1.54.3" --upgrade pyOpenSSL`
+  - trace 定位 S(3) host 卸载 → base-hat 技巧 + 权重路径反向手写进自定义梯度（v10）
+  - 全量覆盖：小分辨率/C=512 的 fwd+bwd 仍落后（launch-bound adjoint）
 
 ## 重要负面结果 / 死路
 

@@ -165,16 +165,63 @@ def dcnv4_core_tpu(
     # precision (parity path).
     weight_dtype = value.dtype if value.dtype == tf.bfloat16 else compute_dtype
 
-    tap_x = tf.constant(list(range(tap_x0, tap_x1 + 1)), dtype=weight_dtype)  # [T_w]
-    tap_y = tf.constant(list(range(tap_y0, tap_y1 + 1)), dtype=weight_dtype)  # [T_h]
-
     rel_x_w = tf.cast(rel_x, weight_dtype)
     rel_y_w = tf.cast(rel_y, weight_dtype)
 
-    hat_x = rel_x_w[..., None] - tap_x[None, None, None, None, None, :]
-    hat_x = tf.maximum(1.0 - tf.abs(hat_x), 0.0)  # [B, Hout, Wout, G, K, T_w]
-    hat_y = rel_y_w[..., None] - tap_y[None, None, None, None, None, :]
-    hat_y = tf.maximum(1.0 - tf.abs(hat_y), 0.0)  # [B, Hout, Wout, G, K, T_h]
+    # Base-hat trick: for integer grid offsets p_k, hat_k[t] = hat_base[t - p_k]
+    # exactly, so the K per-point hats are static slices of one small base
+    # tensor per axis (K*T entries -> T+spread entries) instead of K full
+    # tensors. Off_x/off_y are the same per k; only the tap grid shifts.
+    p_x_list = [float((i * dw - center_off_w) * offset_scale) for (i, _) in points]
+    p_y_list = [float((j * dh - center_off_h) * offset_scale) for (_, j) in points]
+    integer_grid = all(v == int(v) for v in p_x_list + p_y_list)
+
+    if integer_grid:
+        p_x_int = [int(v) for v in p_x_list]
+        p_y_int = [int(v) for v in p_y_list]
+
+        # base hat must cover (t - p_k) for every tap t and point k:
+        # u in [tap0 - p_max, tap1 - p_min]
+        ub_x0 = tap_x0 - max(p_x_int)
+        ub_x1 = tap_x1 - min(p_x_int)
+        ub_y0 = tap_y0 - max(p_y_int)
+        ub_y1 = tap_y1 - min(p_y_int)
+
+        tap_ub_x = tf.constant(list(range(ub_x0, ub_x1 + 1)), dtype=weight_dtype)
+        tap_ub_y = tf.constant(list(range(ub_y0, ub_y1 + 1)), dtype=weight_dtype)
+
+        # off (learned, clipped) is per k; the tap grid is shared
+        hat_base_x = off_x_w = tf.cast(off_x, weight_dtype)
+        hat_base_x = hat_base_x[..., None] - tap_ub_x[None, None, None, None, None, :]
+        hat_base_x = tf.maximum(1.0 - tf.abs(hat_base_x), 0.0)  # [B,H,W,G,K,Tu_x]
+        hat_base_y = off_y_w = tf.cast(off_y, weight_dtype)
+        hat_base_y = hat_base_y[..., None] - tap_ub_y[None, None, None, None, None, :]
+        hat_base_y = tf.maximum(1.0 - tf.abs(hat_base_y), 0.0)  # [B,H,W,G,K,Tu_y]
+
+        # static slice per k: hat_k[t] = hat_base[t - p_k] with
+        # t in [tap0, tap1] -> u = t - p_k in [tap0 - p_k, tap1 - p_k]
+        hat_x = tf.stack(
+            [
+                hat_base_x[..., k, (tap_x0 - p_x_int[k]) - ub_x0 : (tap_x1 - p_x_int[k]) - ub_x0 + 1]
+                for k in range(num_points)
+            ],
+            axis=4,
+        )  # [B,H,W,G,K,T_w]
+        hat_y = tf.stack(
+            [
+                hat_base_y[..., k, (tap_y0 - p_y_int[k]) - ub_y0 : (tap_y1 - p_y_int[k]) - ub_y0 + 1]
+                for k in range(num_points)
+            ],
+            axis=4,
+        )  # [B,H,W,G,K,T_h]
+    else:
+        tap_x = tf.constant(list(range(tap_x0, tap_x1 + 1)), dtype=weight_dtype)  # [T_w]
+        tap_y = tf.constant(list(range(tap_y0, tap_y1 + 1)), dtype=weight_dtype)  # [T_h]
+
+        hat_x = rel_x_w[..., None] - tap_x[None, None, None, None, None, :]
+        hat_x = tf.maximum(1.0 - tf.abs(hat_x), 0.0)  # [B, Hout, Wout, G, K, T_w]
+        hat_y = rel_y_w[..., None] - tap_y[None, None, None, None, None, :]
+        hat_y = tf.maximum(1.0 - tf.abs(hat_y), 0.0)  # [B, Hout, Wout, G, K, T_h]
 
     # whole point dropped outside (-1, W) x (-1, H), same as official
     qx = tf.range(wout, dtype=compute_dtype)
@@ -192,12 +239,8 @@ def dcnv4_core_tpu(
     point_ok = tf.cast(point_ok, compute_dtype)  # [B, Hout, Wout, G, K]
 
     # k collapses into the weights first (exact: k appears only in weights):
-    # out = sum_t patches[t] * sum_k weights[k, t]. tmp stays small; the
-    # K x T_h x T_w product only exists inside the fused reduce below.
+    # out = sum_t patches[t] * sum_k weights[k, t].
     s = tf.cast(mask * point_ok, weight_dtype)  # [B, Hout, Wout, G, K]
-    tmp = hat_y * s[..., None]  # [B, Hout, Wout, G, K, T_h]
-    weights = tf.reduce_sum(tmp[..., :, None] * hat_x[..., None, :], axis=4)
-    weights = tf.reshape(weights, [bs, hout, wout, group, num_taps])
 
     # ---- static window extraction + dense aggregation -----------------------
     # out[b,h,w,g,d] = sum_t weights[b,h,w,g,t] * value_padded[b,h+ty,w+tx,g,d]
@@ -208,15 +251,35 @@ def dcnv4_core_tpu(
     # - loop-accumulating the aggregation over T^2 slices: 40ms fwd+bwd at
     #   256x256x256 (64 mul-adds do not fuse); slices+stack + mul+reduce is
     #   much faster
-    # So the forward uses slices+stack and the value-path backward is written
-    # by hand as (mul -> static pad) -> add_n, which XLA fuses far better
-    # than its own autodiff output.
+    # - buffers that live across the fwd/bwd boundary get offloaded to host
+    #   memory by XLA (~10ms of S(3) traffic per step at 256x256x256 bf16),
+    #   so the whole weights-path backward is handwritten inside the custom
+    #   gradient and only small tensors cross the boundary
     value_padded = tf.pad(
         value, [[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]]
     )
 
+    if integer_grid:
+        hat_arg_x, hat_arg_y = hat_base_x, hat_base_y
+        slice_off_x = [(tap_x0 - p_x_int[k]) - ub_x0 for k in range(num_points)]
+        slice_off_y = [(tap_y0 - p_y_int[k]) - ub_y0 for k in range(num_points)]
+    else:
+        hat_arg_x, hat_arg_y = hat_x, hat_y
+        slice_off_x = slice_off_y = None
+
     output = _window_aggregate(
-        value_padded, weights, t_h, t_w, group, hout, wout, group_channels
+        value_padded,
+        s,
+        hat_arg_x,
+        hat_arg_y,
+        t_h,
+        t_w,
+        group,
+        hout,
+        wout,
+        group_channels,
+        slice_off_x,
+        slice_off_y,
     )
 
     output = tf.reshape(output, [bs, hout, wout, channels])
@@ -224,20 +287,58 @@ def dcnv4_core_tpu(
     return output
 
 
-def _window_aggregate(value_padded, weights, t_h, t_w, group, hout, wout, group_channels):
-    """out[b,h,w,g,d] = sum_{ty,tx} weights[b,h,w,g,ty,tx] * vp[b,h+ty,w+tx,g,d]
+def _window_aggregate(
+    value_padded,
+    s,
+    hat_arg_x,
+    hat_arg_y,
+    t_h,
+    t_w,
+    group,
+    hout,
+    wout,
+    group_channels,
+    slice_off_x,
+    slice_off_y,
+):
+    """out[b,h,w,g,d] = sum_{ty,tx} W[b,h,w,g,ty,tx] * vp[b,h+ty,w+tx,g,d]
+
+    with the k-collapsed weights W[ty,tx] = sum_k s[k] * hat_y[k,ty] * hat_x[k,tx].
 
     value_padded: [B, Hp, Wp, C] with C = G * D
-    weights:      [B, Hout, Wout, G, T2], tap order (ty, tx) row-major
+    s:            [B, Hout, Wout, G, K]  (mask * point_ok)
+    hat_arg_x/y:  per-point hats [B, Hout, Wout, G, K, T_w/T_h], or base hats
+                  [B, Hout, Wout, G, K, Tu] to be sliced statically with
+                  slice_off_x/slice_off_y (integer grid path)
     returns:      [B, Hout, Wout, G, D]
     """
 
     bs = get_tensor_shape(value_padded)[0]
     channels = group * group_channels
+    num_points = get_tensor_shape(s)[4]
     num_taps = t_h * t_w
 
+    def slice_hats(hx, hy):
+        if slice_off_x is None:
+            return hx, hy
+        hat_x = tf.stack(
+            [hx[..., k, slice_off_x[k] : slice_off_x[k] + t_w] for k in range(num_points)],
+            axis=4,
+        )
+        hat_y = tf.stack(
+            [hy[..., k, slice_off_y[k] : slice_off_y[k] + t_h] for k in range(num_points)],
+            axis=4,
+        )
+        return hat_x, hat_y
+
+    def build_weights(s_, hx_, hy_):
+        # W[b,h,w,g,ty,tx] = sum_k s[k] * hat_y[k,ty] * hat_x[k,tx]
+        hat_x, hat_y = slice_hats(hx_, hy_)
+        tmp = hat_y * s_[..., None]  # [B,H,W,G,K,T_h]
+        return tf.reduce_sum(tmp[..., :, None] * hat_x[..., None, :], axis=4)
+
     @tf.custom_gradient
-    def _agg(vp, w):
+    def _agg(vp, s_, hx_, hy_):
 
         def build_patches(v):
             slices = []
@@ -248,38 +349,32 @@ def _window_aggregate(value_padded, weights, t_h, t_w, group, hout, wout, group_
             return tf.reshape(p, [bs, hout, wout, group, group_channels, num_taps])
 
         patches = build_patches(vp)
+        w = build_weights(s_, hx_, hy_)  # [B,H,W,G,T_h,T_w]
 
-        out = tf.reduce_sum(patches * tf.cast(w[..., None, :], patches.dtype), axis=-1)
+        out = tf.reduce_sum(
+            patches * tf.cast(tf.reshape(w, [bs, hout, wout, group, 1, num_taps]), patches.dtype),
+            axis=-1,
+        )
 
         def grad(dout):
-            # d_weights[b,h,w,g,t] = sum_d patches[b,h,w,g,d,t] * dout[b,h,w,g,d]
-            # Rebuild patches here instead of capturing the forward one: the
-            # captured copy would live across the fwd/bwd boundary and XLA
-            # offloads such long-lived buffers to host memory (measured ~10ms
-            # of S(3) host traffic per step at 256x256x256 bf16). Recomputing
-            # costs the slices+stack again but keeps the tensor's live range
-            # local to the backward.
             patches_bwd = build_patches(vp)
-            d_weights = tf.reduce_sum(
-                patches_bwd * tf.cast(dout[..., None], patches_bwd.dtype), axis=4
-            )
-            d_weights = tf.cast(d_weights, w.dtype)
 
-            # value adjoint:
-            #   dVpad[b,Y,X,c] = sum_{ty,tx} ( w[...,ty,tx] * dout )[b, Y-ty, X-tx, c]
-            # handwritten as (mul -> static zero-pad) summed with one add_n.
-            # NB: slice wc per tap and broadcast over D at multiply time;
-            # broadcasting wc to all channels first materializes a C*T2-times
-            # -weights tensor plus a huge XLA layout copy (measured 8.7ms at
-            # 256x256x256 f32).
-            wc = tf.cast(w, patches.dtype)  # [B, Hout, Wout, G, T2]
-            wc = tf.reshape(wc, [bs, hout, wout, group, t_h, t_w])
-            dout_e = tf.reshape(tf.cast(dout, patches.dtype), [bs, hout, wout, group, group_channels])
+            # upstream weights gradient: dW[b,h,w,g,ty,tx] = sum_d patches * dout
+            dW = tf.reduce_sum(
+                patches_bwd * tf.cast(dout[..., None], patches_bwd.dtype), axis=4
+            )  # [B,H,W,G,T2]
+            dW = tf.reshape(dW, [bs, hout, wout, group, t_h, t_w])
+
+            # ---- value adjoint (recomputed weights; nothing big crosses) ----
+            w_bwd = tf.cast(build_weights(s_, hx_, hy_), patches_bwd.dtype)
+            dout_e = tf.reshape(
+                tf.cast(dout, patches_bwd.dtype), [bs, hout, wout, group, group_channels]
+            )
 
             terms = []
             for ty in range(t_h):
                 for tx in range(t_w):
-                    term = wc[..., ty, tx][..., None] * dout_e  # [B, Hout, Wout, G, D]
+                    term = w_bwd[..., ty, tx][..., None] * dout_e  # [B,H,W,G,D]
                     term = tf.reshape(term, [bs, hout, wout, channels])
                     term = tf.pad(
                         term,
@@ -289,11 +384,77 @@ def _window_aggregate(value_padded, weights, t_h, t_w, group, hout, wout, group_
 
             d_vp = tf.add_n(terms)  # [B, Hp, Wp, C]
 
-            return d_vp, d_weights
+            # ---- weights-path backward (handwritten, exact) -----------------
+            # W[ty,tx] = sum_k s[k] * hat_y[k,ty] * hat_x[k,tx]
+            hat_x_b, hat_y_b = slice_hats(hx_, hy_)
+
+            # a1[b,h,w,g,ty,k] = sum_tx dW[ty,tx] * hat_x[k,tx]
+            a1 = tf.reduce_sum(
+                dW[..., :, None, :] * hat_x_b[..., None, :, :], axis=-1
+            )  # [B,H,W,G,T_h,K]
+            # a2[b,h,w,g,tx,k] = sum_ty dW[ty,tx] * hat_y[k,ty]
+            dW_t = tf.transpose(dW, [0, 1, 2, 3, 5, 4])  # [B,H,W,G,T_w,T_h]
+            a2 = tf.reduce_sum(
+                dW_t[..., :, None, :] * hat_y_b[..., None, :, :], axis=-1
+            )  # [B,H,W,G,T_w,K]
+
+            # ds[k] = sum_ty a1[ty,k] * hat_y[k,ty]
+            d_s = tf.reduce_sum(a1 * tf.transpose(hat_y_b, [0, 1, 2, 3, 5, 4]), axis=-2)
+            d_s = tf.cast(d_s, s_.dtype)  # [B,H,W,G,K]
+
+            # dhat_y[k,ty] = s[k] * a1[ty,k]; dhat_x[k,tx] = s[k] * a2[tx,k]
+            dhat_y = a1 * s_[..., None, :]  # [B,H,W,G,T_h,K]
+            dhat_x = a2 * s_[..., None, :]  # [B,H,W,G,T_w,K]
+            dhat_y = tf.transpose(dhat_y, [0, 1, 2, 3, 5, 4])  # [B,H,W,G,K,T_h]
+            dhat_x = tf.transpose(dhat_x, [0, 1, 2, 3, 5, 4])  # [B,H,W,G,K,T_w]
+
+            if slice_off_x is None:
+                d_hx, d_hy = dhat_x, dhat_y
+            else:
+                # scatter the per-point hat grads back into the base hats
+                tu_x = get_tensor_shape(hx_)[-1]
+                tu_y = get_tensor_shape(hy_)[-1]
+                d_hx = tf.stack(
+                    [
+                        tf.pad(
+                            dhat_x[..., k, :],
+                            [
+                                [0, 0],
+                                [0, 0],
+                                [0, 0],
+                                [0, 0],
+                                [slice_off_x[k], tu_x - t_w - slice_off_x[k]],
+                            ],
+                        )
+                        for k in range(num_points)
+                    ],
+                    axis=4,
+                )
+                d_hy = tf.stack(
+                    [
+                        tf.pad(
+                            dhat_y[..., k, :],
+                            [
+                                [0, 0],
+                                [0, 0],
+                                [0, 0],
+                                [0, 0],
+                                [slice_off_y[k], tu_y - t_h - slice_off_y[k]],
+                            ],
+                        )
+                        for k in range(num_points)
+                    ],
+                    axis=4,
+                )
+
+            d_hx = tf.cast(d_hx, hx_.dtype)
+            d_hy = tf.cast(d_hy, hy_.dtype)
+
+            return d_vp, d_s, d_hx, d_hy
 
         return out, grad
 
-    return _agg(value_padded, weights)
+    return _agg(value_padded, s, hat_arg_x, hat_arg_y)
 
 
 class DCNv4_TPU(DCNv4):
