@@ -74,11 +74,12 @@ def make_run_steps(strategy, it, layer, fwd_bwd):
             if fwd_bwd:
                 loss, grads = out
                 acc += strategy.reduce(tf.distribute.ReduceOp.SUM, loss, axis=None)
-                # force grads to be computed & materialized
+                # force grads to be computed & materialized (no *0.0: XLA
+                # would simplify it away and DCE the whole backward)
                 grads_r0 = strategy.experimental_local_results(grads)[0]
                 acc += tf.add_n(
                     [tf.reduce_sum(tf.cast(g, tf.float32)) for g in grads_r0]
-                ) * 0.0
+                ) * 1e-30
             else:
                 acc += strategy.reduce(tf.distribute.ReduceOp.SUM, out, axis=None)
 
