@@ -27,6 +27,7 @@ import tensorflow as tf
 
 from iseg.distribution.distribution_utils import get_tpu_strategy
 from iseg.layers.dcnv4 import DCNv4
+from iseg.layers.dcnv4.dcnv4_tpu import DCNv4_TPU
 from iseg.layers.dcn_v2 import DCNv2
 
 
@@ -34,6 +35,7 @@ def build_layers(C, group):
     return {
         "dcnv2": DCNv2(filters=C, kernel_size=(3, 3)),
         "dcnv4": DCNv4(kernel_size=3, group=group),
+        "dcnv4_tpu": DCNv4_TPU(kernel_size=3, group=group, window_radius=2),
     }
 
 
@@ -126,8 +128,11 @@ def bench_config(strategy, B, H, W, C, group=4):
         results[name] = (t_fwd, t_fwd_bwd)
 
     for mode, i in [("fwd", 0), ("fwd+bwd", 1)]:
-        speedup = results["dcnv2"][i] / results["dcnv4"][i]
-        print(f"  >> {mode}: dcnv4 is {speedup:.2f}x vs dcnv2", flush=True)
+        for name in results:
+            if name == "dcnv2":
+                continue
+            speedup = results["dcnv2"][i] / results[name][i]
+            print(f"  >> {mode}: {name} is {speedup:.2f}x vs dcnv2", flush=True)
 
 
 def main():
