@@ -162,9 +162,11 @@ def make_run_steps(strategy, it, stage, fwd_bwd):
                 loss, grads = out
                 acc += strategy.reduce(tf.distribute.ReduceOp.SUM, loss, axis=None)
                 grads_r0 = strategy.experimental_local_results(grads)[0]
-                acc += tf.add_n(
-                    [tf.reduce_sum(tf.cast(g, tf.float32)) for g in grads_r0]
-                ) * 1e-30
+                grads_r0 = [g for g in grads_r0 if g is not None]
+                if grads_r0:
+                    acc += tf.add_n(
+                        [tf.reduce_sum(tf.cast(g, tf.float32)) for g in grads_r0]
+                    ) * 1e-30
             else:
                 acc += strategy.reduce(tf.distribute.ReduceOp.SUM, out, axis=None)
 
@@ -209,8 +211,9 @@ def main():
 
     for stage in args.stages.split(","):
         t_fwd = bench_stage(strategy, stage, B, H, W, C, fwd_bwd=False)
+        print(f"  {stage:10s} fwd={t_fwd:8.3f} ms", flush=True)
         t_fwd_bwd = bench_stage(strategy, stage, B, H, W, C, fwd_bwd=True)
-        print(f"  {stage:10s} fwd={t_fwd:8.3f} ms   fwd+bwd={t_fwd_bwd:8.3f} ms", flush=True)
+        print(f"  {stage:10s} fwd+bwd={t_fwd_bwd:8.3f} ms", flush=True)
 
     print("done", flush=True)
 

@@ -52,6 +52,22 @@ Config 2：B=4, 256×256, C=256, G=4
 - dcnv2 的 backward 真免费（CPU 验证过 grads 非空非零），dcnv4 的 backward（4 次 scatter + 权重反传）慢得离谱
 - **方向确定：彻底消除 per-position 动态 gather/scatter，改走 dense window + einsum 路线**（im2col 式静态切片 + 动态 dense 权重 + matmul，全是 TPU 原生快路径）
 
+## 消融实测（core 级，B=4, 128×128, C=128, fp32 输入）
+
+| 变体 | fwd | fwd+bwd | 结论 |
+|---|---|---|---|
+| full（原版） | 9.80 | 63.87 | 基线 |
+| const_idx（常量索引gather） | 6.22 | 56.08 | 索引数学 fwd ~3.6ms；bwd 仍慢 |
+| static_slice（无gather） | 6.05 | **7.15** | **去掉 gather 后 bwd 几乎免费** |
+| fused_gather（4合1大gather） | 15.70 | 80.27 | 大 gather 更差 |
+
+→ backward 灾难 = gather 的反向 scatter；fwd 也受 gather 拖累且随尺寸超线性恶化（128² ~3.6ms → 256² ~120ms）
+
+## dcnv4_tpu.py 迭代记录
+
+- v1（einsum 'bhwgkt,bhwtgd->bhwgd' 批量小 dot）：**失败** — fwd=63.6ms @128²（XLA:TPU 对百万级 per-position 小 dot 的 lowering 极差）。但 fwd+bwd≈fwd（72ms），验证 dense 后 backward 免费的判断。
+- v2（当前）：**K 先坍缩进权重**（数学上精确：out = Σ_t U[t]·Σ_k w[k,t]，因为 k 只出现在权重里）→ 权重 [B,H,W,G,T2]，聚合用 broadcast-mul + reduce_sum（XLA 融合归约，避开批量 dot）。CPU parity 全过（窗口内 exact ~1e-14）。
+
 ## 进展日志
 
 - 2026-10-19：

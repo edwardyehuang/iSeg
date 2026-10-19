@@ -196,17 +196,19 @@ def dcnv4_core_tpu(
     weights = tf.reshape(weights, [bs, hout, wout, group, num_taps])
 
     # ---- static window extraction (im2col, no dynamic indexing) ------------
+    # NOTE: tf.image.extract_patches lowers terribly on XLA:TPU (measured
+    # +59ms at 128x128x128); T^2 static slices + stack do the same job at
+    # ~zero extra cost (fused away by XLA).
     value_padded = tf.pad(
         value, [[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]]
     )
 
-    patches = tf.image.extract_patches(
-        value_padded,
-        sizes=[1, t_h, t_w, 1],
-        strides=[1, 1, 1, 1],
-        rates=[1, 1, 1, 1],
-        padding="VALID",
-    )  # [B, Hout, Wout, T_h * T_w * C], tap-major then channel
+    slices = []
+    for ty in range(t_h):
+        for tx in range(t_w):
+            slices.append(value_padded[:, ty : ty + hout, tx : tx + wout, :])
+
+    patches = tf.stack(slices, axis=3)  # [B, Hout, Wout, T_h * T_w, C]
 
     patches = tf.reshape(
         patches, [bs, hout, wout, num_taps, group, group_channels]
