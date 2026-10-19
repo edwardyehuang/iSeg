@@ -260,21 +260,20 @@ def _window_aggregate(value_padded, weights, t_h, t_w, group, hout, wout, group_
 
             # value adjoint:
             #   dVpad[b,Y,X,c] = sum_{ty,tx} ( w[...,ty,tx] * dout )[b, Y-ty, X-tx, c]
-            # handwritten as (mul -> static zero-pad) summed with one add_n
+            # handwritten as (mul -> static zero-pad) summed with one add_n.
+            # NB: slice wc per tap and broadcast over D at multiply time;
+            # broadcasting wc to all channels first materializes a C*T2-times
+            # -weights tensor plus a huge XLA layout copy (measured 8.7ms at
+            # 256x256x256 f32).
             wc = tf.cast(w, patches.dtype)  # [B, Hout, Wout, G, T2]
             wc = tf.reshape(wc, [bs, hout, wout, group, t_h, t_w])
-            dout_e = tf.reshape(tf.cast(dout, patches.dtype), [bs, hout, wout, channels])
-
-            wc_c = tf.reshape(wc, [bs, hout, wout, group, 1, t_h, t_w])
-            wc_c = tf.broadcast_to(
-                wc_c, [bs, hout, wout, group, group_channels, t_h, t_w]
-            )
-            wc_c = tf.reshape(wc_c, [bs, hout, wout, channels, t_h, t_w])
+            dout_e = tf.reshape(tf.cast(dout, patches.dtype), [bs, hout, wout, group, group_channels])
 
             terms = []
             for ty in range(t_h):
                 for tx in range(t_w):
-                    term = wc_c[..., ty, tx] * dout_e  # [B, Hout, Wout, C]
+                    term = wc[..., ty, tx][..., None] * dout_e  # [B, Hout, Wout, G, D]
+                    term = tf.reshape(term, [bs, hout, wout, channels])
                     term = tf.pad(
                         term,
                         [[0, 0], [ty, t_h - 1 - ty], [tx, t_w - 1 - tx], [0, 0]],
@@ -293,10 +292,14 @@ def _window_aggregate(value_padded, weights, t_h, t_w, group, hout, wout, group_
 class DCNv4_TPU(DCNv4):
     """DCNv4 layer backed by the dense window-based TPU core.
 
-    Numerically identical to DCNv4 for scaled offsets within
-    [-window_radius, window_radius] (default +/-2 px); larger offsets are
-    soft-clamped toward the window edge with a smooth (tanh) transition so
-    gradients keep flowing. See dcnv4_core_tpu for details.
+    Semantics vs the reference DCNv4, controlled by window_radius:
+      - "exact"  : bit-for-bit the reference gather-based core (no clamping,
+                   slow on TPU; use for parity checks / fallback)
+      - an int R : numerically identical to DCNv4 for scaled offsets within
+                   [-R, R] px; larger offsets are soft-clamped toward the
+                   window edge with a smooth (tanh) transition so gradients
+                   keep flowing. R=2 ("balanced") and R=1 ("ultra") are the
+                   recommended speed tiers. See dcnv4_core_tpu for details.
     """
 
     def __init__(self, *args, window_radius=2, **kwargs):
@@ -335,18 +338,33 @@ class DCNv4_TPU(DCNv4):
             offset_mask_input, self.offset_mask_kernel, self.offset_mask_bias
         )
 
-        output = dcnv4_core_tpu(
-            value,
-            offset_mask,
-            kernel_size=self.kernel_size,
-            stride=self.stride,
-            pad=self.pad,
-            dilation=self.dilation,
-            group=self.group,
-            offset_scale=self.offset_scale,
-            remove_center=self.remove_center,
-            window_radius=self.window_radius,
-        )
+        if self.window_radius == "exact":
+            from iseg.layers.dcnv4.dcnv4 import dcnv4_core
+
+            output = dcnv4_core(
+                value,
+                offset_mask,
+                kernel_size=self.kernel_size,
+                stride=self.stride,
+                pad=self.pad,
+                dilation=self.dilation,
+                group=self.group,
+                offset_scale=self.offset_scale,
+                remove_center=self.remove_center,
+            )
+        else:
+            output = dcnv4_core_tpu(
+                value,
+                offset_mask,
+                kernel_size=self.kernel_size,
+                stride=self.stride,
+                pad=self.pad,
+                dilation=self.dilation,
+                group=self.group,
+                offset_scale=self.offset_scale,
+                remove_center=self.remove_center,
+                window_radius=self.window_radius,
+            )
 
         if self.center_feature_scale:
             scale = self._linear(

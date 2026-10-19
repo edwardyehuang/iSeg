@@ -118,31 +118,50 @@ def bench_layer(strategy, layer, global_batch, H, W, C, fwd_bwd, warmup=10, iter
     return dt * 1000.0
 
 
-def bench_config(strategy, B, H, W, C, group=4):
+def bench_config(strategy, B, H, W, C, group=4, layer_filter=None):
     print(f"\n== B={B} H={H} W={W} C={C} group={group} ==", flush=True)
 
     results = {}
 
     for name, layer in build_layers(C, group).items():
+        if layer_filter and name not in layer_filter:
+            continue
         t_fwd = bench_layer(strategy, layer, B, H, W, C, fwd_bwd=False)
         print(f"  {name:10s} fwd={t_fwd:8.3f} ms", flush=True)
         t_fwd_bwd = bench_layer(strategy, layer, B, H, W, C, fwd_bwd=True)
         print(f"  {name:10s} fwd+bwd={t_fwd_bwd:8.3f} ms", flush=True)
         results[name] = (t_fwd, t_fwd_bwd)
 
-    for mode, i in [("fwd", 0), ("fwd+bwd", 1)]:
-        for name in results:
-            if name == "dcnv2":
-                continue
-            speedup = results["dcnv2"][i] / results[name][i]
-            print(f"  >> {mode}: {name} is {speedup:.2f}x vs dcnv2", flush=True)
+    if "dcnv2" in results:
+        for mode, i in [("fwd", 0), ("fwd+bwd", 1)]:
+            for name in results:
+                if name == "dcnv2":
+                    continue
+                speedup = results["dcnv2"][i] / results[name][i]
+                print(f"  >> {mode}: {name} is {speedup:.2f}x vs dcnv2", flush=True)
+
+
+# FaPN-oriented coverage: C=256/512 across pyramid resolutions + batch scaling
+FULL_CONFIGS = [
+    # (B, H, W, C)
+    (None, 128, 128, 128),
+    (None, 256, 256, 256),  # P3
+    (None, 128, 128, 256),  # P4
+    (None, 64, 64, 256),  # P5
+    (None, 32, 32, 256),  # P6
+    (None, 128, 128, 512),  # C=512
+    (None, 64, 64, 512),  # C=512
+    ("x2", 128, 128, 256),  # 2 samples per replica
+    ("x2", 64, 64, 512),
+]
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tpu_name", default=os.environ.get("TPU_NAME", "node4"))
     parser.add_argument("--fp32", action="store_true", help="disable mixed_bfloat16")
-    parser.add_argument("--full", action="store_true", help="run all 6 configs (default: 2 quick ones)")
+    parser.add_argument("--full", action="store_true", help="run all configs (default: 2 quick ones)")
+    parser.add_argument("--layers", default=None, help="comma list: dcnv2,dcnv4,dcnv4_tpu,dcnv4_tpu_r1")
     args = parser.parse_args()
 
     strategy = get_tpu_strategy(args.tpu_name)
@@ -154,10 +173,18 @@ def main():
         keras.mixed_precision.set_global_policy("mixed_bfloat16")
         print("global policy: mixed_bfloat16", flush=True)
 
-    B = strategy.num_replicas_in_sync  # 1 sample per replica
+    R = strategy.num_replicas_in_sync
+    layer_filter = args.layers.split(",") if args.layers else None
 
-    bench_config(strategy, B, 128, 128, 128)
-    bench_config(strategy, B, 256, 256, 256)
+    if args.full:
+        for bmul, H, W, C in FULL_CONFIGS:
+            B = R * (2 if bmul == "x2" else 1)
+            bench_config(strategy, B, H, W, C, layer_filter=layer_filter)
+    else:
+        bench_config(strategy, R, 128, 128, 128, layer_filter=layer_filter)
+        bench_config(strategy, R, 256, 256, 256, layer_filter=layer_filter)
+
+    print("\nbenchmark done", flush=True)
 
     if args.full:
         bench_config(strategy, B, 64, 64, 64)
