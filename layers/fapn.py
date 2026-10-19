@@ -44,12 +44,13 @@ class FeatureSelectionModule(SqueezeAndExcitationModule):
 
 class FeatureAlignment (Keras3_Model_Wrapper):
 
-    def __init__(self, filters=128, use_dcnv4=False, dcnv4_group=4, name=None):
+    def __init__(self, filters=128, use_dcnv4=False, dcnv4_group=4, dcnv4_dw_kernel_size=None, name=None):
         super().__init__(name=name)
 
         self.filters = filters
         self.use_dcnv4 = use_dcnv4
         self.dcnv4_group = dcnv4_group
+        self.dcnv4_dw_kernel_size = dcnv4_dw_kernel_size
 
     
     def build(self, input_shape):
@@ -61,6 +62,7 @@ class FeatureAlignment (Keras3_Model_Wrapper):
             self.depack_l2 = DCNv4(
                 kernel_size=3,
                 group=self.dcnv4_group,
+                dw_kernel_size=self.dcnv4_dw_kernel_size,
                 use_custom_offset=True,
                 use_jit_compile=True,
                 name="depack_l2",
@@ -97,6 +99,7 @@ class FeatureAlignedPyramidNet (Keras3_Model_Wrapper):
         warp_coarse_feature=False,
         use_dcnv4=False,
         dcnv4_group=4,
+        dcnv4_dw_kernel_size=None,
         name=None
     ):
         super().__init__(name=name, trainable=trainable)
@@ -105,6 +108,7 @@ class FeatureAlignedPyramidNet (Keras3_Model_Wrapper):
         self.warp_coarse_feature = warp_coarse_feature
         self.use_dcnv4 = use_dcnv4
         self.dcnv4_group = dcnv4_group
+        self.dcnv4_dw_kernel_size = dcnv4_dw_kernel_size
 
     def build(self, input_shape):
 
@@ -117,6 +121,7 @@ class FeatureAlignedPyramidNet (Keras3_Model_Wrapper):
                 self.skip_conv_filters,
                 use_dcnv4=self.use_dcnv4,
                 dcnv4_group=self.dcnv4_group,
+                dcnv4_dw_kernel_size=self.dcnv4_dw_kernel_size,
                 name=f"skip_conv_filters{i}",
             )
             self.align_modules += [align_module]
