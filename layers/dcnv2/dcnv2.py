@@ -9,7 +9,22 @@ from iseg.utils.version_utils import is_keras3
 from iseg.utils.value_utils import values_to_tuple_2d
 from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
 
-class DCNv2(Keras3_Layer_Wrapper):
+# This code is motified from https://github.com/RuaHU/keras_DCNv2
+# Now support full XLA JIT compilation
+#
+# This is the reference ("fallback") implementation. Use
+# iseg.layers.dcnv2.DCNv2 (implementation="flash"/"fallback") for the
+# auto-selected interface; DCNv2_Flash is the faster XLA rewrite.
+
+import tensorflow as tf
+import keras
+
+from iseg.utils import get_tensor_shape
+from iseg.utils.version_utils import is_keras3
+from iseg.utils.value_utils import values_to_tuple_2d
+from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
+
+class DCNv2_Base(Keras3_Layer_Wrapper):
     def __init__(
         self, filters, 
         kernel_size,
@@ -28,7 +43,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         super().__init__(**kwargs)
         
         self.filters = filters
-        self.kernel_size = kernel_size
+        self.kernel_size = values_to_tuple_2d(kernel_size)
         self.stride = (1, 1, 1, 1)
         self.dilation = values_to_tuple_2d(dilation_rate)
         self.deformable_groups = 1
@@ -43,14 +58,7 @@ class DCNv2(Keras3_Layer_Wrapper):
         self.activation = keras.activations.get(activation)
 
         if is_keras3():
-            self.use_jit_compile = False
-
-        '''
-        if tf.distribute.has_strategy():
-            strategy = tf.distribute.get_strategy()
-            if isinstance(strategy, tf.distribute.TPUStrategy):
-                use_jit_compile = False
-        '''
+            use_jit_compile = False
         
         self.use_jit_compile = use_jit_compile
 
@@ -275,4 +283,28 @@ class DCNv2(Keras3_Layer_Wrapper):
         
         
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.filters,)
+
+        if self.use_custom_offset:
+            input_shape = input_shape[0]
+
+        return tuple(input_shape[:-1]) + (self.filters,)
+
+    def get_config(self):
+
+        config = {
+            "filters": self.filters,
+            "kernel_size": self.kernel_size,
+            "dilation_rate": self.dilation,
+            "use_bias": self.use_bias,
+            "kernel_initializer": self.kernel_initializer,
+            "bias_initializer": self.bias_initializer,
+            "kernel_regularizer": self.kernel_regularizer,
+            "bias_regularizer": self.bias_regularizer,
+            "use_custom_offset": self.use_custom_offset,
+            "activation": keras.activations.serialize(self.activation),
+            "use_jit_compile": self.use_jit_compile,
+        }
+
+        base_config = super().get_config()
+
+        return dict(list(base_config.items()) + list(config.items()))

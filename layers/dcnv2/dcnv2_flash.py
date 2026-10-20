@@ -3,8 +3,8 @@
 # Copyright (c) 2024 edwardyehuang (https://github.com/edwardyehuang)
 # ===================================================================
 
-# High-performance rewrite of iseg.layers.dcn_v2.DCNv2 (same numerics, same
-# weight names/shapes/layouts: drop-in replacement).
+# High-performance rewrite of iseg.layers.dcnv2.DCNv2_Base (same numerics,
+# same weight names/shapes/layouts: drop-in replacement).
 #
 # XLA optimizations applied (validated in iseg/layers/dcnv4):
 #   - explicit per-corner bilinear weights and per-corner gathers, so the
@@ -12,119 +12,33 @@
 #     reduces, and each gather+multiply-add fuses into one kernel
 #   - plain 2D GEMM for the final projection
 #
-# Semantics replicated from dcn_v2.py:
+# Semantics replicated from the fallback implementation (dcnv2.py):
 #   - offset/mask from a conv (3x3 by default) with dilation, zero-init
 #   - offsets are (y, x) pairs; sampling positions are clamped into the padded
 #     image (NOT zeroed like DCNv4), mask = sigmoid
 #   - patch points ordered height-outer/width-inner, matching the flattened
 #     [kh, kw, C, F] kernel layout
-#   - the sampling grid ignores dilation (same quirk as dcn_v2.py)
+#   - the sampling grid ignores dilation (same quirk as dcnv2.py)
 #   - with use_custom_offset, offset_kernel's input channels follow the
-#     channels of x (same quirk as dcn_v2.py)
+#     channels of x (same quirk as dcnv2.py)
 
 import tensorflow as tf
-import keras
 
 from iseg.utils import get_tensor_shape
-from iseg.utils.version_utils import is_keras3
-from iseg.utils.value_utils import values_to_tuple_2d
-from iseg.utils.keras3_utils import Keras3_Layer_Wrapper
+from iseg.layers.dcnv2.dcnv2 import DCNv2_Base
 
 
-class DCNv2_Flash(Keras3_Layer_Wrapper):
-    def __init__(
-        self,
-        filters,
-        kernel_size,
-        dilation_rate=1,
-        use_bias=True,
-        kernel_initializer="glorot_uniform",
-        bias_initializer="zeros",
-        kernel_regularizer=None,
-        bias_regularizer=None,
-        use_custom_offset=False,
-        activation=None,
-        use_jit_compile=False,
-        **kwargs,
-    ):
-
-        super().__init__(**kwargs)
-
-        self.filters = filters
-        self.kernel_size = values_to_tuple_2d(kernel_size)
-        self.stride = (1, 1, 1, 1)
-        self.dilation = values_to_tuple_2d(dilation_rate)
-        self.deformable_groups = 1
-        self.use_bias = use_bias
-        self.kernel_initializer = kernel_initializer
-        self.bias_initializer = bias_initializer
-        self.kernel_regularizer = kernel_regularizer
-        self.bias_regularizer = bias_regularizer
-
-        self.use_custom_offset = use_custom_offset
-
-        self.activation = keras.activations.get(activation)
-
-        if is_keras3():
-            use_jit_compile = False
-
-        self.use_jit_compile = use_jit_compile
+class DCNv2_Flash(DCNv2_Base):
+    """XLA-optimized DCNv2. Weights and config are identical to DCNv2_Base;
+    only the forward computation is restructured."""
 
     def build(self, input_shape):
 
-        if self.use_custom_offset:
-            input_channels = input_shape[0][-1]
-        else:
-            input_channels = input_shape[-1]
-
-        self.kernel = self.add_weight(
-            name="kernel",
-            shape=self.kernel_size + (input_channels, self.filters),
-            initializer=self.kernel_initializer,
-            regularizer=self.kernel_regularizer,
-            trainable=True,
-            dtype="float32",
-        )
-
-        if self.use_bias:
-            self.bias = self.add_weight(
-                name="bias",
-                shape=(self.filters,),
-                initializer=self.bias_initializer,
-                regularizer=self.bias_regularizer,
-                trainable=True,
-                dtype="float32",
-            )
-
-        self.offset_kernel = self.add_weight(
-            name="offset_kernel",
-            shape=self.kernel_size
-            + (input_channels, 3 * self.deformable_groups * self.kernel_size[0] * self.kernel_size[1]),
-            initializer="zeros",
-            trainable=True,
-            dtype="float32",
-        )
-
-        self.offset_bias = self.add_weight(
-            name="offset_bias",
-            shape=(3 * self.kernel_size[0] * self.kernel_size[1] * self.deformable_groups,),
-            initializer="zeros",
-            trainable=True,
-            dtype="float32",
-        )
-
-        self.ks = self.kernel_size[0] * self.kernel_size[1]
-        self.ph, self.pw = (self.kernel_size[0] - 1) // 2, (self.kernel_size[1] - 1) // 2
+        super().build(input_shape)
 
         # patch point (py, px), height-outer/width-inner order
         self._patch_y = [p // self.kernel_size[1] - self.ph for p in range(self.ks)]
         self._patch_x = [p % self.kernel_size[1] - self.pw for p in range(self.ks)]
-
-        super().build(input_shape)
-
-    @tf.function(jit_compile=True, autograph=False)
-    def _xla_forward(self, x, offset):
-        return self._forward(x, offset)
 
     def _forward(self, x, offset):
 
@@ -223,41 +137,3 @@ class DCNv2_Flash(Keras3_Layer_Wrapper):
 
         return output
 
-    def call(self, inputs, training=None):
-
-        if self.use_custom_offset:
-            x, offset = tuple(inputs)
-        else:
-            x = offset = inputs
-
-        if self.use_jit_compile:
-            return self._xla_forward(x, offset)
-
-        return self._forward(x, offset)
-
-    def compute_output_shape(self, input_shape):
-
-        if self.use_custom_offset:
-            input_shape = input_shape[0]
-
-        return tuple(input_shape[:-1]) + (self.filters,)
-
-    def get_config(self):
-
-        config = {
-            "filters": self.filters,
-            "kernel_size": self.kernel_size,
-            "dilation_rate": self.dilation,
-            "use_bias": self.use_bias,
-            "kernel_initializer": self.kernel_initializer,
-            "bias_initializer": self.bias_initializer,
-            "kernel_regularizer": self.kernel_regularizer,
-            "bias_regularizer": self.bias_regularizer,
-            "use_custom_offset": self.use_custom_offset,
-            "activation": keras.activations.serialize(self.activation),
-            "use_jit_compile": self.use_jit_compile,
-        }
-
-        base_config = super().get_config()
-
-        return dict(list(base_config.items()) + list(config.items()))

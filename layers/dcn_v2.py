@@ -7,5 +7,4 @@
 # Prefer `from iseg.layers.dcnv2 import DCNv2`; this module re-exports it so
 # legacy `iseg.layers.dcn_v2` imports keep working.
 
-from iseg.layers.dcnv2.dcnv2 import DCNv2  # noqa: F401
-from iseg.layers.dcnv2.dcnv2_flash import DCNv2_Flash  # noqa: F401
+from iseg.layers.dcnv2 import DCNv2, DCNv2_Base, DCNv2_Flash  # noqa: F401

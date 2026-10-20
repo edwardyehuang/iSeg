@@ -14,12 +14,13 @@ sys.path.insert(1, rootpath)
 
 import tensorflow as tf
 
-from iseg.layers.dcnv2.dcnv2 import DCNv2
+from iseg.layers.dcnv2 import DCNv2
+from iseg.layers.dcnv2.dcnv2 import DCNv2_Base
 from iseg.layers.dcnv2.dcnv2_flash import DCNv2_Flash
 
 
 def _build_pair(filters, use_custom_offset, x_shape, dilation=1):
-    old = DCNv2(
+    old = DCNv2_Base(
         filters=filters,
         kernel_size=(3, 3),
         dilation_rate=dilation,
@@ -71,6 +72,37 @@ def check_equivalence(B=2, H=32, W=24, C=64, F=64, use_custom_offset=False, dila
         assert dg <= max(5e-3, 2e-3 * scale), f"gradient mismatch: {dg} (scale {scale})"
 
 
+def test_dcnv2_router():
+    # router must dispatch to the right implementation and default to flash
+    x = tf.random.normal([2, 32, 24, 64])
+
+    ref = DCNv2_Base(filters=64, kernel_size=(3, 3))
+    flash = DCNv2_Flash(filters=64, kernel_size=(3, 3))
+    routed_default = DCNv2(filters=64, kernel_size=(3, 3))
+    routed_flash = DCNv2(filters=64, kernel_size=(3, 3), implementation="flash")
+    routed_fallback = DCNv2(filters=64, kernel_size=(3, 3), implementation="fallback")
+
+    layers = [ref, flash, routed_default, routed_flash, routed_fallback]
+    for layer in layers:
+        layer(x)  # build
+    for layer in layers[1:]:
+        for v, v_ref in zip(layer.trainable_variables, ref.trainable_variables):
+            v.assign(v_ref)
+
+    y_ref = ref(x)
+    y_flash = flash(x)
+    assert float(tf.reduce_max(tf.abs(routed_default(x) - y_flash))) == 0.0
+    assert float(tf.reduce_max(tf.abs(routed_flash(x) - y_flash))) == 0.0
+    assert float(tf.reduce_max(tf.abs(routed_fallback(x) - y_ref))) == 0.0
+
+    # weights are interchangeable across implementations
+    assert [tuple(v.shape) for v in routed_default.trainable_variables] == [
+        tuple(v.shape) for v in ref.trainable_variables
+    ]
+
+    print("dcnv2 router: OK")
+
+
 def test_dcnv2_flash_equivalence():
     for jit in [False, True]:
         check_equivalence(use_custom_offset=False, jit=jit)
@@ -81,4 +113,5 @@ def test_dcnv2_flash_equivalence():
 
 
 if __name__ == "__main__":
+    test_dcnv2_router()
     test_dcnv2_flash_equivalence()
