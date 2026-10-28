@@ -16,6 +16,7 @@
 
 import tensorflow as tf
 
+from iseg.distribution.distribution_utils import is_tpu_context
 from iseg.layers.dcnv4.dcnv4_base import DCNv4_Base, dcnv4_core  # re-exported
 from iseg.layers.dcnv4.dcnv4_tpu import dcnv4_core_tpu
 
@@ -26,19 +27,6 @@ from iseg.layers.dcnv4.dcnv4_tpu import dcnv4_core_tpu
 # (56x56x256 at 64/replica -> 12.8M) stays on the window core.
 _WINDOW_CORE_MAX_VOLUME = 1 << 25  # 33.5M
 
-
-def _is_tpu_context():
-    """True when the ambient distribution strategy targets TPUs."""
-    if not tf.distribute.has_strategy():
-        return False
-    strategy = tf.distribute.get_strategy()
-    if isinstance(strategy, tf.distribute.TPUStrategy):
-        return True
-    # DTensor-backed strategies expose their mesh; check the device type
-    mesh = getattr(strategy, "_mesh", None)
-    if mesh is not None and mesh.device_type() == "TPU":
-        return True
-    return False
 
 
 class DCNv4(DCNv4_Base):
@@ -53,7 +41,7 @@ class DCNv4(DCNv4_Base):
         self.window_radius = window_radius
 
     def _aggregate_core(self, value, offset_mask):
-        if self.window_radius != "exact" and _is_tpu_context():
+        if self.window_radius != "exact" and is_tpu_context():
             bs, h, w, c = value.shape
             volume = int(bs) * int(h) * int(w) * int(c)
             # Memory safety valve: the window core materializes a patches
@@ -81,7 +69,7 @@ class DCNv4(DCNv4_Base):
     def call(self, inputs, training=None):
         # client-side jit_compile is irrelevant (and harmful) on TPU remote
         # clients; TPU compilation happens server-side via tpu.replicate
-        if _is_tpu_context():
+        if is_tpu_context():
             if self.use_custom_offset:
                 x, offset = tuple(inputs)
             else:

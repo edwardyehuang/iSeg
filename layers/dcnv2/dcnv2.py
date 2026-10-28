@@ -4,6 +4,7 @@
 import tensorflow as tf
 import keras
 
+from iseg.distribution.distribution_utils import is_tpu_context
 from iseg.utils import get_tensor_shape
 from iseg.utils.version_utils import is_keras3
 from iseg.utils.value_utils import values_to_tuple_2d
@@ -57,7 +58,7 @@ class DCNv2_Base(Keras3_Layer_Wrapper):
 
         self.activation = keras.activations.get(activation)
 
-        if is_keras3():
+        if is_keras3() or is_tpu_context():
             use_jit_compile = False
         
         self.use_jit_compile = use_jit_compile

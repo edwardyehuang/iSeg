@@ -9,6 +9,19 @@ import os
 from distutils.version import LooseVersion
 from platform import uname
 
+def is_tpu_context():
+    """True when the ambient distribution strategy targets TPUs."""
+    if not tf.distribute.has_strategy():
+        return False
+    strategy = tf.distribute.get_strategy()
+    if isinstance(strategy, tf.distribute.TPUStrategy):
+        return True
+    # DTensor-backed strategies expose their mesh; check the device type
+    mesh = getattr(strategy, "_mesh", None)
+    if mesh is not None and mesh.device_type() == "TPU":
+        return True
+    return False
+
 
 def initialize_tpu_system(name=None):
 
