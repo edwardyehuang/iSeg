@@ -10,6 +10,7 @@
 # interchangeable. Pin the implementation explicitly via DCNv2_Flash /
 # DCNv2_Base when needed.
 
+from iseg.distribution.distribution_utils import is_tpu_context
 from iseg.layers.dcnv2.dcnv2 import DCNv2_Base
 from iseg.layers.dcnv2.dcnv2_flash import DCNv2_Flash
 
@@ -19,14 +20,19 @@ class DCNv2(DCNv2_Flash):
 
     implementation:
       - "flash" (default): XLA-optimized forward (DCNv2_Flash)
+      - "auto": automatically select implementation based on context
       - "fallback": reference implementation (DCNv2_Base)
     """
 
-    def __init__(self, *args, implementation="flash", **kwargs):
-        if implementation not in ("flash", "fallback"):
+    def __init__(self, *args, implementation="auto", **kwargs):
+        if implementation not in ("auto", "flash", "fallback"):
             raise ValueError(
-                f"implementation must be 'flash' or 'fallback', got {implementation!r}"
+                f"implementation must be 'auto', 'flash' or 'fallback', got {implementation!r}"
             )
+
+        if not is_tpu_context() and implementation == "auto":
+            implementation = "fallback"
+        
         super().__init__(*args, **kwargs)
         self.implementation = implementation
 
