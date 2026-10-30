@@ -28,6 +28,43 @@ from iseg.utils import get_tensor_shape
 from iseg.layers.dcnv2.dcnv2 import DCNv2_Base
 
 
+def _corner_aggregate(value_flat, weights, indices):
+    """Aggregate the 4 bilinear corners per point with a memory-lean backward.
+
+    value_flat: [N, C] (flattened padded image)
+    weights:    [B, 4, H, W, ks] (mask already folded in)
+    indices:    [B, 4, H, W, ks] int32 flat row indices
+    returns:    [B, H, W, ks, C]
+
+    The backward recomputes the corner gathers instead of saving them, so no
+    4 x [B,H,W,ks,C] tensor is kept alive for the backward pass.
+    """
+    bs, _, ih, iw, ks = get_tensor_shape(indices)
+    ic = get_tensor_shape(value_flat)[-1]
+
+    @tf.custom_gradient
+    def _agg(value_flat, weights, indices):
+        map_all = tf.zeros([bs, ih, iw, ks, ic], dtype=value_flat.dtype)
+        for c in range(4):
+            g = tf.gather(value_flat, indices[:, c])
+            map_all = map_all + g * tf.cast(weights[:, c], g.dtype)[..., None]
+
+        def grad(dy):
+            grad_value = tf.zeros_like(value_flat)
+            grad_weights = []
+            for c in range(4):
+                g = tf.gather(value_flat, indices[:, c])
+                grad_weight = tf.reduce_sum(tf.cast(dy, g.dtype) * g, axis=-1)
+                grad_weights.append(tf.cast(grad_weight, weights.dtype))
+                upd = tf.cast(dy, value_flat.dtype) * tf.cast(weights[:, c], value_flat.dtype)[..., None]
+                grad_value = tf.tensor_scatter_nd_add(grad_value, indices[:, c][..., None], upd)
+            return grad_value, tf.stack(grad_weights, axis=1), None
+
+        return map_all, grad
+
+    return _agg(value_flat, weights, indices)
+
+
 class DCNv2_Flash(DCNv2_Base):
     """XLA-optimized DCNv2. Weights and config are identical to DCNv2_Base;
     only the forward computation is restructured."""
@@ -113,16 +150,19 @@ class DCNv2_Flash(DCNv2_Base):
         )
 
         # one gather per corner; accumulate is elementwise (the point reduction
-        # happens later in the GEMM, not here)
-        map_all = tf.zeros([bs, ih, iw, self.ks, ic], dtype=x.dtype)
-
-        for c in range(4):
-            iy = tf.cast(corner_iy[c], tf.int32)
-            ix = tf.cast(corner_ix[c], tf.int32)
-            idx = iy * iw_pad_i32 + ix + batch_index  # [B, H, W, ks]
-            gathered_c = tf.gather(x_flat, idx)  # [B, H, W, ks, C]
-            w_c = tf.cast(weights[c], gathered_c.dtype)
-            map_all = map_all + gathered_c * w_c[..., None]
+        # happens later in the GEMM, not here). The custom backward recomputes
+        # the corner gathers instead of keeping them alive (memory-lean).
+        weights_st = tf.stack(weights, axis=1)  # [B, 4, H, W, ks]
+        indices_st = tf.stack(
+            [
+                tf.cast(corner_iy[c], tf.int32) * iw_pad_i32
+                + tf.cast(corner_ix[c], tf.int32)
+                + batch_index
+                for c in range(4)
+            ],
+            axis=1,
+        )  # [B, 4, H, W, ks]
+        map_all = _corner_aggregate(x_flat, weights_st, indices_st)
 
         # final projection as a plain 2D GEMM
         map_all = tf.reshape(map_all, [bs * ih * iw, self.ks * ic])

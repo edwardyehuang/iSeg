@@ -112,6 +112,35 @@ def test_dcnv2_flash_equivalence():
     print("dcnv2_flash equivalence: OK")
 
 
+def test_dcnv2_flash_mixed_precision():
+    previous_policy = tf.keras.mixed_precision.global_policy()
+    tf.keras.mixed_precision.set_global_policy("mixed_float16")
+    try:
+        for jit in [False, True]:
+            x = tf.random.normal([2, 17, 19, 32], dtype=tf.float16)
+            offset = tf.random.normal([2, 17, 19, 32], dtype=tf.float16)
+            layer = DCNv2_Flash(filters=48, kernel_size=(3, 3), use_custom_offset=True)
+            layer([x, offset])
+            layer.offset_kernel.assign(tf.random.normal(layer.offset_kernel.shape, stddev=0.05))
+            fn = lambda x, offset: layer([x, offset])
+            if jit:
+                fn = tf.function(jit_compile=True)(fn)
+            with tf.GradientTape() as tape:
+                tape.watch(x)
+                tape.watch(offset)
+                y = fn(x, offset)
+                loss = tf.reduce_mean(tf.square(tf.cast(y, tf.float32)))
+            grads = tape.gradient(loss, [x, offset] + layer.trainable_variables)
+            assert y.dtype == tf.float16
+            assert all(grad is not None for grad in grads)
+            assert all(bool(tf.reduce_all(tf.math.is_finite(grad))) for grad in grads)
+            assert all(grad.dtype == tf.float32 for grad in grads[2:])
+    finally:
+        tf.keras.mixed_precision.set_global_policy(previous_policy)
+    print("dcnv2_flash mixed precision: OK")
+
+
 if __name__ == "__main__":
     test_dcnv2_router()
     test_dcnv2_flash_equivalence()
+    test_dcnv2_flash_mixed_precision()
