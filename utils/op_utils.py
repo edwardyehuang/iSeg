@@ -1,6 +1,9 @@
 import tensorflow as tf
 import keras
 
+
+ENABLE_REPLACE_NAN_OR_INF = False
+
 def _large_compatible_negative(tensor_type):
     """Large negative number as Tensor.
 
@@ -53,7 +56,9 @@ def replace_inf(x):
 
 
 def replace_nan_or_inf(x, nan_value=0.0):
-    
+    if not ENABLE_REPLACE_NAN_OR_INF:
+        return x
+
     with tf.name_scope("replace_nan_or_inf"):
         return replace_inf(replace_nan(x, nan_value))
 
