@@ -2,7 +2,7 @@ import tensorflow as tf
 import keras
 
 
-ENABLE_REPLACE_NAN_OR_INF = False
+ENABLE_REPLACE_NAN_OR_INF = True
 
 def _large_compatible_negative(tensor_type):
     """Large negative number as Tensor.
