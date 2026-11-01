@@ -9,6 +9,7 @@ import keras
 from tqdm import tqdm
 
 from iseg.metrics.mean_iou import MeanIOU
+from iseg.metrics.finalizable_metric import FinalizableMetric
 
 from iseg.core_model import SegFoundation
 
@@ -17,6 +18,25 @@ from iseg.metrics.seg_metric_wrapper import SegMetricWrapper
 
 from iseg.utils.model_utils import create_compiled_model
 
+
+class _FinalizePanopticMetrics(keras.callbacks.Callback):
+    """Requests AP finalization after the last eval batch.
+
+    Keras already knows the total step count, so metrics do not need an
+    image count or an attribute patched onto the model. At batch end all
+    records are present and lazy metric containers are built, even when the
+    evaluation consists of a single batch. Keras computes the final metric
+    results after this callback.
+    """
+
+    def on_test_batch_end(self, step, logs=None):
+        steps = self.params.get("steps")
+        if steps is None or step + 1 != steps:
+            return
+
+        for metric in self.model.compiled_metrics.metrics:
+            if isinstance(metric, FinalizableMetric):
+                metric.request_finalize()
 
 
 def evaluate(
@@ -59,6 +79,7 @@ def evaluate(
         steps=val_image_count // batch_size,
         use_multiprocessing=True,
         workers=batch_size * 2,
+        callbacks=[_FinalizePanopticMetrics()],
     )
 
 
