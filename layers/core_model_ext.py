@@ -313,6 +313,8 @@ class SegManaged(SegFoundation):
             if label is not None and not isinstance(label, dict):
                 label = {self.dict_inputs_label_key: label}
 
+        if is_dict_inputs and not isinstance(image_tensor, dict):
+            image_tensor = {self.dict_inputs_image_key: image_tensor}
 
         if is_dict_inputs:
             if self.backbone_outputs_dict_flatten_endpoints:
