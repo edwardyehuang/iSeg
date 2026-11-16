@@ -94,28 +94,22 @@ class Muon_EXT(Optimizer):
         super().build(variables)
         if hasattr(self, "_muon_momentums"):
             return
-        self._muon_momentums = []
-        self._adamw_momentums = []
-        self._adamw_velocities = []
+        self._muon_momentums = [None] * len(variables)
+        self._adamw_momentums = [None] * len(variables)
+        self._adamw_velocities = [None] * len(variables)
         self._is_muon = []
-        for var in variables:
+        for index, var in enumerate(variables):
             if len(var.shape) >= 2:
-                self._muon_momentums.append(
-                    self.add_variable_from_reference(
-                        var, "muon_momentum"
-                    )
+                self._muon_momentums[index] = self.add_variable_from_reference(
+                    var, "muon_momentum"
                 )
                 self._is_muon.append(True)
             else:
-                self._adamw_momentums.append(
-                    self.add_variable_from_reference(
-                        var, "adamw_momentum"
-                    )
+                self._adamw_momentums[index] = self.add_variable_from_reference(
+                    var, "adamw_momentum"
                 )
-                self._adamw_velocities.append(
-                    self.add_variable_from_reference(
-                        var, "adamw_velocity"
-                    )
+                self._adamw_velocities[index] = self.add_variable_from_reference(
+                    var, "adamw_velocity"
                 )
                 self._is_muon.append(False)
 
@@ -124,7 +118,7 @@ class Muon_EXT(Optimizer):
         if self._is_muon[idx]:
             self._muon_update_step(gradient, variable, learning_rate, idx)
         else:
-            self._adamw_update_step(gradient, variable, idx)
+            self._adamw_update_step(gradient, variable, learning_rate, idx)
 
     def _muon_update_step(self, gradient, variable, learning_rate, idx):
         lr = ops.cast(learning_rate, variable.dtype)
@@ -133,6 +127,7 @@ class Muon_EXT(Optimizer):
 
         m = self._muon_momentums[idx]
         momentum = ops.cast(self.momentum, variable.dtype)
+        gradient = ops.cast(gradient, variable.dtype)
 
         self.assign(
             m,
@@ -147,9 +142,7 @@ class Muon_EXT(Optimizer):
         original_shape = ops.shape(update)
         rank = len(update.shape)
         if rank > 2:
-            update = ops.reshape(
-                update, [ops.shape(update)[0], -1]
-            )
+            update = ops.reshape(update, [-1, update.shape[-1]])
 
         update = zeropower_via_newtonschulz5(update, steps=self.ns_steps)
 
@@ -163,20 +156,18 @@ class Muon_EXT(Optimizer):
         if rank > 2:
             update = ops.reshape(update, original_shape)
 
-        if self.weight_decay != 0:
-            self.assign_sub(
-                variable,
-                variable
-                * ops.cast(self.lr * self.weight_decay, variable.dtype),
-            )
-
         self.assign_sub(variable, update * lr)
 
-    def _adamw_update_step(self, gradient, variable, idx):
-        lr = ops.cast(self.adamw_lr, variable.dtype)
+    def _adamw_learning_rate(self, learning_rate, dtype):
+        lr = learning_rate if self.adamw_lr is self.lr else self.adamw_lr
+        return ops.cast(lr, dtype)
+
+    def _adamw_update_step(self, gradient, variable, learning_rate, idx):
+        lr = self._adamw_learning_rate(learning_rate, variable.dtype)
         if hasattr(variable, "lr_multiplier"):
             lr = lr * variable.lr_multiplier
 
+        gradient = ops.cast(gradient, variable.dtype)
         local_step = ops.cast(self.iterations + 1, variable.dtype)
         beta_1_power = ops.power(
             ops.cast(self.adamw_beta_1, variable.dtype), local_step
@@ -198,20 +189,25 @@ class Muon_EXT(Optimizer):
             v,
             v + (ops.square(gradient) - v) * (1 - self.adamw_beta_2),
         )
-
-        if self.adamw_weight_decay != 0:
-            self.assign_sub(
-                variable,
-                variable
-                * ops.cast(
-                    self.adamw_lr * self.adamw_weight_decay, variable.dtype
-                ),
-            )
-
         self.assign_sub(
             variable,
             (m * alpha) / (ops.sqrt(v) + self.adamw_epsilon),
         )
+
+    def _apply_weight_decay(self, variables):
+        for variable in variables:
+            if not self._use_weight_decay(variable):
+                continue
+            if self._is_muon[self._get_variable_index(variable)]:
+                weight_decay = self.weight_decay
+                lr = ops.cast(self.learning_rate, variable.dtype)
+            else:
+                weight_decay = self.adamw_weight_decay
+                lr = self._adamw_learning_rate(self.learning_rate, variable.dtype)
+            if weight_decay is None:
+                continue
+            wd = ops.cast(weight_decay, variable.dtype)
+            variable.assign(variable - variable * wd * lr)
 
     def get_config(self):
         config = super().get_config()

@@ -78,12 +78,12 @@ class Muon_EXT(_OPTIMIZER):
         **kwargs,
     ):
         super().__init__(
-            learning_rate=lr,
             name=name,
             clipnorm=clipnorm,
             clipvalue=clipvalue,
             **kwargs,
         )
+        self._learning_rate = self._build_learning_rate(lr)
         self.lr = lr
         self.weight_decay = weight_decay
         self.momentum = momentum
@@ -142,6 +142,7 @@ class Muon_EXT(_OPTIMIZER):
                 gradient.values,
                 tf.shape(variable),
             )
+        gradient = tf.cast(gradient, variable.dtype)
 
         m.assign_add((gradient - m) * (1 - momentum))
 
@@ -165,15 +166,22 @@ class Muon_EXT(_OPTIMIZER):
         if rank > 2:
             update = tf.reshape(update, original_shape)
 
-        if self.weight_decay != 0:
-            variable.assign_sub(
-                variable * tf.cast(self.lr * self.weight_decay, variable.dtype)
-            )
-
         variable.assign_sub(update * lr)
 
+    def _adamw_learning_rate(self, dtype):
+        if isinstance(
+            self.adamw_lr, tf.keras.optimizers.schedules.LearningRateSchedule
+        ):
+            if self.adamw_lr is self._learning_rate:
+                lr = self.learning_rate
+            else:
+                lr = self.adamw_lr(self.iterations)
+        else:
+            lr = self.adamw_lr
+        return tf.cast(lr, dtype)
+
     def _adamw_update_step(self, gradient, variable, var_key):
-        lr = tf.cast(self.adamw_lr, variable.dtype)
+        lr = self._adamw_learning_rate(variable.dtype)
         if hasattr(variable, "lr_multiplier"):
             lr = lr * variable.lr_multiplier
 
@@ -191,6 +199,11 @@ class Muon_EXT(_OPTIMIZER):
         alpha = lr * tf.sqrt(1 - beta_2_power) / (1 - beta_1_power)
 
         if isinstance(gradient, tf.IndexedSlices):
+            gradient = tf.IndexedSlices(
+                tf.cast(gradient.values, variable.dtype),
+                gradient.indices,
+                gradient.dense_shape,
+            )
             m.assign_add(-m * (1 - self.adamw_beta_1))
             m.scatter_add(
                 tf.IndexedSlices(
@@ -204,31 +217,30 @@ class Muon_EXT(_OPTIMIZER):
                     gradient.indices,
                 )
             )
-            if self.adamw_weight_decay != 0:
-                variable.assign_sub(
-                    variable
-                    * tf.cast(
-                        self.adamw_lr * self.adamw_weight_decay, variable.dtype
-                    )
-                )
-            variable.assign_sub(
-                (m * alpha) / (tf.sqrt(v) + self.adamw_epsilon)
-            )
         else:
+            gradient = tf.cast(gradient, variable.dtype)
             m.assign_add((gradient - m) * (1 - self.adamw_beta_1))
             v.assign_add(
                 (tf.square(gradient) - v) * (1 - self.adamw_beta_2)
             )
-            if self.adamw_weight_decay != 0:
-                variable.assign_sub(
-                    variable
-                    * tf.cast(
-                        self.adamw_lr * self.adamw_weight_decay, variable.dtype
-                    )
-                )
-            variable.assign_sub(
-                (m * alpha) / (tf.sqrt(v) + self.adamw_epsilon)
-            )
+        variable.assign_sub(
+            (m * alpha) / (tf.sqrt(v) + self.adamw_epsilon)
+        )
+
+    def _apply_weight_decay(self, variables):
+        for variable in variables:
+            if not self._use_weight_decay(variable):
+                continue
+            if self._use_muon_dict[self._var_key(variable)]:
+                weight_decay = self.weight_decay
+                lr = tf.cast(self.learning_rate, variable.dtype)
+            else:
+                weight_decay = self.adamw_weight_decay
+                lr = self._adamw_learning_rate(variable.dtype)
+            if weight_decay is None:
+                continue
+            wd = tf.cast(weight_decay, variable.dtype)
+            variable.assign_sub(variable * wd * lr)
 
     def _clip_gradients(self, grads):
         clipped_grads = []
@@ -242,12 +254,12 @@ class Muon_EXT(_OPTIMIZER):
         config = super().get_config()
         config.update(
             {
-                "lr": self.lr,
+                "lr": self._serialize_hyperparameter(self._learning_rate),
                 "weight_decay": self.weight_decay,
                 "momentum": self.momentum,
                 "nesterov": self.nesterov,
                 "ns_steps": self.ns_steps,
-                "adamw_lr": self.adamw_lr,
+                "adamw_lr": self._serialize_hyperparameter(self.adamw_lr),
                 "adamw_beta_1": self.adamw_beta_1,
                 "adamw_beta_2": self.adamw_beta_2,
                 "adamw_weight_decay": self.adamw_weight_decay,
