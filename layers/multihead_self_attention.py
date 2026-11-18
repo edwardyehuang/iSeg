@@ -28,10 +28,11 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
         dropout_rate=0.0,
         use_jit_compile=False,
         return_attention_map=False,
-        name=None
+        name=None,
+        dtype=None,
     ):
 
-        super().__init__(trainable=trainable, name=name)
+        super().__init__(trainable=trainable, name=name, dtype=dtype)
 
         self.filters = filters
         self.num_heads = num_heads
@@ -100,7 +101,10 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
                 name="value_conv"
             )
 
-        self.dropout_layer = keras.layers.Dropout(self.dropout_rate)
+        self.dropout_layer = keras.layers.Dropout(
+            self.dropout_rate,
+            dtype=self.compute_dtype,
+        )
 
         super().build(input_shape)
 
