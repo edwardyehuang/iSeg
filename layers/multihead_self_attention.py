@@ -197,6 +197,10 @@ class MultiHeadSelfAttentionLayer (Keras3_Model_Wrapper):
                 key = tf.identity(query, name="shared_key")
 
             value = self.value_conv(value) # [N, H, W, C]
+        else:
+            query = tf.cast(query, self.compute_dtype)
+            key = tf.cast(key, self.compute_dtype)
+            value = tf.cast(value, self.compute_dtype)
 
 
         x = self.compute_attention(query, key, value, training=training)
